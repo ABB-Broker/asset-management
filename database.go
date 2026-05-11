@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/glebarez/sqlite"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -13,19 +14,20 @@ import (
 //
 // Supported DB_DRIVER values:
 //   - "sqlite" (default) — CGO-free SQLite via modernc.org/sqlite
+//   - "mysql" — MySQL / MariaDB via gorm.io/driver/mysql
 //
-// To add MySQL or PostgreSQL support:
-//  1. Add the driver to go.mod:
-//     gorm.io/driver/mysql v1.5.x
-//     gorm.io/driver/postgres v1.5.x
-//  2. Import the driver package in this file.
-//  3. Add a case to the switch below, e.g.:
-//     case "mysql":  dialector = mysql.Open(cfg.DBDSN)
-//     case "postgres": dialector = postgres.Open(cfg.DBDSN)
+// MySQL DB_DSN example:
+//
+//	user:password@tcp(host:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local
 func initDB(cfg Config) *gorm.DB {
 	var dialector gorm.Dialector
 
 	switch cfg.DBDriver {
+	case "mysql":
+		if cfg.DBDSN == "" {
+			log.Fatal("DB_DSN must be set when DB_DRIVER=mysql")
+		}
+		dialector = mysql.Open(cfg.DBDSN)
 	case "sqlite":
 		dsn := cfg.DBDSN
 		if dsn == "" {
@@ -46,6 +48,7 @@ func initDB(cfg Config) *gorm.DB {
 
 	// Enable foreign-key enforcement for SQLite so that the ON DELETE CASCADE
 	// constraint on Asset.CategoryID is honoured at the database level.
+	// MySQL enforces FK constraints by default.
 	if cfg.DBDriver == "sqlite" || cfg.DBDriver == "" {
 		if err := db.Exec("PRAGMA foreign_keys = ON").Error; err != nil {
 			log.Fatalf("enable sqlite foreign keys: %v", err)

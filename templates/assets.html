@@ -1,50 +1,118 @@
 {{template "layout_top" .}}
-<h2 class="mb-3">Asset Master</h2>
-<div class="card mb-4">
-  <div class="card-body">
-    <h5>{{if .Asset.ID}}Edit{{else}}Create{{end}} Asset</h5>
-    <form method="post" action="{{if .Asset.ID}}/assets/update{{else}}/assets/create{{end}}">
-      {{if .Asset.ID}}<input type="hidden" name="id" value="{{.Asset.ID}}" />{{end}}
-      <div class="row g-3 mb-2">
-        <div class="col-md-4"><input class="form-control" name="name" placeholder="Asset name" value="{{.Asset.Name}}" required /></div>
-        <div class="col-md-3"><input class="form-control" name="serial_number" placeholder="Serial number" value="{{.Asset.SerialNumber}}" required /></div>
-        <div class="col-md-3"><input type="date" class="form-control" name="purchase_date" value="{{.Asset.PurchaseDate}}" required /></div>
-        <div class="col-md-2">
-          <select class="form-select" name="category_id" required>
-            <option value="">Category</option>
-            {{range .Categories}}<option value="{{.ID}}" {{if eq $.Asset.CategoryID .ID}}selected{{end}}>{{.Name}}</option>{{end}}
-          </select>
-        </div>
+
+<div class="page-title">
+  <div class="title_left">
+    <h3><i class="fa fa-archive"></i> Asset Master</h3>
+  </div>
+</div>
+<div class="clearfix"></div>
+
+<!-- Form panel -->
+<div class="row">
+  <div class="col-md-12">
+    <div class="x_panel">
+      <div class="x_title">
+        <h2>{{if .Asset.ID}}<i class="fa fa-pencil"></i> Edit Asset{{else}}<i class="fa fa-plus"></i> Create Asset{{end}}</h2>
+        <div class="clearfix"></div>
       </div>
-      <div class="d-grid d-md-block"><button class="btn btn-primary" type="submit">{{if .Asset.ID}}Update{{else}}Create{{end}}</button></div>
-    </form>
+      <div class="x_content">
+        <form method="post" action="{{if .Asset.ID}}/assets/update{{else}}/assets/create{{end}}" class="form-horizontal">
+          {{if .Asset.ID}}<input type="hidden" name="id" value="{{.Asset.ID}}" />{{end}}
+          <div class="row">
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Asset Name <span class="text-danger">*</span></label>
+                <input class="form-control" name="name" placeholder="Asset name" value="{{.Asset.Name}}" required />
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Serial Number <span class="text-danger">*</span></label>
+                <input class="form-control" name="serial_number" placeholder="Serial number" value="{{.Asset.SerialNumber}}" required />
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="form-group">
+                <label>Purchase Date <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" name="purchase_date" value="{{.Asset.PurchaseDate}}" required />
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="form-group">
+                <label>Category <span class="text-danger">*</span></label>
+                <select class="form-control" name="category_id" required>
+                  <option value="">-- Select --</option>
+                  {{range .Categories}}<option value="{{.ID}}" {{if eq $.Asset.CategoryID .ID}}selected{{end}}>{{.Name}}</option>{{end}}
+                </select>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="form-group">
+                <label>&nbsp;</label>
+                <button class="btn btn-primary btn-block" type="submit">
+                  {{if .Asset.ID}}<i class="fa fa-save"></i> Update{{else}}<i class="fa fa-plus"></i> Create{{end}}
+                </button>
+              </div>
+              {{if .Asset.ID}}
+              <a href="/assets" class="btn btn-default btn-block" style="margin-top:5px"><i class="fa fa-times"></i> Cancel</a>
+              {{end}}
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </div>
-<div class="card">
-  <div class="card-body p-0">
-    <table class="table table-striped mb-0">
-      <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Serial</th><th>Purchase Date</th><th width="170">Action</th></tr></thead>
-      <tbody>
-      {{range .Assets}}
-        <tr>
-          <td>{{.ID}}</td>
-          <td>{{.Name}}</td>
-          <td>{{.Category.Name}}</td>
-          <td>{{.SerialNumber}}</td>
-          <td>{{.PurchaseDate}}</td>
-          <td>
-            <a class="btn btn-sm btn-outline-primary" href="/assets/edit?id={{.ID}}">Edit</a>
-            <form method="post" action="/assets/delete" style="display:inline">
-              <input type="hidden" name="id" value="{{.ID}}" />
-              <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
-            </form>
-          </td>
-        </tr>
-      {{else}}
-        <tr><td colspan="6" class="text-center py-3">No assets yet.</td></tr>
-      {{end}}
-      </tbody>
-    </table>
+
+<!-- Table panel -->
+<div class="row">
+  <div class="col-md-12">
+    <div class="x_panel">
+      <div class="x_title">
+        <h2><i class="fa fa-list"></i> Asset List <small>{{len .Assets}} record(s)</small></h2>
+        <div class="clearfix"></div>
+      </div>
+      <div class="x_content no-pad">
+        <table class="table table-striped table-bordered">
+          <thead>
+            <tr>
+              <th width="60">#</th>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Serial Number</th>
+              <th>Purchase Date</th>
+              <th width="160" class="text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+          {{range .Assets}}
+            <tr>
+              <td>{{.ID}}</td>
+              <td><strong>{{.Name}}</strong></td>
+              <td><span class="label label-default">{{.Category.Name}}</span></td>
+              <td><code>{{.SerialNumber}}</code></td>
+              <td>{{.PurchaseDate}}</td>
+              <td class="text-center">
+                <a class="btn btn-xs btn-primary" href="/assets/edit?id={{.ID}}" title="Edit">
+                  <i class="fa fa-pencil"></i> Edit
+                </a>
+                <form method="post" action="/assets/delete" style="display:inline">
+                  <input type="hidden" name="id" value="{{.ID}}" />
+                  <button class="btn btn-xs btn-danger" type="submit"
+                          onclick="return confirm('Delete asset \u0022{{.Name}}\u0022?')">
+                    <i class="fa fa-trash"></i> Delete
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {{else}}
+            <tr><td colspan="6" class="text-center text-muted" style="padding:20px"><i class="fa fa-inbox"></i> No assets yet.</td></tr>
+          {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
+
 {{template "layout_bottom" .}}
