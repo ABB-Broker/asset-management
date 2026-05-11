@@ -27,6 +27,17 @@ type Asset struct {
 	PurchaseDate string
 }
 
+// User is the GORM model for application user accounts (separate from the
+// single hard-coded admin credential used for the login flow).
+type User struct {
+	gorm.Model
+	Username string `gorm:"uniqueIndex;not null"`
+	Email    string `gorm:"uniqueIndex"`
+	FullName string
+	Role     string `gorm:"default:'viewer'"` // "admin" | "editor" | "viewer"
+	Active   bool   `gorm:"default:true"`
+}
+
 // Session stores an authenticated or pending-2FA user session in the database.
 // DB-backed storage is required for Fiber Prefork mode where each worker is a
 // separate OS process and cannot share in-memory state.

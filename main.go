@@ -3,17 +3,26 @@ package main
 import (
 	"log"
 
+	contribi18n "github.com/gofiber/contrib/v3/i18n"
+	swaggo "github.com/gofiber/contrib/v3/swaggo"
+	fiberZap "github.com/gofiber/contrib/v3/zap"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/template/html/v2"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/text/language"
 	"gorm.io/gorm"
+
+	// Import generated Swagger docs so they are registered on startup.
+	_ "github.com/ABB-Broker/asset-management/docs"
 )
 
 // App holds shared application state available to all handlers.
 type App struct {
-	db        *gorm.DB
-	cfg       Config
-	adminHash []byte
+	db          *gorm.DB
+	cfg         Config
+	adminHash   []byte
+	translator  *contribi18n.I18n
 }
 
 func main() {
@@ -25,8 +34,21 @@ func main() {
 	}
 
 	db := initDB(cfg)
-	handler := &App{db: db, cfg: cfg, adminHash: hash}
-	fApp := newFiberApp(handler)
+
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatalf("zap logger init: %v", err)
+	}
+	defer logger.Sync() //nolint:errcheck
+
+	translator := contribi18n.New(&contribi18n.Config{
+		RootPath:        "./localize",
+		AcceptLanguages: []language.Tag{language.English, language.Indonesian},
+		DefaultLanguage: language.English,
+	})
+
+	handler := &App{db: db, cfg: cfg, adminHash: hash, translator: translator}
+	fApp := newFiberApp(handler, logger)
 
 	if !fiber.IsChild() {
 		log.Printf("Asset management starting on :%s (prefork=%v, admin: %s)", cfg.Port, cfg.Prefork, cfg.AdminUsername)
@@ -40,12 +62,25 @@ func main() {
 // newFiberApp creates and configures the Fiber application with all routes.
 // Prefork is configured at Listen time (via main) rather than here so that
 // tests can call fApp.Test() without triggering the prefork machinery.
-func newFiberApp(handler *App) *fiber.App {
+// logger may be nil in tests; when nil a no-op zap logger is used.
+func newFiberApp(handler *App, logger *zap.Logger) *fiber.App {
 	engine := html.New("./templates", ".html")
 
 	fApp := fiber.New(fiber.Config{
 		Views: engine,
 	})
+
+	// ── Zap structured logger middleware ──────────────────────────────────
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+	fApp.Use(fiberZap.New(fiberZap.Config{
+		Logger:   logger,
+		SkipURIs: []string{"/swagger/*"},
+	}))
+
+	// ── Swagger UI ────────────────────────────────────────────────────────
+	fApp.Get("/swagger/*", swaggo.HandlerDefault)
 
 	// Public routes
 	fApp.Get("/", func(c fiber.Ctx) error {
@@ -69,6 +104,13 @@ func newFiberApp(handler *App) *fiber.App {
 	auth.Get("/assets/edit", handler.assetsEdit)
 	auth.Post("/assets/update", handler.assetsUpdate)
 	auth.Post("/assets/delete", handler.assetsDelete)
+
+	// User Master routes
+	auth.Get("/users", handler.usersIndex)
+	auth.Post("/users/create", handler.usersCreate)
+	auth.Get("/users/edit", handler.usersEdit)
+	auth.Post("/users/update", handler.usersUpdate)
+	auth.Post("/users/delete", handler.usersDelete)
 
 	return fApp
 }

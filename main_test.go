@@ -31,7 +31,7 @@ func newTestApp(t *testing.T) (*App, *fiber.App) {
 	if err != nil {
 		t.Fatalf("open in-memory db: %v", err)
 	}
-	if err := db.AutoMigrate(&Category{}, &Asset{}, &Session{}); err != nil {
+	if err := db.AutoMigrate(&Category{}, &Asset{}, &User{}, &Session{}); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 
@@ -41,8 +41,8 @@ func newTestApp(t *testing.T) (*App, *fiber.App) {
 		TOTPSecret:    "JBSWY3DPEHPK3PXP",
 		Prefork:       false,
 	}
-	handler := &App{db: db, cfg: cfg, adminHash: hash}
-	fApp := newFiberApp(handler)
+	handler := &App{db: db, cfg: cfg, adminHash: hash, translator: nil}
+	fApp := newFiberApp(handler, nil)
 	return handler, fApp
 }
 

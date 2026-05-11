@@ -102,11 +102,17 @@
           <li class="{{if eq .CurrentPath "/assets"}}current-page{{end}}">
             <a href="/assets"><i class="fa fa-archive"></i> Asset Master</a>
           </li>
+          <li class="{{if eq .CurrentPath "/users"}}current-page{{end}}">
+            <a href="/users"><i class="fa fa-users"></i> User Master</a>
+          </li>
         </ul>
       </div>
       <div class="menu_section">
         <h3>Account</h3>
         <ul class="nav side-menu">
+          <li>
+            <a href="/swagger/" target="_blank"><i class="fa fa-book"></i> API Docs</a>
+          </li>
           <li>
             <a href="/logout"><i class="fa fa-sign-out"></i> Logout</a>
           </li>
@@ -123,6 +129,10 @@
         <span class="nav toggle"><i class="fa fa-bars"></i></span>
         <div class="top_right">
           <span class="username"><i class="fa fa-user-o" style="margin-right:4px"></i>Admin</span>
+          <span>|</span>
+          <a href="?lang=en" title="English"><i class="fa fa-flag"></i> EN</a>
+          <a href="?lang=id" title="Indonesia"><i class="fa fa-flag"></i> ID</a>
+          <span>|</span>
           <a href="/logout"><i class="fa fa-power-off"></i> Logout</a>
         </div>
       </nav>

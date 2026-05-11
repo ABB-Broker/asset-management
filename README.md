@@ -3,13 +3,17 @@
 Assets Management by ABB Insurance Brokers.
 
 ## Features
-- **Fiber v3** web framework with **Prefork** enabled (one worker per CPU core)
-- **GORM** database layer — SQLite by default; swap in MySQL/PostgreSQL via env vars
+- **Fiber v3.2.0** web framework with **Prefork** enabled (one worker per CPU core)
+- **GORM** database layer — SQLite by default; MySQL supported via env var
 - Login with **bcrypt** password hashing
 - **Two-Factor Authentication** (TOTP — compatible with Google Authenticator / Authy)
+- **User Master** CRUD (manage application user accounts with role-based access)
 - **Category Master** CRUD
 - **Asset Master** CRUD (linked to category master with cascade delete)
-- **Metis-style** admin sidebar layout
+- **Gentelella Bootstrap Admin Template** dark sidebar UI
+- **Zap structured logger** middleware (`gofiber/contrib/v3/zap`)
+- **Swagger API documentation** at `/swagger/` (`gofiber/contrib/v3/swaggo`)
+- **i18n multi-language** support — English (`en`) and Indonesian (`id`) via `gofiber/contrib/v3/i18n`
 
 ## Quick Start
 
@@ -27,6 +31,25 @@ Open `http://localhost:8080`
 | TOTP secret | `JBSWY3DPEHPK3PXP` |
 
 Scan the TOTP secret with Google Authenticator or Authy, or use any RFC 6238 TOTP tool.
+
+## Swagger API Docs
+
+Visit `http://localhost:8080/swagger/` after starting the server.
+
+To regenerate the docs after adding new API annotations:
+
+```bash
+go install github.com/swaggo/swag/cmd/swag@v1.16.4
+swag init --parseDependency=true
+```
+
+## i18n
+
+Language is selected from the `Accept-Language` request header or the `lang` query parameter.
+
+Supported: `en` (English, default) and `id` (Bahasa Indonesia).
+
+Locale files live in `./localize/`.  Add a new `<lang>.yaml` file and register the `language.Tag` in `main.go` to extend.
 
 ## Configuration (environment variables)
 

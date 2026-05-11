@@ -1,0 +1,65 @@
+- id: app.title
+  translation: Asset Management
+
+- id: nav.categories
+  translation: Category Master
+
+- id: nav.assets
+  translation: Asset Master
+
+- id: nav.users
+  translation: User Master
+
+- id: nav.logout
+  translation: Logout
+
+- id: nav.master_data
+  translation: Master Data
+
+- id: nav.account
+  translation: Account
+
+- id: login.title
+  translation: Asset Management
+
+- id: login.subtitle
+  translation: Sign in to your administrator account
+
+- id: login.username
+  translation: Username
+
+- id: login.password
+  translation: Password
+
+- id: login.button
+  translation: Continue to 2FA
+
+- id: login.error_invalid
+  translation: Invalid username or password
+
+- id: user.created
+  translation: User created successfully
+
+- id: user.updated
+  translation: User updated successfully
+
+- id: user.deleted
+  translation: User deleted successfully
+
+- id: category.created
+  translation: Category created successfully
+
+- id: category.updated
+  translation: Category updated successfully
+
+- id: category.deleted
+  translation: Category deleted successfully
+
+- id: asset.created
+  translation: Asset created successfully
+
+- id: asset.updated
+  translation: Asset updated successfully
+
+- id: asset.deleted
+  translation: Asset deleted successfully
