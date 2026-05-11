@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/bits"
 	"net/url"
 	"strconv"
 	"strings"
@@ -35,7 +36,7 @@ func (a *App) assetsCreate(c fiber.Ctx) error {
 }
 
 func (a *App) assetsEdit(c fiber.Ctx) error {
-	id, err := strconv.ParseUint(c.Query("id"), 10, 64)
+	id, err := strconv.ParseUint(c.Query("id"), 10, bits.UintSize)
 	if err != nil {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("invalid asset id"))
 	}
@@ -57,7 +58,7 @@ func (a *App) assetsEdit(c fiber.Ctx) error {
 }
 
 func (a *App) assetsUpdate(c fiber.Ctx) error {
-	id, err := strconv.ParseUint(c.FormValue("id"), 10, 64)
+	id, err := strconv.ParseUint(c.FormValue("id"), 10, bits.UintSize)
 	if err != nil {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("invalid asset id"))
 	}
@@ -79,7 +80,7 @@ func (a *App) assetsUpdate(c fiber.Ctx) error {
 }
 
 func (a *App) assetsDelete(c fiber.Ctx) error {
-	id, err := strconv.ParseUint(c.FormValue("id"), 10, 64)
+	id, err := strconv.ParseUint(c.FormValue("id"), 10, bits.UintSize)
 	if err != nil {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("invalid asset id"))
 	}
@@ -96,7 +97,7 @@ func (a *App) assetFromCtx(c fiber.Ctx) (Asset, error) {
 	name := strings.TrimSpace(c.FormValue("name"))
 	serial := strings.TrimSpace(c.FormValue("serial_number"))
 	purchaseDate := strings.TrimSpace(c.FormValue("purchase_date"))
-	categoryID, err := strconv.ParseUint(c.FormValue("category_id"), 10, 64)
+	categoryID, err := strconv.ParseUint(c.FormValue("category_id"), 10, bits.UintSize)
 	if err != nil || categoryID == 0 {
 		return Asset{}, fmt.Errorf("invalid category id")
 	}

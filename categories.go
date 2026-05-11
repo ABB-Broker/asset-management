@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math/bits"
 	"net/url"
 	"strconv"
 	"strings"
@@ -32,7 +33,7 @@ func (a *App) categoriesCreate(c fiber.Ctx) error {
 }
 
 func (a *App) categoriesEdit(c fiber.Ctx) error {
-	id, err := strconv.ParseUint(c.Query("id"), 10, 64)
+	id, err := strconv.ParseUint(c.Query("id"), 10, bits.UintSize)
 	if err != nil {
 		return c.Redirect().To("/categories?error=" + url.QueryEscape("invalid category id"))
 	}
@@ -51,7 +52,7 @@ func (a *App) categoriesEdit(c fiber.Ctx) error {
 }
 
 func (a *App) categoriesUpdate(c fiber.Ctx) error {
-	id, err := strconv.ParseUint(c.FormValue("id"), 10, 64)
+	id, err := strconv.ParseUint(c.FormValue("id"), 10, bits.UintSize)
 	if err != nil {
 		return c.Redirect().To("/categories?error=" + url.QueryEscape("invalid category id"))
 	}
@@ -69,7 +70,7 @@ func (a *App) categoriesUpdate(c fiber.Ctx) error {
 }
 
 func (a *App) categoriesDelete(c fiber.Ctx) error {
-	id, err := strconv.ParseUint(c.FormValue("id"), 10, 64)
+	id, err := strconv.ParseUint(c.FormValue("id"), 10, bits.UintSize)
 	if err != nil {
 		return c.Redirect().To("/categories?error=" + url.QueryEscape("invalid category id"))
 	}
@@ -77,8 +78,8 @@ func (a *App) categoriesDelete(c fiber.Ctx) error {
 	if err := a.db.First(&cat, id).Error; err != nil {
 		return c.Redirect().To("/categories?error=" + url.QueryEscape("category not found"))
 	}
-	// Delete associated assets before removing the category.
-	a.db.Where("category_id = ?", cat.ID).Delete(&Asset{})
+	// Cascade deletion of associated assets is handled by the database-level
+	// ON DELETE CASCADE constraint (enabled via PRAGMA foreign_keys = ON for SQLite).
 	a.db.Delete(&cat)
 	return c.Redirect().To("/categories?message=" + url.QueryEscape("category deleted"))
 }

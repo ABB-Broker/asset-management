@@ -44,6 +44,14 @@ func initDB(cfg Config) *gorm.DB {
 		log.Fatalf("database connect failed [driver=%s]: %v", cfg.DBDriver, err)
 	}
 
+	// Enable foreign-key enforcement for SQLite so that the ON DELETE CASCADE
+	// constraint on Asset.CategoryID is honoured at the database level.
+	if cfg.DBDriver == "sqlite" || cfg.DBDriver == "" {
+		if err := db.Exec("PRAGMA foreign_keys = ON").Error; err != nil {
+			log.Fatalf("enable sqlite foreign keys: %v", err)
+		}
+	}
+
 	if err := db.AutoMigrate(&Category{}, &Asset{}, &Session{}); err != nil {
 		log.Fatalf("database migration failed: %v", err)
 	}
