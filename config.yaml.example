@@ -1,0 +1,29 @@
+# Application configuration example.
+# Copy this file to config.yaml and adjust the values as needed.
+# All settings can also be overridden via environment variables (e.g. ADMIN_PASSWORD=secret).
+
+# ── Admin account ────────────────────────────────────────────────────────────
+admin_username: admin
+admin_password: admin123
+
+# Base-32 TOTP secret key (RFC 6238) used for two-factor authentication.
+totp_secret: 353353
+
+# ── Database ─────────────────────────────────────────────────────────────────
+# Supported drivers: sqlite, mysql
+db_driver: sqlite
+db_open_connection: 250
+db_max_idle_connection: 12
+
+# SQLite example (default):
+db_dsn: asset_management.db
+
+# MySQL example:
+# db_dsn: "user:pass@tcp(host:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Asia/Jakarta"
+
+# ── HTTP server ───────────────────────────────────────────────────────────────
+# TCP port the server listens on.
+port: "8080"
+
+# Enable Fiber multi-process prefork mode (one worker per CPU core).
+prefork: true

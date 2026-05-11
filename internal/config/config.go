@@ -25,6 +25,13 @@ type Config struct {
 
 	// DBDriver selects the GORM database driver: "sqlite" (default) or "mysql".
 	DBDriver string
+
+	// DBOpenConnection is the maximum number of open connections to the database.
+	DBOpenConnection int
+
+	// DBMaxIdleConnection is the maximum number of idle connections in the pool.
+	DBMaxIdleConnection int
+
 	// DBDSN is the data source name passed to the selected GORM driver.
 	//   SQLite: file path, e.g. "asset_management.db" or ":memory:"
 	//   MySQL:  "user:pass@tcp(host:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
@@ -47,6 +54,8 @@ func Load() Config {
 	v.SetDefault("totp_secret", "353353")
 	v.SetDefault("db_driver", "sqlite")
 	v.SetDefault("db_dsn", "asset_management.db")
+	v.SetDefault("db_open_connection", 250)
+	v.SetDefault("db_max_idle_connection", 12)
 	v.SetDefault("port", "8080")
 	v.SetDefault("prefork", true)
 
@@ -69,12 +78,14 @@ func Load() Config {
 	v.AutomaticEnv()
 
 	return Config{
-		AdminUsername: v.GetString("admin_username"),
-		AdminPassword: v.GetString("admin_password"),
-		TOTPSecret:    v.GetString("totp_secret"),
-		DBDriver:      v.GetString("db_driver"),
-		DBDSN:         v.GetString("db_dsn"),
-		Port:          v.GetString("port"),
-		Prefork:       v.GetBool("prefork"),
+		AdminUsername:       v.GetString("admin_username"),
+		AdminPassword:       v.GetString("admin_password"),
+		TOTPSecret:          v.GetString("totp_secret"),
+		DBDriver:            v.GetString("db_driver"),
+		DBDSN:               v.GetString("db_dsn"),
+		DBOpenConnection:    v.GetInt("db_open_connection"),
+		DBMaxIdleConnection: v.GetInt("db_max_idle_connection"),
+		Port:                v.GetString("port"),
+		Prefork:             v.GetBool("prefork"),
 	}
 }

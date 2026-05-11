@@ -3,6 +3,7 @@ package database
 
 import (
 	"log"
+	"time"
 
 	"github.com/ABB-Broker/asset-management/internal/config"
 	"github.com/ABB-Broker/asset-management/internal/models"
@@ -61,6 +62,16 @@ func Init(cfg config.Config) *gorm.DB {
 	if err := db.AutoMigrate(&models.Category{}, &models.Asset{}, &models.User{}, &models.Session{}); err != nil {
 		log.Fatalf("database migration failed: %v", err)
 	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Fatalf("Failed to get sql.DB: %v", err)
+	}
+
+	// ✅ Pooling optimization
+	sqlDB.SetMaxOpenConns(cfg.DBOpenConnection)
+	sqlDB.SetMaxIdleConns(cfg.DBMaxIdleConnection)
+	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	return db
 }
