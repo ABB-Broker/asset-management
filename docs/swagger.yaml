@@ -1,3 +1,4 @@
+basePath: /api/v1
 definitions:
   gorm.DeletedAt:
     properties:
@@ -7,7 +8,7 @@ definitions:
         description: Valid is true if Time is not NULL
         type: boolean
     type: object
-  main.User:
+  models.User:
     properties:
       active:
         type: boolean
@@ -29,8 +30,18 @@ definitions:
       username:
         type: string
     type: object
+host: localhost:8080
 info:
-  contact: {}
+  contact:
+    name: ABB-Broker
+    url: https://github.com/ABB-Broker/asset-management
+  description: REST API for the Asset Management system — users, categories, and assets.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Asset Management API
+  version: "1.0"
 paths:
   /api/v1/users:
     get:
@@ -42,7 +53,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/main.User'
+              $ref: '#/definitions/models.User'
             type: array
       security:
       - SessionCookie: []
@@ -51,22 +62,36 @@ paths:
       - users
     post:
       consumes:
-      - application/json
+      - application/x-www-form-urlencoded
       description: Creates a new user account.
       parameters:
-      - description: User payload
-        in: body
-        name: user
+      - description: Username
+        in: formData
+        name: username
         required: true
-        schema:
-          $ref: '#/definitions/main.User'
+        type: string
+      - description: Email address
+        in: formData
+        name: email
+        type: string
+      - description: Full name
+        in: formData
+        name: full_name
+        type: string
+      - description: Role (admin|editor|viewer)
+        in: formData
+        name: role
+        required: true
+        type: string
+      - description: Active (true|false)
+        in: formData
+        name: active
+        type: string
       produces:
       - application/json
       responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/main.User'
+        "303":
+          description: See Other
       security:
       - SessionCookie: []
       summary: Create user
@@ -109,7 +134,7 @@ paths:
         name: username
         required: true
         type: string
-      - description: Email
+      - description: Email address
         in: formData
         name: email
         type: string
@@ -136,4 +161,9 @@ paths:
       summary: Update user
       tags:
       - users
+securityDefinitions:
+  SessionCookie:
+    in: cookie
+    name: session_id
+    type: apiKey
 swagger: "2.0"

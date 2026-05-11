@@ -1,21 +1,23 @@
-package main
+package handlers
 
 import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+
+	"github.com/ABB-Broker/asset-management/internal/models"
 )
 
-// authRequired is a Fiber middleware that ensures the request carries a valid
+// AuthRequired is a Fiber middleware that ensures the request carries a valid
 // fully-authenticated session. Unauthenticated requests are redirected to /login.
-func (a *App) authRequired(c fiber.Ctx) error {
+func (a *App) AuthRequired(c fiber.Ctx) error {
 	token := c.Cookies("session_id")
 	if token == "" {
 		return c.Redirect().To("/login")
 	}
 
-	var sess Session
-	err := a.db.Where(
+	var sess models.Session
+	err := a.DB.Where(
 		"token = ? AND authenticated = ? AND expires_at > ?",
 		token, true, time.Now(),
 	).First(&sess).Error

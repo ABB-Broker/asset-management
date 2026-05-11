@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"net/url"
@@ -6,42 +6,47 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
+
+	"github.com/ABB-Broker/asset-management/internal/models"
 )
 
-func (a *App) categoriesIndex(c fiber.Ctx) error {
-	var cats []Category
-	a.db.Order("id asc").Find(&cats)
+// CategoriesIndex renders the Category Master list with an inline create form.
+func (a *App) CategoriesIndex(c fiber.Ctx) error {
+	var cats []models.Category
+	a.DB.Order("id asc").Find(&cats)
 	return c.Render("categories", fiber.Map{
 		"Title":       "Category Master",
 		"CurrentPath": "/categories",
 		"Message":     c.Query("message"),
 		"Error":       c.Query("error"),
 		"Categories":  cats,
-		"Category":    Category{},
+		"Category":    models.Category{},
 	})
 }
 
-func (a *App) categoriesCreate(c fiber.Ctx) error {
+// CategoriesCreate persists a new category.
+func (a *App) CategoriesCreate(c fiber.Ctx) error {
 	name := strings.TrimSpace(c.FormValue("name"))
 	desc := strings.TrimSpace(c.FormValue("description"))
 	if name == "" {
 		return c.Redirect().To("/categories?error=" + url.QueryEscape("category name is required"))
 	}
-	a.db.Create(&Category{Name: name, Description: desc})
+	a.DB.Create(&models.Category{Name: name, Description: desc})
 	return c.Redirect().To("/categories?message=" + url.QueryEscape("category created"))
 }
 
-func (a *App) categoriesEdit(c fiber.Ctx) error {
+// CategoriesEdit renders the edit form pre-filled with the category's current data.
+func (a *App) CategoriesEdit(c fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Query("id"), 10, 64)
 	if err != nil {
 		return c.Redirect().To("/categories?error=" + url.QueryEscape("invalid category id"))
 	}
-	var cat Category
-	if err := a.db.First(&cat, id).Error; err != nil {
+	var cat models.Category
+	if err := a.DB.First(&cat, id).Error; err != nil {
 		return c.Redirect().To("/categories?error=" + url.QueryEscape("category not found"))
 	}
-	var cats []Category
-	a.db.Order("id asc").Find(&cats)
+	var cats []models.Category
+	a.DB.Order("id asc").Find(&cats)
 	return c.Render("categories", fiber.Map{
 		"Title":       "Category Master",
 		"CurrentPath": "/categories",
@@ -50,7 +55,8 @@ func (a *App) categoriesEdit(c fiber.Ctx) error {
 	})
 }
 
-func (a *App) categoriesUpdate(c fiber.Ctx) error {
+// CategoriesUpdate saves changes to an existing category.
+func (a *App) CategoriesUpdate(c fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.FormValue("id"), 10, 64)
 	if err != nil {
 		return c.Redirect().To("/categories?error=" + url.QueryEscape("invalid category id"))
@@ -60,25 +66,26 @@ func (a *App) categoriesUpdate(c fiber.Ctx) error {
 	if name == "" {
 		return c.Redirect().To("/categories?error=" + url.QueryEscape("category name is required"))
 	}
-	var cat Category
-	if err := a.db.First(&cat, id).Error; err != nil {
+	var cat models.Category
+	if err := a.DB.First(&cat, id).Error; err != nil {
 		return c.Redirect().To("/categories?error=" + url.QueryEscape("category not found"))
 	}
-	a.db.Model(&cat).Updates(map[string]any{"name": name, "description": desc})
+	a.DB.Model(&cat).Updates(map[string]any{"name": name, "description": desc})
 	return c.Redirect().To("/categories?message=" + url.QueryEscape("category updated"))
 }
 
-func (a *App) categoriesDelete(c fiber.Ctx) error {
+// CategoriesDelete removes a category and all its assets (via ON DELETE CASCADE).
+func (a *App) CategoriesDelete(c fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.FormValue("id"), 10, 64)
 	if err != nil {
 		return c.Redirect().To("/categories?error=" + url.QueryEscape("invalid category id"))
 	}
-	var cat Category
-	if err := a.db.First(&cat, id).Error; err != nil {
+	var cat models.Category
+	if err := a.DB.First(&cat, id).Error; err != nil {
 		return c.Redirect().To("/categories?error=" + url.QueryEscape("category not found"))
 	}
 	// Cascade deletion of associated assets is handled by the database-level
 	// ON DELETE CASCADE constraint (enabled via PRAGMA foreign_keys = ON for SQLite).
-	a.db.Delete(&cat)
+	a.DB.Delete(&cat)
 	return c.Redirect().To("/categories?message=" + url.QueryEscape("category deleted"))
 }

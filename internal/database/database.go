@@ -1,25 +1,28 @@
-package main
+// Package database handles database connection and auto-migration.
+package database
 
 import (
 	"log"
 
+	"github.com/ABB-Broker/asset-management/internal/config"
+	"github.com/ABB-Broker/asset-management/internal/models"
 	"github.com/glebarez/sqlite"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
-// initDB opens the database connection using the driver specified in cfg and
+// Init opens the database connection using the driver specified in cfg and
 // runs AutoMigrate for all registered models.
 //
 // Supported DB_DRIVER values:
 //   - "sqlite" (default) — CGO-free SQLite via modernc.org/sqlite
-//   - "mysql" — MySQL / MariaDB via gorm.io/driver/mysql
+//   - "mysql"            — MySQL / MariaDB via gorm.io/driver/mysql
 //
 // MySQL DB_DSN example:
 //
 //	user:password@tcp(host:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local
-func initDB(cfg Config) *gorm.DB {
+func Init(cfg config.Config) *gorm.DB {
 	var dialector gorm.Dialector
 
 	switch cfg.DBDriver {
@@ -46,16 +49,16 @@ func initDB(cfg Config) *gorm.DB {
 		log.Fatalf("database connect failed [driver=%s]: %v", cfg.DBDriver, err)
 	}
 
-	// Enable foreign-key enforcement for SQLite so that the ON DELETE CASCADE
-	// constraint on Asset.CategoryID is honoured at the database level.
-	// MySQL enforces FK constraints by default.
+	// Enable foreign-key enforcement for SQLite so that ON DELETE CASCADE on
+	// Asset.CategoryID is honoured at the database level. MySQL enforces FK
+	// constraints by default.
 	if cfg.DBDriver == "sqlite" || cfg.DBDriver == "" {
 		if err := db.Exec("PRAGMA foreign_keys = ON").Error; err != nil {
 			log.Fatalf("enable sqlite foreign keys: %v", err)
 		}
 	}
 
-	if err := db.AutoMigrate(&Category{}, &Asset{}, &User{}, &Session{}); err != nil {
+	if err := db.AutoMigrate(&models.Category{}, &models.Asset{}, &models.User{}, &models.Session{}); err != nil {
 		log.Fatalf("database migration failed: %v", err)
 	}
 

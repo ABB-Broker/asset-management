@@ -1,4 +1,6 @@
-package main
+// Package models contains all GORM database model types for the
+// asset-management application.
+package models
 
 import (
 	"crypto/rand"
@@ -50,7 +52,9 @@ type Session struct {
 	ExpiresAt     time.Time `gorm:"column:expires_at;index"`
 }
 
-func randomToken() string {
+// RandomToken generates a cryptographically random, Base-32-encoded token.
+// Falls back to a Unix nanosecond timestamp string if rand.Read fails.
+func RandomToken() string {
 	buf := make([]byte, 32)
 	if _, err := rand.Read(buf); err != nil {
 		return strconv.FormatInt(time.Now().UnixNano(), 10)

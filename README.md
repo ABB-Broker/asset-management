@@ -5,6 +5,7 @@ Assets Management by ABB Insurance Brokers.
 ## Features
 - **Fiber v3.2.0** web framework with **Prefork** enabled (one worker per CPU core)
 - **GORM** database layer — SQLite by default; MySQL supported via env var
+- **Viper** configuration — env vars, optional `config.yaml`, with sensible defaults
 - Login with **bcrypt** password hashing
 - **Two-Factor Authentication** (TOTP — compatible with Google Authenticator / Authy)
 - **User Master** CRUD (manage application user accounts with role-based access)
@@ -14,6 +15,31 @@ Assets Management by ABB Insurance Brokers.
 - **Zap structured logger** middleware (`gofiber/contrib/v3/zap`)
 - **Swagger API documentation** at `/swagger/` (`gofiber/contrib/v3/swaggo`)
 - **i18n multi-language** support — English (`en`) and Indonesian (`id`) via `gofiber/contrib/v3/i18n`
+
+## Project Structure
+
+```
+asset-management/
+├── internal/
+│   ├── config/          # Viper-based config (package config)
+│   ├── database/        # GORM database init + auto-migration (package database)
+│   ├── handlers/        # HTTP handlers + App struct + authRequired middleware
+│   │   ├── handler.go   # App struct definition
+│   │   ├── auth.go      # Login / 2FA / logout handlers
+│   │   ├── middleware.go # authRequired Fiber middleware
+│   │   ├── categories.go # Category Master CRUD
+│   │   ├── assets.go    # Asset Master CRUD
+│   │   └── users.go     # User Master CRUD (Swagger-annotated)
+│   ├── models/          # GORM model types: Category, Asset, User, Session
+│   └── totp/            # RFC 6238 TOTP helpers
+├── routes/
+│   └── routes.go        # Centralized route registration
+├── docs/                # swag-generated Swagger spec
+├── localize/            # i18n YAML files (en.yaml, id.yaml)
+├── templates/           # Gentelella Bootstrap HTML templates
+├── main.go              # Thin entry point — wires everything together
+└── main_test.go         # fiber.Test() integration tests (in-memory SQLite)
+```
 
 ## Quick Start
 
@@ -32,59 +58,64 @@ Open `http://localhost:8080`
 
 Scan the TOTP secret with Google Authenticator or Authy, or use any RFC 6238 TOTP tool.
 
+## Configuration
+
+Configuration is resolved in priority order (highest first):
+
+1. **Environment variables** — e.g. `export ADMIN_PASSWORD=secret`
+2. **`config.yaml`** in the working directory (optional)
+3. **Built-in defaults**
+
+Example `config.yaml`:
+
+```yaml
+admin_username: admin
+admin_password: admin123
+totp_secret: JBSWY3DPEHPK3PXP
+db_driver: sqlite
+db_dsn: asset_management.db
+port: "8080"
+prefork: true
+```
+
+### All configuration keys
+
+| Env / YAML key | Default | Description |
+|---|---|---|
+| `ADMIN_USERNAME` / `admin_username` | `admin` | Admin login username |
+| `ADMIN_PASSWORD` / `admin_password` | `admin123` | Admin login password (bcrypt-hashed at startup) |
+| `TOTP_SECRET` / `totp_secret` | `JBSWY3DPEHPK3PXP` | Base-32 TOTP secret |
+| `DB_DRIVER` / `db_driver` | `sqlite` | Database driver (`sqlite` or `mysql`) |
+| `DB_DSN` / `db_dsn` | `asset_management.db` | Data source name |
+| `PORT` / `port` | `8080` | HTTP listen port |
+| `PREFORK` / `prefork` | `true` | Enable Fiber Prefork |
+
 ## Swagger API Docs
 
 Visit `http://localhost:8080/swagger/` after starting the server.
 
-To regenerate the docs after adding new API annotations:
+To regenerate after adding new API annotations:
 
 ```bash
-go install github.com/swaggo/swag/cmd/swag@v1.16.4
-swag init --parseDependency=true
+swag init --parseDependency=true --dir ./,./internal/handlers --output ./docs
 ```
 
 ## i18n
 
-Language is selected from the `Accept-Language` request header or the `lang` query parameter.
+Language is selected from the `Accept-Language` request header or the `?lang=` query parameter.
 
 Supported: `en` (English, default) and `id` (Bahasa Indonesia).
 
-Locale files live in `./localize/`.  Add a new `<lang>.yaml` file and register the `language.Tag` in `main.go` to extend.
+Locale files live in `./localize/`. Add a new `<lang>.yaml` and register the `language.Tag` in `main.go` to extend.
 
-## Configuration (environment variables)
+## MySQL / MariaDB
 
-| Variable | Default | Description |
-|---|---|---|
-| `ADMIN_USERNAME` | `admin` | Admin login username |
-| `ADMIN_PASSWORD` | `admin123` | Admin login password (hashed with bcrypt at startup) |
-| `TOTP_SECRET` | `JBSWY3DPEHPK3PXP` | Base-32 TOTP secret key |
-| `DB_DRIVER` | `sqlite` | Database driver (`sqlite`, `mysql`; extend `database.go` for postgres) |
-| `DB_DSN` | `asset_management.db` | Data source name — SQLite file path **or** MySQL connection string (see below) |
-| `PORT` | `8080` | HTTP listen port |
-| `PREFORK` | `true` | Enable Fiber Prefork (`true`/`false`) |
-
-## Adding MySQL / MariaDB
-
-Set these environment variables before starting the server:
+Set these environment variables (or add to `config.yaml`) before starting:
 
 ```bash
 export DB_DRIVER=mysql
 export DB_DSN="user:password@tcp(host:3306)/asset_management?charset=utf8mb4&parseTime=True&loc=Local"
 ```
 
-The MySQL driver (`gorm.io/driver/mysql`) is already included in `go.mod`.  
 Create the database first: `CREATE DATABASE asset_management CHARACTER SET utf8mb4;`
-
-## Adding PostgreSQL
-
-1. Add the GORM driver to `go.mod`:
-   ```
-   gorm.io/driver/postgres v1.5.x
-   ```
-2. Import the driver in `database.go` and add a `case` to the `switch`:
-   ```go
-   case "postgres":
-       dialector = postgres.Open(cfg.DBDSN)
-   ```
-3. Set `DB_DRIVER=postgres` and `DB_DSN` at runtime.
 
