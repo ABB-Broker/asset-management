@@ -21,8 +21,8 @@ func BenchmarkLoginGet(b *testing.B) {
 	_, fApp := newTestApp(b)
 	req := httptest.NewRequest(http.MethodGet, "/login", nil)
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		resp, err := fApp.Test(req)
 		if err != nil {
 			b.Fatal(err)
@@ -37,8 +37,8 @@ func BenchmarkLoginPostInvalidPassword(b *testing.B) {
 	_, fApp := newTestApp(b)
 	body := url.Values{"username": {"admin"}, "password": {"wrong"}}.Encode()
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		resp, err := fApp.Test(req)
@@ -61,7 +61,8 @@ func BenchmarkCategoriesIndex(b *testing.B) {
 		Authenticated: true,
 		ExpiresAt:     time.Now().Add(24 * time.Hour),
 	})
-	for i := 0; i < 10; i++ {
+
+	for i := range 10 {
 		h.DB.Create(&models.Category{
 			Name:        fmt.Sprintf("Category %d", i),
 			Description: "benchmark seed",
@@ -73,8 +74,8 @@ func BenchmarkCategoriesIndex(b *testing.B) {
 	req.AddCookie(authCookie)
 
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		resp, err := fApp.Test(req)
 		if err != nil {
 			b.Fatal(err)
@@ -97,8 +98,8 @@ func BenchmarkCategoriesCreate(b *testing.B) {
 	authCookie := &http.Cookie{Name: "session_id", Value: token}
 
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for i := 0; b.Loop(); i++ {
 		body := url.Values{
 			"name":        {fmt.Sprintf("Cat%d", i)},
 			"description": {"benchmark"},
@@ -128,7 +129,8 @@ func BenchmarkAssetsIndex(b *testing.B) {
 
 	cat := models.Category{Name: "BenchCat", Description: "benchmark"}
 	h.DB.Create(&cat)
-	for i := 0; i < 10; i++ {
+
+	for i := range 10 {
 		h.DB.Create(&models.Asset{
 			Name:         fmt.Sprintf("Asset %d", i),
 			CategoryID:   cat.ID,
@@ -142,8 +144,8 @@ func BenchmarkAssetsIndex(b *testing.B) {
 	req.AddCookie(authCookie)
 
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		resp, err := fApp.Test(req)
 		if err != nil {
 			b.Fatal(err)
@@ -163,7 +165,8 @@ func BenchmarkUsersIndex(b *testing.B) {
 		Authenticated: true,
 		ExpiresAt:     time.Now().Add(24 * time.Hour),
 	})
-	for i := 0; i < 10; i++ {
+
+	for i := range 10 {
 		h.DB.Create(&models.User{
 			Username: fmt.Sprintf("user%d", i),
 			Email:    fmt.Sprintf("user%d@example.com", i),
@@ -178,8 +181,8 @@ func BenchmarkUsersIndex(b *testing.B) {
 	req.AddCookie(authCookie)
 
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		resp, err := fApp.Test(req)
 		if err != nil {
 			b.Fatal(err)

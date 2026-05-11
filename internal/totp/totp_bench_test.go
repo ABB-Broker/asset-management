@@ -16,8 +16,8 @@ const (
 func BenchmarkGenerate(b *testing.B) {
 	now := time.Now()
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		_ = totp.Generate(benchSecret, now)
 	}
 }
@@ -29,8 +29,8 @@ func BenchmarkValidateValid(b *testing.B) {
 	now := time.Now()
 	code := totp.Generate(benchSecret, now)
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		_ = totp.Validate(benchSecret, code, now)
 	}
 }
@@ -40,8 +40,8 @@ func BenchmarkValidateValid(b *testing.B) {
 func BenchmarkValidateInvalid(b *testing.B) {
 	now := time.Now()
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		_ = totp.Validate(benchSecret, "000000", now)
 	}
 }

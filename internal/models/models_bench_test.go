@@ -10,8 +10,8 @@ import (
 // Base-32 token generation (used for session tokens).
 func BenchmarkRandomToken(b *testing.B) {
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		_ = models.RandomToken()
 	}
 }
