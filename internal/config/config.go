@@ -44,7 +44,7 @@ func Load() Config {
 	// ── Defaults ────────────────────────────────────────────────────────────
 	v.SetDefault("admin_username", "admin")
 	v.SetDefault("admin_password", "admin123")
-	v.SetDefault("totp_secret", "JBSWY3DPEHPK3PXP")
+	v.SetDefault("totp_secret", "353353")
 	v.SetDefault("db_driver", "sqlite")
 	v.SetDefault("db_dsn", "asset_management.db")
 	v.SetDefault("port", "8080")

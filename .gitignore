@@ -6,5 +6,9 @@ asset-management
 *.db-shm
 *.db-wal
 
+# Config files
+config.yaml
+.env
+
 # Go test caches / temp files
 *.test
