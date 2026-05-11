@@ -96,12 +96,13 @@ func (a *App) assetFromCtx(c fiber.Ctx) (Asset, error) {
 	name := strings.TrimSpace(c.FormValue("name"))
 	serial := strings.TrimSpace(c.FormValue("serial_number"))
 	purchaseDate := strings.TrimSpace(c.FormValue("purchase_date"))
-	catIDVal, err := strconv.ParseUint(c.FormValue("category_id"), 10, 64)
-	// Reject zero, parse errors, and values that would overflow uint on this platform.
-	if err != nil || catIDVal == 0 || catIDVal > uint64(^uint(0)) {
+	// Atoi returns int (same bit-width as uint), so the uint() cast below is
+	// a same-size reinterpretation, not a narrowing conversion.
+	catIDInt, err := strconv.Atoi(c.FormValue("category_id"))
+	if err != nil || catIDInt <= 0 {
 		return Asset{}, fmt.Errorf("invalid category id")
 	}
-	categoryID := uint(catIDVal)
+	categoryID := uint(catIDInt)
 	if name == "" || serial == "" || purchaseDate == "" {
 		return Asset{}, fmt.Errorf("all asset fields are required")
 	}
