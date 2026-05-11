@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math/bits"
 	"net/url"
 	"strconv"
 	"strings"
@@ -36,7 +35,7 @@ func (a *App) assetsCreate(c fiber.Ctx) error {
 }
 
 func (a *App) assetsEdit(c fiber.Ctx) error {
-	id, err := strconv.ParseUint(c.Query("id"), 10, bits.UintSize)
+	id, err := strconv.ParseUint(c.Query("id"), 10, 64)
 	if err != nil {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("invalid asset id"))
 	}
@@ -58,7 +57,7 @@ func (a *App) assetsEdit(c fiber.Ctx) error {
 }
 
 func (a *App) assetsUpdate(c fiber.Ctx) error {
-	id, err := strconv.ParseUint(c.FormValue("id"), 10, bits.UintSize)
+	id, err := strconv.ParseUint(c.FormValue("id"), 10, 64)
 	if err != nil {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("invalid asset id"))
 	}
@@ -80,7 +79,7 @@ func (a *App) assetsUpdate(c fiber.Ctx) error {
 }
 
 func (a *App) assetsDelete(c fiber.Ctx) error {
-	id, err := strconv.ParseUint(c.FormValue("id"), 10, bits.UintSize)
+	id, err := strconv.ParseUint(c.FormValue("id"), 10, 64)
 	if err != nil {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("invalid asset id"))
 	}
@@ -97,10 +96,12 @@ func (a *App) assetFromCtx(c fiber.Ctx) (Asset, error) {
 	name := strings.TrimSpace(c.FormValue("name"))
 	serial := strings.TrimSpace(c.FormValue("serial_number"))
 	purchaseDate := strings.TrimSpace(c.FormValue("purchase_date"))
-	categoryID, err := strconv.ParseUint(c.FormValue("category_id"), 10, bits.UintSize)
-	if err != nil || categoryID == 0 {
+	catIDVal, err := strconv.ParseUint(c.FormValue("category_id"), 10, 64)
+	// Reject zero, parse errors, and values that would overflow uint on this platform.
+	if err != nil || catIDVal == 0 || catIDVal > uint64(^uint(0)) {
 		return Asset{}, fmt.Errorf("invalid category id")
 	}
+	categoryID := uint(catIDVal)
 	if name == "" || serial == "" || purchaseDate == "" {
 		return Asset{}, fmt.Errorf("all asset fields are required")
 	}
@@ -110,7 +111,7 @@ func (a *App) assetFromCtx(c fiber.Ctx) (Asset, error) {
 	}
 	return Asset{
 		Name:         name,
-		CategoryID:   uint(categoryID),
+		CategoryID:   categoryID,
 		SerialNumber: serial,
 		PurchaseDate: purchaseDate,
 	}, nil

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"math/bits"
 	"net/url"
 	"strconv"
 	"strings"
@@ -33,7 +32,7 @@ func (a *App) categoriesCreate(c fiber.Ctx) error {
 }
 
 func (a *App) categoriesEdit(c fiber.Ctx) error {
-	id, err := strconv.ParseUint(c.Query("id"), 10, bits.UintSize)
+	id, err := strconv.ParseUint(c.Query("id"), 10, 64)
 	if err != nil {
 		return c.Redirect().To("/categories?error=" + url.QueryEscape("invalid category id"))
 	}
@@ -52,7 +51,7 @@ func (a *App) categoriesEdit(c fiber.Ctx) error {
 }
 
 func (a *App) categoriesUpdate(c fiber.Ctx) error {
-	id, err := strconv.ParseUint(c.FormValue("id"), 10, bits.UintSize)
+	id, err := strconv.ParseUint(c.FormValue("id"), 10, 64)
 	if err != nil {
 		return c.Redirect().To("/categories?error=" + url.QueryEscape("invalid category id"))
 	}
@@ -70,7 +69,7 @@ func (a *App) categoriesUpdate(c fiber.Ctx) error {
 }
 
 func (a *App) categoriesDelete(c fiber.Ctx) error {
-	id, err := strconv.ParseUint(c.FormValue("id"), 10, bits.UintSize)
+	id, err := strconv.ParseUint(c.FormValue("id"), 10, 64)
 	if err != nil {
 		return c.Redirect().To("/categories?error=" + url.QueryEscape("invalid category id"))
 	}
