@@ -11,7 +11,12 @@ import (
 	"time"
 )
 
+// base32Enc is the package-level Base-32 encoder (no padding) shared by all
+// calls to Generate and Validate to avoid re-creating the object on every call.
+var base32Enc = base32.StdEncoding.WithPadding(base32.NoPadding)
+
 // Validate checks whether code matches the current TOTP window (±1 step).
+// The Base-32 key is decoded only once and reused for all three window checks.
 func Validate(secret, code string, now time.Time) bool {
 	if len(code) != 6 {
 		return false
@@ -21,8 +26,13 @@ func Validate(secret, code string, now time.Time) bool {
 			return false
 		}
 	}
+	key, err := base32Enc.DecodeString(strings.ToUpper(secret))
+	if err != nil {
+		return false
+	}
 	for offset := -1; offset <= 1; offset++ {
-		if Generate(secret, now.Add(time.Duration(offset)*30*time.Second)) == code {
+		counter := uint64(now.Add(time.Duration(offset)*30*time.Second).Unix() / 30)
+		if generateWithKey(key, counter) == code {
 			return true
 		}
 	}
@@ -31,15 +41,21 @@ func Validate(secret, code string, now time.Time) bool {
 
 // Generate produces a 6-digit TOTP code for the given Base-32 secret and time.
 func Generate(secret string, t time.Time) string {
-	key, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(strings.ToUpper(secret))
+	key, err := base32Enc.DecodeString(strings.ToUpper(secret))
 	if err != nil {
 		return ""
 	}
-	counter := uint64(t.Unix() / 30)
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, counter)
+	return generateWithKey(key, uint64(t.Unix()/30))
+}
+
+// generateWithKey is the hot path: it computes a 6-digit HOTP value for a
+// pre-decoded HMAC key and a counter value.
+func generateWithKey(key []byte, counter uint64) string {
+	// Stack-allocated array avoids a heap allocation on every call.
+	var buf [8]byte
+	binary.BigEndian.PutUint64(buf[:], counter)
 	h := hmac.New(sha1.New, key)
-	h.Write(buf)
+	h.Write(buf[:])
 	hash := h.Sum(nil)
 	offset := hash[len(hash)-1] & 0x0F
 	value := (int(hash[offset])&0x7F)<<24 |

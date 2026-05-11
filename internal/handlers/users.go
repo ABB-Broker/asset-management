@@ -143,6 +143,10 @@ func (a *App) UsersDelete(c fiber.Ctx) error {
 	return c.Redirect().To("/users?message=" + url.QueryEscape("user deleted"))
 }
 
+// validRoles is the set of accepted role values for User accounts.
+// Defined at package level to avoid re-allocating the map on every request.
+var validRoles = map[string]bool{"admin": true, "editor": true, "viewer": true}
+
 // userFromCtx parses and validates user fields from a Fiber form context.
 func (a *App) userFromCtx(c fiber.Ctx) (models.User, error) {
 	username := strings.TrimSpace(c.FormValue("username"))
@@ -154,7 +158,6 @@ func (a *App) userFromCtx(c fiber.Ctx) (models.User, error) {
 	if username == "" {
 		return models.User{}, fiber.NewError(fiber.StatusBadRequest, "username is required")
 	}
-	validRoles := map[string]bool{"admin": true, "editor": true, "viewer": true}
 	if role == "" {
 		role = "viewer"
 	}

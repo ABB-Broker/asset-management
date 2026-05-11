@@ -29,7 +29,8 @@ const sessionTTL = 24 * time.Hour
 
 // newTestApp creates an isolated App and Fiber instance backed by an
 // in-memory SQLite database. Prefork is disabled so tests run in a single process.
-func newTestApp(t *testing.T) (*handlers.App, *fiber.App) {
+// It accepts testing.TB so it can be used from both *testing.T and *testing.B.
+func newTestApp(t testing.TB) (*handlers.App, *fiber.App) {
 	t.Helper()
 
 	hash, err := bcrypt.GenerateFromPassword([]byte("secret123"), bcrypt.DefaultCost)
