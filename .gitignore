@@ -1,0 +1,10 @@
+# compiled binary
+asset-management
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+
+# Go test caches / temp files
+*.test
