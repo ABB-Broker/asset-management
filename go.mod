@@ -7,6 +7,7 @@ require (
 	github.com/gofiber/fiber/v3 v3.1.0
 	github.com/gofiber/template/html/v2 v2.1.2
 	golang.org/x/crypto v0.48.0
+	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.25.12
 )
 
@@ -33,7 +34,6 @@ require (
 	golang.org/x/net v0.50.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
-	gorm.io/driver/mysql v1.5.7 // indirect
 	modernc.org/libc v1.22.5 // indirect
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.5.0 // indirect
