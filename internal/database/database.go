@@ -2,6 +2,7 @@
 package database
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -31,7 +32,15 @@ func Init(cfg config.Config) *gorm.DB {
 		if cfg.DBDSN == "" {
 			log.Fatal("DB_DSN must be set when DB_DRIVER=mysql")
 		}
-		dialector = mysql.Open(cfg.DBDSN)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=true&loc=Asia%%2FJakarta",
+			cfg.DBUser,
+			cfg.DBPassword,
+			cfg.DBHost,
+			cfg.DBPort,
+			cfg.DBName,
+			cfg.DBCharset,
+		)
+		dialector = mysql.Open(dsn)
 	case "sqlite":
 		dsn := cfg.DBDSN
 		if dsn == "" {

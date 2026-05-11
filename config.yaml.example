@@ -19,6 +19,12 @@ db_max_idle_connection: 12
 db_dsn: asset_management.db
 
 # MySQL example:
+# db_host: "localhost"
+# db_username: "root"
+# db_password: ""
+# db_port: 3306
+# db_database: ""
+# db_charset: ""
 # db_dsn: "user:pass@tcp(host:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Asia/Jakarta"
 
 # ── HTTP server ───────────────────────────────────────────────────────────────

@@ -32,6 +32,13 @@ type Config struct {
 	// DBMaxIdleConnection is the maximum number of idle connections in the pool.
 	DBMaxIdleConnection int
 
+	DBUser     string
+	DBPassword string
+	DBHost     string
+	DBPort     int
+	DBName     string
+	DBCharset  string
+
 	// DBDSN is the data source name passed to the selected GORM driver.
 	//   SQLite: file path, e.g. "asset_management.db" or ":memory:"
 	//   MySQL:  "user:pass@tcp(host:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
@@ -85,6 +92,12 @@ func Load() Config {
 		DBDSN:               v.GetString("db_dsn"),
 		DBOpenConnection:    v.GetInt("db_open_connection"),
 		DBMaxIdleConnection: v.GetInt("db_max_idle_connection"),
+		DBUser:              v.GetString("db_username"),
+		DBPassword:          v.GetString("db_password"),
+		DBHost:              v.GetString("db_host"),
+		DBPort:              v.GetInt("db_port"),
+		DBName:              v.GetString("db_database"),
+		DBCharset:           v.GetString("db_charset"),
 		Port:                v.GetString("port"),
 		Prefork:             v.GetBool("prefork"),
 	}
