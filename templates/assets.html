@@ -1,0 +1,50 @@
+{{template "layout_top" .}}
+<h2 class="mb-3">Asset Master</h2>
+<div class="card mb-4">
+  <div class="card-body">
+    <h5>{{if .Asset.ID}}Edit{{else}}Create{{end}} Asset</h5>
+    <form method="post" action="{{if .Asset.ID}}/assets/update{{else}}/assets/create{{end}}">
+      {{if .Asset.ID}}<input type="hidden" name="id" value="{{.Asset.ID}}" />{{end}}
+      <div class="row g-3 mb-2">
+        <div class="col-md-4"><input class="form-control" name="name" placeholder="Asset name" value="{{.Asset.Name}}" required /></div>
+        <div class="col-md-3"><input class="form-control" name="serial_number" placeholder="Serial number" value="{{.Asset.SerialNumber}}" required /></div>
+        <div class="col-md-3"><input type="date" class="form-control" name="purchase_date" value="{{.Asset.PurchaseDate}}" required /></div>
+        <div class="col-md-2">
+          <select class="form-select" name="category_id" required>
+            <option value="">Category</option>
+            {{range .Categories}}<option value="{{.ID}}" {{if eq $.Asset.CategoryID .ID}}selected{{end}}>{{.Name}}</option>{{end}}
+          </select>
+        </div>
+      </div>
+      <div class="d-grid d-md-block"><button class="btn btn-primary" type="submit">{{if .Asset.ID}}Update{{else}}Create{{end}}</button></div>
+    </form>
+  </div>
+</div>
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table table-striped mb-0">
+      <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Serial</th><th>Purchase Date</th><th width="170">Action</th></tr></thead>
+      <tbody>
+      {{range .Assets}}
+        <tr>
+          <td>{{.ID}}</td>
+          <td>{{.Name}}</td>
+          <td>{{.CategoryName}}</td>
+          <td>{{.SerialNumber}}</td>
+          <td>{{.PurchaseDate}}</td>
+          <td>
+            <a class="btn btn-sm btn-outline-primary" href="/assets/edit?id={{.ID}}">Edit</a>
+            <form method="post" action="/assets/delete" style="display:inline">
+              <input type="hidden" name="id" value="{{.ID}}" />
+              <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+      {{else}}
+        <tr><td colspan="6" class="text-center py-3">No assets yet.</td></tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{template "layout_bottom" .}}

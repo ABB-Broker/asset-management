@@ -1,0 +1,41 @@
+{{template "layout_top" .}}
+<h2 class="mb-3">Category Master</h2>
+<div class="card mb-4">
+  <div class="card-body">
+    <h5>{{if .Category.ID}}Edit{{else}}Create{{end}} Category</h5>
+    <form method="post" action="{{if .Category.ID}}/categories/update{{else}}/categories/create{{end}}">
+      {{if .Category.ID}}<input type="hidden" name="id" value="{{.Category.ID}}" />{{end}}
+      <div class="row g-3">
+        <div class="col-md-4"><input class="form-control" name="name" placeholder="Category name" value="{{.Category.Name}}" required /></div>
+        <div class="col-md-6"><input class="form-control" name="description" placeholder="Description" value="{{.Category.Description}}" /></div>
+        <div class="col-md-2 d-grid"><button class="btn btn-primary" type="submit">{{if .Category.ID}}Update{{else}}Create{{end}}</button></div>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table table-striped mb-0">
+      <thead><tr><th>ID</th><th>Name</th><th>Description</th><th width="170">Action</th></tr></thead>
+      <tbody>
+      {{range .Categories}}
+        <tr>
+          <td>{{.ID}}</td>
+          <td>{{.Name}}</td>
+          <td>{{.Description}}</td>
+          <td>
+            <a class="btn btn-sm btn-outline-primary" href="/categories/edit?id={{.ID}}">Edit</a>
+            <form method="post" action="/categories/delete" style="display:inline">
+              <input type="hidden" name="id" value="{{.ID}}" />
+              <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+      {{else}}
+        <tr><td colspan="4" class="text-center py-3">No categories yet.</td></tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{template "layout_bottom" .}}
