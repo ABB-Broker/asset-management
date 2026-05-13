@@ -12,3 +12,6 @@ config.yaml
 
 # Go test caches / temp files
 *.test
+
+# VSCode folder repository
+.vscode

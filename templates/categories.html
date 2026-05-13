@@ -12,18 +12,37 @@
   <div class="col-md-12">
     <div class="x_panel">
       <div class="x_title">
-        <h2>{{if .Category.ID}}<i class="fa fa-pencil"></i> Edit Category{{else}}<i class="fa fa-plus"></i> Create Category{{end}}</h2>
+        <h2>
+          {{if .Category.ID}}<i class="fa fa-pencil"></i> Edit
+          Category{{else}}<i class="fa fa-plus"></i> Create Category{{end}}
+        </h2>
         <div class="clearfix"></div>
       </div>
       <div class="x_content">
-        <form method="post" action="{{if .Category.ID}}/categories/update{{else}}/categories/create{{end}}" class="form-horizontal">
-          {{if .Category.ID}}<input type="hidden" name="id" value="{{.Category.ID}}" />{{end}}
+        <form
+          method="post"
+          action="{{if .Category.ID}}/categories/update{{else}}/categories/create{{end}}"
+          class="form-horizontal"
+        >
+          {{if .Category.ID}}<input
+            type="hidden"
+            name="id"
+            value="{{.Category.ID}}"
+          />{{end}}
           <div class="row">
             <div class="col-md-4">
               <div class="form-group">
-                <label class="control-label col-md-3">Name <span class="text-danger">*</span></label>
+                <label class="control-label col-md-3"
+                  >Name <span class="text-danger">*</span></label
+                >
                 <div class="col-md-9">
-                  <input class="form-control" name="name" placeholder="Category name" value="{{.Category.Name}}" required />
+                  <input
+                    class="form-control"
+                    name="name"
+                    placeholder="Category name"
+                    value="{{.Category.Name}}"
+                    required
+                  />
                 </div>
               </div>
             </div>
@@ -31,7 +50,12 @@
               <div class="form-group">
                 <label class="control-label col-md-3">Description</label>
                 <div class="col-md-9">
-                  <input class="form-control" name="description" placeholder="Description" value="{{.Category.Description}}" />
+                  <input
+                    class="form-control"
+                    name="description"
+                    placeholder="Description"
+                    value="{{.Category.Description}}"
+                  />
                 </div>
               </div>
             </div>
@@ -39,10 +63,16 @@
               <div class="form-group">
                 <div class="col-md-12">
                   <button class="btn btn-primary btn-block" type="submit">
-                    {{if .Category.ID}}<i class="fa fa-save"></i> Update{{else}}<i class="fa fa-plus"></i> Create{{end}}
+                    {{if .Category.ID}}<i class="fa fa-save"></i>
+                    Update{{else}}<i class="fa fa-plus"></i> Create{{end}}
                   </button>
                   {{if .Category.ID}}
-                  <a href="/categories" class="btn btn-default btn-block" style="margin-top:5px"><i class="fa fa-times"></i> Cancel</a>
+                  <a
+                    href="/categories"
+                    class="btn btn-default btn-block"
+                    style="margin-top: 5px"
+                    ><i class="fa fa-times"></i> Cancel</a
+                  >
                   {{end}}
                 </div>
               </div>
@@ -59,7 +89,10 @@
   <div class="col-md-12">
     <div class="x_panel">
       <div class="x_title">
-        <h2><i class="fa fa-list"></i> Category List <small>{{len .Categories}} record(s)</small></h2>
+        <h2>
+          <i class="fa fa-list"></i> Category List
+          <small>{{len .Categories}} record(s)</small>
+        </h2>
         <div class="clearfix"></div>
       </div>
       <div class="x_content no-pad">
@@ -73,27 +106,46 @@
             </tr>
           </thead>
           <tbody>
-          {{range .Categories}}
+            {{range .Categories}}
             <tr>
               <td>{{.ID}}</td>
               <td><strong>{{.Name}}</strong></td>
               <td>{{.Description}}</td>
               <td class="text-center">
-                <a class="btn btn-xs btn-primary" href="/categories/edit?id={{.ID}}" title="Edit">
+                <a
+                  class="btn btn-xs btn-primary"
+                  href="/categories/edit?id={{.ID}}"
+                  title="Edit"
+                >
                   <i class="fa fa-pencil"></i> Edit
                 </a>
-                <form method="post" action="/categories/delete" style="display:inline">
+                <form
+                  method="post"
+                  action="/categories/delete"
+                  style="display: inline"
+                >
                   <input type="hidden" name="id" value="{{.ID}}" />
-                  <button class="btn btn-xs btn-danger" type="submit"
-                          onclick="return confirm('Delete category \u0022{{.Name}}\u0022? All its assets will also be deleted.')">
+                  <button
+                    class="btn btn-xs btn-danger"
+                    type="submit"
+                    onclick="return confirm('Delete category \u0022{{.Name}}\u0022? All its assets will also be deleted.')"
+                  >
                     <i class="fa fa-trash"></i> Delete
                   </button>
                 </form>
               </td>
             </tr>
-          {{else}}
-            <tr><td colspan="4" class="text-center text-muted" style="padding:20px"><i class="fa fa-inbox"></i> No categories yet.</td></tr>
-          {{end}}
+            {{else}}
+            <tr>
+              <td
+                colspan="4"
+                class="text-center text-muted"
+                style="padding: 20px"
+              >
+                <i class="fa fa-inbox"></i> No categories yet.
+              </td>
+            </tr>
+            {{end}}
           </tbody>
         </table>
       </div>

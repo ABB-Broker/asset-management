@@ -1,0 +1,145 @@
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  background: #2a3f54;
+}
+
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.login-box {
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.35);
+  width: 100%;
+  max-width: 380px;
+  overflow: hidden;
+}
+
+.login-header {
+  background: #2c4e72;
+  padding: 22px 20px 16px;
+  text-align: center;
+  color: #fff;
+}
+
+.login-header .logo {
+  font-size: 38px;
+  margin-bottom: 6px;
+  color: #1abb9c;
+}
+
+.login-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 300;
+}
+
+.login-header p {
+  margin: 5px 0 0;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.login-form {
+  padding: 22px 25px 16px;
+}
+
+.login-form .form-group {
+  margin-bottom: 14px;
+}
+
+.login-form label {
+  font-weight: 600;
+  font-size: 12px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.login-form .form-control {
+  height: 38px;
+  border-radius: 3px;
+  border-color: #d9dee4;
+  font-size: 18px;
+  text-align: center;
+  letter-spacing: 0.2em;
+}
+
+.login-form .form-control:focus {
+  border-color: #1abb9c;
+  box-shadow: 0 0 0 3px rgba(26, 187, 156, 0.15);
+  outline: none;
+}
+
+.btn-login {
+  background: #1abb9c;
+  border: none;
+  border-radius: 3px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  width: 100%;
+  height: 40px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-login:hover {
+  background: #18a789;
+}
+
+.info-box {
+  background: #f0f9f7;
+  border: 1px solid #b2dfdb;
+  border-radius: 3px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 14px;
+}
+
+.info-box code {
+  background: transparent;
+  font-size: 13px;
+  color: #1abb9c;
+  font-weight: 700;
+}
+
+.login-footer {
+  text-align: center;
+  padding: 0 25px 18px;
+}
+
+.login-footer a {
+  color: #1abb9c;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.login-footer a:hover {
+  text-decoration: underline;
+}
+
+.alert {
+  border-radius: 3px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+}
