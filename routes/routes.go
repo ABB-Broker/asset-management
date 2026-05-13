@@ -35,6 +35,7 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 	fApp.Post("/login", h.LoginPost)
 	fApp.Get("/login/2fa", h.Login2FAGet)
 	fApp.Post("/login/2fa", h.Login2FAPost)
+	// fApp.Post("/admin/create", h.UsersCreate)
 	fApp.Get("/logout", h.Logout)
 
 	// ── Protected routes (require valid session) ──────────────────────────
@@ -56,7 +57,6 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 
 	// User Master
 	auth.Get("/users", h.UsersIndex)
-	auth.Post("/users/create", h.UsersCreate)
 	auth.Get("/users/edit", h.UsersEdit)
 	auth.Post("/users/update", h.UsersUpdate)
 	auth.Post("/users/delete", h.UsersDelete)

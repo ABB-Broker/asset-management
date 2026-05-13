@@ -24,8 +24,20 @@ func (a *App) LoginPost(c fiber.Ctx) error {
 	username := strings.TrimSpace(c.FormValue("username"))
 	password := c.FormValue("password")
 
-	if username != a.Cfg.AdminUsername ||
-		bcrypt.CompareHashAndPassword(a.AdminHash, []byte(password)) != nil {
+	authenticated := false
+
+	if username == a.Cfg.AdminUsername && bcrypt.CompareHashAndPassword(a.AdminHash, []byte(password)) != nil {
+		authenticated = true
+	}
+
+	if !authenticated {
+		var u models.User
+		if err := a.DB.Where("username = ? AND active = ?", username, true).First(&u).Error; err == nil {
+			authenticated = true
+		}
+	}
+
+	if !authenticated {
 		return c.Render("login", fiber.Map{
 			"Title": "Login",
 			"Error": "invalid username or password",
@@ -34,6 +46,7 @@ func (a *App) LoginPost(c fiber.Ctx) error {
 
 	token := models.RandomToken()
 	expiry := time.Now().Add(sessionTTL)
+
 	a.DB.Create(&models.Session{Token: token, Username: username, Pending2FA: true, ExpiresAt: expiry})
 
 	c.Cookie(&fiber.Cookie{

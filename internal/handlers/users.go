@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/ABB-Broker/asset-management/internal/models"
 )
@@ -52,6 +53,17 @@ func (a *App) UsersCreate(c fiber.Ctx) error {
 	if err != nil {
 		return c.Redirect().To("/users?error=" + url.QueryEscape(err.Error()))
 	}
+
+	password := c.FormValue("password")
+	if password == "" {
+		return c.Redirect().To("/users?error=" + url.QueryEscape("password is required"))
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return c.Redirect().To("/users?error=" + url.QueryEscape("failed to hash password"))
+	}
+	u.Password = string(hash)
+
 	if res := a.DB.Create(&u); res.Error != nil {
 		return c.Redirect().To("/users?error=" + url.QueryEscape("username or email already exists"))
 	}

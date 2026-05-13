@@ -35,6 +35,7 @@ type User struct {
 	gorm.Model
 	Username string `gorm:"uniqueIndex;not null"`
 	Email    string `gorm:"uniqueIndex"`
+	Password string `gorm:"not null"`
 	FullName string
 	Role     string `gorm:"default:'viewer'"` // "admin" | "editor" | "viewer"
 	Active   bool   `gorm:"default:true"`

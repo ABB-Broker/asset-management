@@ -21,11 +21,13 @@ package main
 
 import (
 	"log"
+	"os"
 
 	contribi18n "github.com/gofiber/contrib/v3/i18n"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/static"
 	"github.com/gofiber/template/html/v2"
+	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/text/language"
@@ -40,6 +42,8 @@ import (
 )
 
 func main() {
+	_ = godotenv.Load()
+	log.Println("DEV_OTP_BYPASS = ", os.Getenv("DEV_OTP_BYPASS"))
 	cfg := config.Load()
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(cfg.AdminPassword), bcrypt.DefaultCost)
