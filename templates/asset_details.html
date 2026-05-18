@@ -31,7 +31,7 @@
   </button>
 </div>
 
-<div class="row g-4">
+<div class="row g-4 mb-4">
   <!-- Left col: info card -->
   <div class="col-lg-5">
     <div class="card border-0 shadow-sm rounded-3 h-100">
@@ -45,14 +45,6 @@
         <dl class="row mb-0" style="row-gap: 0.75rem">
           <dt class="col-5 text-secondary small fw-semibold">Asset Name</dt>
           <dd class="col-7 fw-semibold text-dark mb-0">{{.Asset.Name}}</dd>
-
-          <dt class="col-5 text-secondary small fw-semibold">Description</dt>
-          <dd class="col-7 text-muted small mb-0">
-            {{if .Asset.Description}}{{.Asset.Description}}{{else}}<span
-              class="fst-italic opacity-50"
-              >—</span
-            >{{end}}
-          </dd>
 
           <dt class="col-5 text-secondary small fw-semibold">Serial Number</dt>
           <dd class="col-7 mb-0">
@@ -191,6 +183,23 @@
 </div>
 <!-- /row -->
 
+<!-- Description card -->
+{{if .Asset.Description}}
+<div class="card border-0 shadow-sm rounded-3 mb-4">
+  <div
+    class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center gap-2"
+  >
+    <i class="bi bi-card-text text-primary"></i>
+    <h6 class="mb-0 fw-semibold">Description</h6>
+  </div>
+  <div class="card-body p-4">
+    <div class="ql-display text-secondary" style="line-height: 1.75">
+      {{.Asset.Description | safeHTML}}
+    </div>
+  </div>
+</div>
+{{end}}
+
 <!-- ===== Edit Asset Modal (reused from assets.html) ===== -->
 <div
   class="modal fade"
@@ -245,14 +254,21 @@
                 required
               />
             </div>
-            <div class="col-md-4">
+            <div class="col-12">
               <label class="form-label small fw-semibold text-secondary"
                 >Description</label
               >
+              <!-- Quill rich text editor -->
+              <div class="ql-wrapper">
+                <div
+                  id="assetDescriptionEditor"
+                  style="min-height: 180px"
+                ></div>
+              </div>
               <input
-                class="form-control"
-                id="assetDescription"
+                type="hidden"
                 name="description"
+                id="assetDescriptionInput"
               />
             </div>
           </div>
@@ -313,8 +329,8 @@
               </select>
             </div>
           </div>
-          <!-- Photos section -->
-          <div class="border rounded-3 p-3">
+          <!-- Photos section — placed AFTER Quill so toolbar doesn't overlap -->
+          <div class="border rounded-3 p-3 ql-upload-section">
             <div class="d-flex align-items-center justify-content-between mb-3">
               <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-images text-primary"></i>
@@ -443,7 +459,23 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+
 <script>
+  const quillAsset = new Quill("#assetDescriptionEditor", {
+    theme: "snow",
+    placeholder:
+      "Describe the asset — specs, condition, notes, purchase details…",
+    modules: {
+      toolbar: [
+        ["bold", "italic", "underline"],
+        [{ list: "ordered" }],
+        ["blockquote"],
+        ["clean"],
+      ],
+    },
+  });
+
   let assetNewFileMap = {};
   function imgOrIcon(file) {
     if (file.type.startsWith("image/")) {
@@ -471,7 +503,15 @@
     document.getElementById("assetId").value = id;
     document.getElementById("assetName").value = name;
     document.getElementById("assetSerial").value = serial;
-    document.getElementById("assetDescription").value = desc;
+    // Decode Go's JS-escaped unicode sequences back to real HTML
+    const decodedDesc = desc
+      .replace(/\\u003C/g, "<")
+      .replace(/\\u003E/g, ">")
+      .replace(/\\u0026/g, "&")
+      .replace(/\\u0027/g, "'")
+      .replace(/\\u0022/g, '"');
+    quillAsset.clipboard.dangerouslyPasteHTML(decodedDesc || "");
+    document.getElementById("assetDescriptionInput").value = decodedDesc || "";
     document.getElementById("assetPurchaseDate").value = purchaseDate;
     document.getElementById("assetPurchasePrice").value = purchasePrice;
     document.getElementById("assetCategoryId").value = categoryId;
@@ -534,6 +574,8 @@
     tr.style.outline = "2px solid #0d6efd";
   }
   function submitAssetForm() {
+    document.getElementById("assetDescriptionInput").value =
+      quillAsset.root.innerHTML;
     const form = document.getElementById("assetForm");
     const dt = new DataTransfer();
     Object.values(assetNewFileMap).forEach((f) => dt.items.add(f));

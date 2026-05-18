@@ -7,6 +7,7 @@ import (
 	swaggo "github.com/gofiber/contrib/v3/swaggo"
 	fiberZap "github.com/gofiber/contrib/v3/zap"
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/static"
 	"go.uber.org/zap"
 
 	"github.com/ABB-Broker/asset-management/internal/handlers"
@@ -23,6 +24,11 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 		Logger:   logger,
 		SkipURIs: []string{"/swagger/*"},
 	}))
+
+	// ── Static file serving ───────────────────────────────────────────────
+	// Serves uploaded files at /uploads/<uuid>/<subdir>/<filename>.
+	// The "./uploads" directory is created automatically on first upload.
+	fApp.Use("/uploads", static.New("./uploads"))
 
 	// ── Swagger UI ────────────────────────────────────────────────────────
 	fApp.Get("/swagger/*", swaggo.HandlerDefault)
@@ -44,6 +50,8 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 	// Room Master
 	auth.Get("/rooms", h.RoomsIndex)
 	auth.Post("/rooms/create", h.RoomsCreate)
+	auth.Post("/rooms/update", h.RoomsUpdate)
+	auth.Post("/rooms/delete", h.RoomsDelete)
 	auth.Get("/rooms/detail", h.RoomDetailsIndex)
 
 	// Category Master

@@ -35,14 +35,6 @@
           <dt class="col-5 text-secondary small fw-semibold">Room Name</dt>
           <dd class="col-7 fw-semibold text-dark mb-0">{{.Room.RoomName}}</dd>
 
-          <dt class="col-5 text-secondary small fw-semibold">Description</dt>
-          <dd class="col-7 text-muted small mb-0">
-            {{if .Room.Description}}{{.Room.Description}}{{else}}<span
-              class="fst-italic opacity-50"
-              >—</span
-            >{{end}}
-          </dd>
-
           <dt class="col-5 text-secondary small fw-semibold">Total Assets</dt>
           <dd class="col-7 mb-0">
             <span
@@ -140,6 +132,23 @@
 </div>
 <!-- /info row -->
 
+<!-- Description card -->
+{{if .Room.Description}}
+<div class="card border-0 shadow-sm rounded-3 mb-4">
+  <div
+    class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center gap-2"
+  >
+    <i class="bi bi-card-text text-primary"></i>
+    <h6 class="mb-0 fw-semibold">Description</h6>
+  </div>
+  <div class="card-body p-4">
+    <div class="ql-display text-secondary" style="line-height: 1.75">
+      {{.Room.Description | safeHTML}}
+    </div>
+  </div>
+</div>
+{{end}}
+
 <!-- Assets in this room -->
 <div class="card border-0 shadow-sm rounded-3">
   <div
@@ -215,7 +224,7 @@
         <tbody id="roomAssetBody">
           {{range .Room.Assets}}
           <tr>
-            <td class="px-3 text-muted small">{{.ID}}</td>
+            <td class="px-3 text-muted small row-number"></td>
             <td><span class="fw-semibold text-dark">{{.Name}}</span></td>
             <td>
               <span
@@ -295,18 +304,23 @@
               >
               <input class="form-control" id="roomName" name="name" required />
             </div>
-            <div class="col-md-7">
+            <div class="col-12">
               <label class="form-label small fw-semibold text-secondary"
                 >Description</label
               >
+              <!-- Quill rich text editor -->
+              <div class="ql-wrapper">
+                <div id="roomDescriptionEditor" style="min-height: 180px"></div>
+              </div>
               <input
-                class="form-control"
-                id="roomDescription"
+                type="hidden"
                 name="description"
+                id="roomDescriptionInput"
               />
             </div>
           </div>
-          <div class="border rounded-3 p-3">
+          <!-- Photos / Documents — placed AFTER Quill so toolbar doesn't overlap -->
+          <div class="border rounded-3 p-3 ql-upload-section">
             <div class="d-flex align-items-center justify-content-between mb-3">
               <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-images text-primary"></i>
@@ -434,7 +448,22 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+
 <script>
+  const quillRoom = new Quill("#roomDescriptionEditor", {
+    theme: "snow",
+    placeholder: "Describe the room — purpose, capacity, location, notes…",
+    modules: {
+      toolbar: [
+        ["bold", "italic", "underline"],
+        [{ list: "ordered" }],
+        ["blockquote"],
+        ["clean"],
+      ],
+    },
+  });
+
   /* ── Room modal helpers ── */
   let roomNewFileMap = {};
   function roomImgOrIcon(file) {
@@ -453,7 +482,15 @@
   function openEditModal(id, name, desc) {
     document.getElementById("roomId").value = id;
     document.getElementById("roomName").value = name;
-    document.getElementById("roomDescription").value = desc;
+    // Decode Go's JS-escaped unicode sequences back to real HTML
+    const decodedDesc = desc
+      .replace(/\\u003C/g, "<")
+      .replace(/\\u003E/g, ">")
+      .replace(/\\u0026/g, "&")
+      .replace(/\\u0027/g, "'")
+      .replace(/\\u0022/g, '"');
+    quillRoom.clipboard.dangerouslyPasteHTML(decodedDesc || "");
+    document.getElementById("roomDescriptionInput").value = decodedDesc || "";
     roomNewFileMap = {};
     updateRoomNoFilesMsg();
   }
@@ -504,6 +541,8 @@
     tr.style.outline = "2px solid #0d6efd";
   }
   function submitRoomForm() {
+    document.getElementById("roomDescriptionInput").value =
+      quillRoom.root.innerHTML;
     const form = document.getElementById("roomForm");
     const dt = new DataTransfer();
     Object.values(roomNewFileMap).forEach((f) => dt.items.add(f));

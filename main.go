@@ -20,6 +20,7 @@
 package main
 
 import (
+	"html/template"
 	"log"
 
 	contribi18n "github.com/gofiber/contrib/v3/i18n"
@@ -89,8 +90,14 @@ func main() {
 // logger may be nil; when nil a no-op zap logger is used.
 func newFiberApp(h *handlers.App, logger *zap.Logger) *fiber.App {
 	engine := html.New("./templates", ".html")
+
+	engine.AddFunc("safeHTML", func(s string) template.HTML {
+		return template.HTML(s)
+	})
+
 	fApp := fiber.New(fiber.Config{
-		Views: engine,
+		Views:     engine,
+		BodyLimit: 20 * 1024 * 1024,
 	})
 	fApp.Use("/", static.New("./public"))
 	routes.Setup(fApp, h, logger)

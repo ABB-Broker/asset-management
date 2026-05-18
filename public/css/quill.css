@@ -1,0 +1,80 @@
+.ql-toolbar {
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  background: #fff;
+}
+
+.ql-container {
+  min-height: 120px;
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+  background: #fff;
+}
+
+/*
+ * ── Quill overlap fix ──────────────────────────────────────────────────────
+ *
+ * In Quill 2.x, new Quill(el) inserts the toolbar as a PREVIOUS SIBLING of
+ * `el`, not inside it. The rendered DOM is:
+ *
+ *   <div class="ql-wrapper">          <- our wrapper (in HTML)
+ *     <div class="ql-toolbar">...</div>   <- injected by Quill before el
+ *     <div id="*DescriptionEditor"        <- el, becomes .ql-container
+ *          class="ql-container">...</div>
+ *   </div>
+ *
+ * .ql-picker-options (toolbar dropdowns) are position:absolute with no
+ * z-index, so they escape the toolbar and paint over DOM siblings that come
+ * after the editor (e.g. the file-upload table).
+ *
+ * Fix: `isolation: isolate` on the PARENT .ql-wrapper creates a new stacking
+ * context. Every positioned descendant of .ql-wrapper — toolbar, picker
+ * dropdowns, tooltip — is now stacked only within that context and cannot
+ * bleed over elements outside it, regardless of their z-index.
+ */
+.ql-wrapper {
+  isolation: isolate;
+  position: relative; /* required for isolation to apply in all browsers */
+  margin-bottom: 12px;
+}
+
+/* Belt-and-suspenders for the file-upload section below the editor.
+   Declaring z-index on a positioned element gives it its own stacking layer,
+   which sits independently from anything inside the isolated .ql-wrapper. */
+.ql-upload-section {
+  position: relative;
+  z-index: 0;
+}
+
+/* Read-only description display on detail pages */
+.ql-display {
+  line-height: 1.75;
+}
+.ql-display p {
+  margin: 0 0 0.5em;
+}
+.ql-display ul,
+.ql-display ol {
+  padding-left: 1.5em;
+  margin-bottom: 0.5em;
+}
+.ql-display blockquote {
+  border-left: 4px solid #ccc;
+  padding-left: 1em;
+  margin: 0.5em 0;
+  color: #6c757d;
+}
+.ql-display strong {
+  font-weight: 600;
+}
+.ql-display em {
+  font-style: italic;
+}
+.ql-display u {
+  text-decoration: underline;
+}
+
+/* Ensure Bootstrap modals don't clip Quill's absolute-positioned elements */
+.modal-content {
+  overflow: visible;
+}

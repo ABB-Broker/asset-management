@@ -80,7 +80,7 @@
           <tr>
             <td class="px-4 text-muted small row-number"></td>
             <td><span class="fw-semibold text-dark">{{.RoomName}}</span></td>
-            <td class="text-muted small">{{.Description}}</td>
+            <td class="text-muted small">{{.Description | safeHTML}}</td>
             <td class="text-center px-4">
               <a
                 class="btn btn-sm btn-outline-secondary me-1"
@@ -173,19 +173,23 @@
                 required
               />
             </div>
-            <div class="col-md-7">
+            <div class="col-12">
               <label class="form-label small fw-semibold text-secondary"
                 >Description</label
               >
+              <!-- Quill rich text editor -->
+              <div class="ql-wrapper">
+                <div id="roomDescriptionEditor" style="min-height: 180px"></div>
+              </div>
               <input
-                class="form-control"
-                id="roomDescription"
+                type="hidden"
                 name="description"
-                placeholder="Short description (optional)"
+                id="roomDescriptionInput"
               />
             </div>
           </div>
-          <div class="border rounded-3 p-3">
+          <!-- Photos / Documents — placed AFTER Quill so it renders above the toolbar -->
+          <div class="border rounded-3 p-3 mb-2 ql-upload-section">
             <div class="d-flex align-items-center justify-content-between mb-3">
               <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-images text-primary"></i>
@@ -312,7 +316,22 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+
 <script>
+  const quillRoom = new Quill("#roomDescriptionEditor", {
+    theme: "snow",
+    placeholder: "Describe the room…",
+    modules: {
+      toolbar: [
+        ["bold", "italic", "underline"],
+        [{ list: "ordered" }],
+        ["blockquote"],
+        ["clean"],
+      ],
+    },
+  });
+
   /* ── Modal ── */
   function imgOrIcon(file) {
     if (file.type.startsWith("image/")) {
@@ -330,7 +349,8 @@
     document.getElementById("roomForm").action = "/rooms/create";
     document.getElementById("roomId").value = "";
     document.getElementById("roomName").value = "";
-    document.getElementById("roomDescription").value = "";
+    quillRoom.setContents([]);
+    document.getElementById("roomDescriptionInput").value = "";
     document
       .querySelectorAll("#roomFileBody tr[data-new-row]")
       .forEach((r) => r.remove());
@@ -345,7 +365,15 @@
     document.getElementById("roomForm").action = "/rooms/update";
     document.getElementById("roomId").value = id;
     document.getElementById("roomName").value = name;
-    document.getElementById("roomDescription").value = desc;
+    // Decode Go's JS-escaped unicode sequences back to real HTML
+    const decodedDesc = desc
+      .replace(/\\u003C/g, "<")
+      .replace(/\\u003E/g, ">")
+      .replace(/\\u0026/g, "&")
+      .replace(/\\u0027/g, "'")
+      .replace(/\\u0022/g, '"');
+    quillRoom.clipboard.dangerouslyPasteHTML(decodedDesc || "");
+    document.getElementById("roomDescriptionInput").value = decodedDesc || "";
     updateNoFilesMsg();
   }
   document
@@ -404,10 +432,16 @@
       );
   }
   function submitRoomForm() {
+    document.getElementById("roomDescriptionInput").value =
+      quillRoom.root.innerHTML;
+
     const form = document.getElementById("roomForm");
+
     const dt = new DataTransfer();
     Object.values(newFileMap).forEach((f) => dt.items.add(f));
+
     let bulk = form.querySelector('input[name="new_photos[]"]');
+
     if (!bulk) {
       bulk = document.createElement("input");
       bulk.type = "file";
@@ -416,7 +450,9 @@
       bulk.hidden = true;
       form.appendChild(bulk);
     }
+
     bulk.files = dt.files;
+
     form.submit();
   }
 

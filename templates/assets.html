@@ -210,15 +210,23 @@
                 required
               />
             </div>
-            <div class="col-md-4">
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-12">
               <label class="form-label small fw-semibold text-secondary"
                 >Description</label
               >
+              <!-- Quill rich text editor -->
+              <div class="ql-wrapper">
+                <div
+                  id="assetDescriptionEditor"
+                  style="min-height: 180px"
+                ></div>
+              </div>
               <input
-                class="form-control"
-                id="assetDescription"
+                type="hidden"
                 name="description"
-                placeholder="Short description (optional)"
+                id="assetDescriptionInput"
               />
             </div>
           </div>
@@ -280,8 +288,8 @@
               </select>
             </div>
           </div>
-          <!-- Photos / Documents -->
-          <div class="border rounded-3 p-3">
+          <!-- Photos / Documents — placed AFTER Quill so toolbar doesn't overlap -->
+          <div class="border rounded-3 p-3 ql-upload-section">
             <div class="d-flex align-items-center justify-content-between mb-3">
               <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-images text-primary"></i>
@@ -351,7 +359,23 @@
   }
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+
 <script>
+  const quillAsset = new Quill("#assetDescriptionEditor", {
+    theme: "snow",
+    placeholder:
+      "Describe the asset — specs, condition, notes, purchase details…",
+    modules: {
+      toolbar: [
+        ["bold", "italic", "underline"],
+        [{ list: "ordered" }],
+        ["blockquote"],
+        ["clean"],
+      ],
+    },
+  });
+
   /* ── Asset modal ── */
   let assetNewFileMap = {};
   function imgOrIcon(file) {
@@ -380,12 +404,13 @@
       "assetId",
       "assetName",
       "assetSerial",
-      "assetDescription",
+      "assetDescriptionInput",
       "assetPurchaseDate",
       "assetPurchasePrice",
       "assetCategoryId",
       "assetRoomId",
     ].forEach((id) => (document.getElementById(id).value = ""));
+    quillAsset.setContents([]);
     document.getElementById("assetFileBody").innerHTML = "";
     assetNewFileMap = {};
     updateAssetNoFilesMsg();
@@ -408,7 +433,15 @@
     document.getElementById("assetId").value = id;
     document.getElementById("assetName").value = name;
     document.getElementById("assetSerial").value = serial;
-    document.getElementById("assetDescription").value = desc;
+    // Decode Go's JS-escaped unicode sequences back to real HTML
+    const decodedDesc = desc
+      .replace(/\\u003C/g, "<")
+      .replace(/\\u003E/g, ">")
+      .replace(/\\u0026/g, "&")
+      .replace(/\\u0027/g, "'")
+      .replace(/\\u0022/g, '"');
+    quillAsset.clipboard.dangerouslyPasteHTML(decodedDesc || "");
+    document.getElementById("assetDescriptionInput").value = decodedDesc || "";
     document.getElementById("assetPurchaseDate").value = purchaseDate;
     document.getElementById("assetPurchasePrice").value = purchasePrice;
     document.getElementById("assetCategoryId").value = categoryId;
@@ -478,6 +511,8 @@
     tr.style.outline = "2px solid #0d6efd";
   }
   function submitAssetForm() {
+    document.getElementById("assetDescriptionInput").value =
+      quillAsset.root.innerHTML;
     const form = document.getElementById("assetForm");
     const dt = new DataTransfer();
     Object.values(assetNewFileMap).forEach((f) => dt.items.add(f));
