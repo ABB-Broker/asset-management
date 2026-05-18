@@ -11,6 +11,13 @@ import (
 	"gorm.io/gorm"
 )
 
+type Room struct {
+	gorm.Model
+	RoomName    string `gorm:"not null"`
+	Description string
+	Assets      []Asset `gorm:"foreignKey:RoomID"`
+}
+
 // Category is the GORM model for asset categories.
 type Category struct {
 	gorm.Model
@@ -22,11 +29,15 @@ type Category struct {
 // Asset is the GORM model for physical assets.
 type Asset struct {
 	gorm.Model
-	Name         string
-	CategoryID   uint
-	Category     Category `gorm:"constraint:OnDelete:CASCADE"`
-	SerialNumber string
-	PurchaseDate string
+	Name          string
+	Description   string
+	CategoryID    uint
+	RoomID        uint
+	Category      Category `gorm:"constraint:OnDelete:CASCADE"`
+	Room          Room     `gorm:"constraint:OnDelete:CASCADE"`
+	SerialNumber  string
+	PurchaseDate  string
+	PurchasePrice uint
 }
 
 // User is the GORM model for application user accounts (separate from the

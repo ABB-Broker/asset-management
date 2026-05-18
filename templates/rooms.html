@@ -4,7 +4,7 @@
 <div class="d-flex align-items-center justify-content-between mb-4">
   <div>
     <h4 class="mb-0 fw-bold text-dark">
-      <i class="bi bi-tags text-primary me-2"></i>Category Master
+      <i class="bi bi-tags text-primary me-2"></i>Rooms Master
     </h4>
   </div>
 </div>
@@ -18,34 +18,34 @@
       class="d-flex align-items-center justify-content-center rounded-2"
       style="width: 32px; height: 32px; background: #eff6ff"
     >
-      {{if .Category.ID}}
+      {{if .Room.ID}}
       <i class="bi bi-pencil text-primary small"></i>
       {{else}}
       <i class="bi bi-plus-lg text-primary small"></i>
       {{end}}
     </div>
     <h6 class="mb-0 fw-semibold">
-      {{if .Category.ID}}Edit Category{{else}}Create New Category{{end}}
+      {{if .Room.ID}}Edit Room{{else}}Create New Room{{end}}
     </h6>
   </div>
   <div class="card-body p-4">
     <form
       method="post"
-      action="{{if .Category.ID}}/categories/update{{else}}/categories/create{{end}}"
+      action="{{if .Room.ID}}/rooms/update{{else}}/rooms/create{{end}}"
     >
-      {{if .Category.ID}}
-      <input type="hidden" name="id" value="{{.Category.ID}}" />
+      {{if .Room.ID}}
+      <input type="hidden" name="id" value="{{.Room.ID}}" />
       {{end}}
       <div class="row g-3 align-items-end">
         <div class="col-md-4">
           <label class="form-label small fw-semibold text-secondary">
-            Category Name <span class="text-danger">*</span>
+            Room Name <span class="text-danger">*</span>
           </label>
           <input
             class="form-control"
             name="name"
-            placeholder="e.g. Electronics"
-            value="{{.Category.Name}}"
+            placeholder="e.g. Meeting Room ArthaRe"
+            value="{{.Room.RoomName}}"
             required
           />
         </div>
@@ -57,18 +57,18 @@
             class="form-control"
             name="description"
             placeholder="Short description (optional)"
-            value="{{.Category.Description}}"
+            value="{{.Room.Description}}"
           />
         </div>
         <div class="col-md-3">
           <div class="d-flex gap-2">
             <button class="btn btn-primary px-4 fw-semibold" type="submit">
-              {{if .Category.ID}}
+              {{if .Room.ID}}
               <i class="bi bi-check-lg me-1"></i>Update {{else}}
               <i class="bi bi-plus-lg me-1"></i>Create {{end}}
             </button>
-            {{if .Category.ID}}
-            <a href="/categories" class="btn btn-light border">
+            {{if .Room.ID}}
+            <a href="/rooms" class="btn btn-light border">
               <i class="bi bi-x-lg me-1"></i>Cancel
             </a>
             {{end}}
@@ -86,12 +86,12 @@
   >
     <div class="d-flex align-items-center gap-2">
       <i class="bi bi-list-ul text-primary"></i>
-      <h6 class="mb-0 fw-semibold">Category List</h6>
+      <h6 class="mb-0 fw-semibold">Room List</h6>
     </div>
     <span
       class="badge bg-primary bg-opacity-10 text-primary fw-semibold rounded-pill"
     >
-      {{len .Categories}} record(s)
+      {{len .Rooms}} record(s)
     </span>
   </div>
   <div class="card-body p-0">
@@ -106,27 +106,27 @@
           </tr>
         </thead>
         <tbody>
-          {{range .Categories}}
+          {{range .Rooms}}
           <tr>
             <td class="px-4 text-muted small">{{.ID}}</td>
             <td>
-              <span class="fw-semibold text-dark">{{.Name}}</span>
+              <span class="fw-semibold text-dark">{{.RoomName}}</span>
             </td>
             <td class="text-muted small">{{.Description}}</td>
             <td class="text-center px-4">
               <a
                 class="btn btn-sm btn-outline-primary me-1"
-                href="/categories/edit?id={{.ID}}"
+                href="/rooms/edit?id={{.ID}}"
                 title="Edit"
               >
                 <i class="bi bi-pencil"></i> Edit
               </a>
-              <form method="post" action="/categories/delete" class="d-inline">
+              <form method="post" action="/rooms/delete" class="d-inline">
                 <input type="hidden" name="id" value="{{.ID}}" />
                 <button
                   class="btn btn-sm btn-outline-danger"
                   type="submit"
-                  onclick="return confirm('Delete category \u0022{{.Name}}\u0022? All its assets will also be deleted.')"
+                  onclick="return confirm('Delete room \u0022{{.RoomName}}\u0022? All its assets will also be deleted.')"
                 >
                   <i class="bi bi-trash"></i> Delete
                 </button>
@@ -137,7 +137,7 @@
           <tr>
             <td colspan="4" class="text-center text-muted py-5">
               <i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>
-              <span class="small">No categories yet. Create one above.</span>
+              <span class="small">No rooms yet. Create one above.</span>
             </td>
           </tr>
           {{end}}

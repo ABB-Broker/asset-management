@@ -15,7 +15,7 @@ definitions:
       createdAt:
         type: string
       deletedAt:
-        $ref: '#/definitions/gorm.DeletedAt'
+        $ref: "#/definitions/gorm.DeletedAt"
       email:
         type: string
       fullName:
@@ -35,132 +35,132 @@ info:
   contact:
     name: ABB-Broker
     url: https://github.com/ABB-Broker/asset-management
-  description: REST API for the Asset Management system — users, categories, and assets.
+  description: REST API for the Information Systems Asset Management system — users, categories, and assets.
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
   termsOfService: http://swagger.io/terms/
-  title: Asset Management API
+  title: Information Systems Asset Management API
   version: "1.0"
 paths:
   /api/v1/users:
     get:
       description: Returns all user accounts.
       produces:
-      - application/json
+        - application/json
       responses:
         "200":
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.User'
+              $ref: "#/definitions/models.User"
             type: array
       security:
-      - SessionCookie: []
+        - SessionCookie: []
       summary: List users
       tags:
-      - users
+        - users
     post:
       consumes:
-      - application/x-www-form-urlencoded
+        - application/x-www-form-urlencoded
       description: Creates a new user account.
       parameters:
-      - description: Username
-        in: formData
-        name: username
-        required: true
-        type: string
-      - description: Email address
-        in: formData
-        name: email
-        type: string
-      - description: Full name
-        in: formData
-        name: full_name
-        type: string
-      - description: Role (admin|editor|viewer)
-        in: formData
-        name: role
-        required: true
-        type: string
-      - description: Active (true|false)
-        in: formData
-        name: active
-        type: string
+        - description: Username
+          in: formData
+          name: username
+          required: true
+          type: string
+        - description: Email address
+          in: formData
+          name: email
+          type: string
+        - description: Full name
+          in: formData
+          name: full_name
+          type: string
+        - description: Role (admin|editor|viewer)
+          in: formData
+          name: role
+          required: true
+          type: string
+        - description: Active (true|false)
+          in: formData
+          name: active
+          type: string
       produces:
-      - application/json
+        - application/json
       responses:
         "303":
           description: See Other
       security:
-      - SessionCookie: []
+        - SessionCookie: []
       summary: Create user
       tags:
-      - users
+        - users
   /api/v1/users/delete:
     post:
       consumes:
-      - application/x-www-form-urlencoded
+        - application/x-www-form-urlencoded
       description: Deletes a user account by ID.
       parameters:
-      - description: User ID
-        in: formData
-        name: id
-        required: true
-        type: integer
+        - description: User ID
+          in: formData
+          name: id
+          required: true
+          type: integer
       produces:
-      - application/json
+        - application/json
       responses:
         "303":
           description: See Other
       security:
-      - SessionCookie: []
+        - SessionCookie: []
       summary: Delete user
       tags:
-      - users
+        - users
   /api/v1/users/update:
     post:
       consumes:
-      - application/x-www-form-urlencoded
+        - application/x-www-form-urlencoded
       description: Updates an existing user account.
       parameters:
-      - description: User ID
-        in: formData
-        name: id
-        required: true
-        type: integer
-      - description: Username
-        in: formData
-        name: username
-        required: true
-        type: string
-      - description: Email address
-        in: formData
-        name: email
-        type: string
-      - description: Full name
-        in: formData
-        name: full_name
-        type: string
-      - description: Role (admin|editor|viewer)
-        in: formData
-        name: role
-        required: true
-        type: string
-      - description: Active (true|false)
-        in: formData
-        name: active
-        type: string
+        - description: User ID
+          in: formData
+          name: id
+          required: true
+          type: integer
+        - description: Username
+          in: formData
+          name: username
+          required: true
+          type: string
+        - description: Email address
+          in: formData
+          name: email
+          type: string
+        - description: Full name
+          in: formData
+          name: full_name
+          type: string
+        - description: Role (admin|editor|viewer)
+          in: formData
+          name: role
+          required: true
+          type: string
+        - description: Active (true|false)
+          in: formData
+          name: active
+          type: string
       produces:
-      - application/json
+        - application/json
       responses:
         "303":
           description: See Other
       security:
-      - SessionCookie: []
+        - SessionCookie: []
       summary: Update user
       tags:
-      - users
+        - users
 securityDefinitions:
   SessionCookie:
     in: cookie

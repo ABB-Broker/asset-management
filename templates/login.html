@@ -3,36 +3,61 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Login — Asset Management</title>
+    <title>Login — Information Systems Asset Management</title>
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
     />
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
     />
     <link rel="stylesheet" href="/css/login.css" />
   </head>
   <body>
-    <div class="login-page">
-      <div class="login-box">
-        <div class="login-header">
-          <div class="logo"><i class="fa fa-cubes"></i></div>
-          <h2>Asset Management</h2>
-          <p>Sign in to your administrator account</p>
+    <main>
+      <div class="login-card shadow-lg">
+        <!-- Header band -->
+        <div class="text-center py-5 px-4" style="background: #0f172a">
+          <div
+            class="d-inline-flex align-items-center justify-content-center rounded-3 mb-3"
+            style="
+              width: 56px;
+              height: 56px;
+              background: rgba(14, 165, 233, 0.15);
+            "
+          >
+            <i class="bi bi-boxes text-info fs-3"></i>
+          </div>
+          <h1 class="text-white fw-bold mb-1" style="font-size: 1.4rem">
+            Information Systems Asset Management
+          </h1>
+          <p class="text-secondary mb-0 small">
+            Sign in to your administrator account
+          </p>
         </div>
-        <div class="login-form">
+
+        <!-- Form area -->
+        <div class="bg-white px-4 py-4">
           {{if .Error}}
-          <div class="alert alert-danger">
-            <i class="fa fa-exclamation-circle"></i> {{.Error}}
+          <div
+            class="alert alert-danger d-flex align-items-center gap-2 border-0 rounded-3 small py-2 mb-3"
+            role="alert"
+          >
+            <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+            <span>{{.Error}}</span>
           </div>
           {{end}}
+
           <form method="post" action="/login">
-            <div class="form-group">
-              <label>Username</label>
-              <div class="input-icon">
-                <i class="fa fa-user"></i>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-secondary"
+                >Username</label
+              >
+              <div class="input-group">
+                <span class="input-group-text"
+                  ><i class="bi bi-person"></i
+                ></span>
                 <input
                   class="form-control"
                   type="text"
@@ -43,27 +68,61 @@
                 />
               </div>
             </div>
-            <div class="form-group">
-              <label>Password</label>
-              <div class="input-icon">
-                <i class="fa fa-lock"></i>
+            <div class="mb-4">
+              <label class="form-label small fw-semibold text-secondary"
+                >Password</label
+              >
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-lock"></i></span>
                 <input
                   class="form-control"
                   type="password"
                   name="password"
                   placeholder="Enter password"
                   required
+                  id="pwdInput"
                 />
+                <button
+                  class="btn btn-outline-secondary border-start-0"
+                  type="button"
+                  tabindex="-1"
+                  onclick="
+                    var f = document.getElementById('pwdInput');
+                    f.type = f.type === 'password' ? 'text' : 'password';
+                  "
+                >
+                  <i class="bi bi-eye"></i>
+                </button>
               </div>
             </div>
-            <button class="btn-login" type="submit">
-              <i class="fa fa-sign-in"></i> Continue to 2FA
+            <button
+              class="btn btn-login btn-primary w-100 py-2 fw-semibold"
+              type="submit"
+            >
+              <i class="bi bi-arrow-right-circle me-1"></i> Continue to 2FA
             </button>
           </form>
         </div>
-        <div class="login-footer">Asset Management Admin Panel</div>
+
+        <!-- Footer band -->
+        <div
+          class="text-center py-3 px-4"
+          style="background: #f8fafc; border-top: 1px solid #e2e8f0"
+        >
+          <span class="text-muted small"
+            >Information Systems Asset Management Admin Panel</span
+          >
+        </div>
       </div>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    </main>
+
+    <footer
+      class="text-center py-3 px-4 small"
+      style="color: rgba(255, 255, 255, 0.25)"
+    >
+      Asset Management &copy; 2026 &mdash; Powered by Fiber &amp; Go
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>

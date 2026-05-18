@@ -1,8 +1,8 @@
-// Asset Management — entry point.
+// Information Systems Asset Management — entry point.
 //
-// @title        Asset Management API
+// @title        Information Systems Asset Management API
 // @version      1.0
-// @description  REST API for the Asset Management system — users, categories, and assets.
+// @description  REST API for the Information Systems Asset Management system — users, categories, and assets.
 // @termsOfService http://swagger.io/terms/
 //
 // @contact.name  ABB-Broker
@@ -21,13 +21,11 @@ package main
 
 import (
 	"log"
-	"os"
 
 	contribi18n "github.com/gofiber/contrib/v3/i18n"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/static"
 	"github.com/gofiber/template/html/v2"
-	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/text/language"
@@ -42,8 +40,6 @@ import (
 )
 
 func main() {
-	_ = godotenv.Load()
-	log.Println("DEV_OTP_BYPASS = ", os.Getenv("DEV_OTP_BYPASS"))
 	cfg := config.Load()
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(cfg.AdminPassword), bcrypt.DefaultCost)
@@ -74,12 +70,15 @@ func main() {
 
 	fApp := newFiberApp(h, logger)
 
+	isProduction := cfg.AppEnv == "production"
+
 	if !fiber.IsChild() {
-		log.Printf("Asset management starting on :%s (prefork=%v, admin: %s)",
-			cfg.Port, cfg.Prefork, cfg.AdminUsername)
+		log.Printf("Information Systems Asset Management starting on :%s (prefork=%v, admin: %s)",
+			cfg.Port, isProduction, cfg.AdminUsername)
 	}
+
 	log.Fatal(fApp.Listen(":"+cfg.Port, fiber.ListenConfig{
-		EnablePrefork:         cfg.Prefork,
+		EnablePrefork:         isProduction,
 		DisableStartupMessage: fiber.IsChild(),
 	}))
 }
@@ -90,7 +89,9 @@ func main() {
 // logger may be nil; when nil a no-op zap logger is used.
 func newFiberApp(h *handlers.App, logger *zap.Logger) *fiber.App {
 	engine := html.New("./templates", ".html")
-	fApp := fiber.New(fiber.Config{Views: engine})
+	fApp := fiber.New(fiber.Config{
+		Views: engine,
+	})
 	fApp.Use("/", static.New("./public"))
 	routes.Setup(fApp, h, logger)
 	return fApp

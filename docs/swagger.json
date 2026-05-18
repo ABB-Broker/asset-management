@@ -1,8 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "REST API for the Asset Management system — users, categories, and assets.",
-        "title": "Asset Management API",
+        "description": "REST API for the Information Systems Asset Management system — users, categories, and assets.",
+        "title": "Information Systems Asset Management API",
         "termsOfService": "http://swagger.io/terms/",
         "contact": {
             "name": "ABB-Broker",

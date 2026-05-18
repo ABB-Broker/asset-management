@@ -6,8 +6,11 @@
 admin_username: admin
 admin_password: admin123
 
+
 # Base-32 TOTP secret key (RFC 6238) used for two-factor authentication.
-totp_secret: 353353
+totp_secret: "AKLB029AMDFRCMCM"
+# Bypass OTP Code used for development only
+dev_otp_bypass: "123456"
 
 # ── Database ─────────────────────────────────────────────────────────────────
 # Supported drivers: sqlite, mysql
@@ -28,8 +31,7 @@ db_dsn: asset_management.db
 # db_dsn: "user:pass@tcp(host:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Asia/Jakarta"
 
 # ── HTTP server ───────────────────────────────────────────────────────────────
-# TCP port the server listens on.
-port: "8080"
+# TCP port the server listens on (don't use 8080 for development).
+port: "3000"
 
-# Enable Fiber multi-process prefork mode (one worker per CPU core).
-prefork: true
+

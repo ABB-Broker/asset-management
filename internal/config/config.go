@@ -20,8 +20,12 @@ type Config struct {
 	AdminUsername string
 	// AdminPassword is the plaintext password (bcrypt-hashed at startup).
 	AdminPassword string
+	// AppEnv is the environment (value either "development" or "production")
+	AppEnv string
 	// TOTPSecret is the Base-32 TOTP secret key (RFC 6238).
 	TOTPSecret string
+	// DevOTPBypass is the bypass otp value.
+	DevOTPBypass string
 
 	// DBDriver selects the GORM database driver: "sqlite" (default) or "mysql".
 	DBDriver string
@@ -58,7 +62,9 @@ func Load() Config {
 	// ── Defaults ────────────────────────────────────────────────────────────
 	v.SetDefault("admin_username", "admin")
 	v.SetDefault("admin_password", "admin123")
-	v.SetDefault("totp_secret", "353353")
+	v.SetDefault("app_env", "development")
+	v.SetDefault("totp_secret", "JBSWY3DPEHPK3PXP")
+	v.SetDefault("dev_otp_bypass", "353353")
 	v.SetDefault("db_driver", "sqlite")
 	v.SetDefault("db_dsn", "asset_management.db")
 	v.SetDefault("db_open_connection", 250)
@@ -87,7 +93,9 @@ func Load() Config {
 	return Config{
 		AdminUsername:       v.GetString("admin_username"),
 		AdminPassword:       v.GetString("admin_password"),
+		AppEnv:              v.GetString("app_env"),
 		TOTPSecret:          v.GetString("totp_secret"),
+		DevOTPBypass:        v.GetString("dev_otp_bypass"),
 		DBDriver:            v.GetString("db_driver"),
 		DBDSN:               v.GetString("db_dsn"),
 		DBOpenConnection:    v.GetInt("db_open_connection"),

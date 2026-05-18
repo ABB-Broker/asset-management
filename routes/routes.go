@@ -41,6 +41,10 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 	// ── Protected routes (require valid session) ──────────────────────────
 	auth := fApp.Group("/", h.AuthRequired)
 
+	// Room Master
+	auth.Get("/rooms", h.RoomsIndex)
+	auth.Post("/rooms/create", h.RoomsCreate)
+
 	// Category Master
 	auth.Get("/categories", h.CategoriesIndex)
 	auth.Post("/categories/create", h.CategoriesCreate)

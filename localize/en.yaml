@@ -1,5 +1,5 @@
 - id: app.title
-  translation: Asset Management
+  translation: Information Systems Asset Management
 
 - id: nav.categories
   translation: Category Master
@@ -20,7 +20,7 @@
   translation: Account
 
 - id: login.title
-  translation: Asset Management
+  translation: Information Systems Asset Management
 
 - id: login.subtitle
   translation: Sign in to your administrator account

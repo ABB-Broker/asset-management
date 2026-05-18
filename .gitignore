@@ -15,3 +15,6 @@ config.yaml
 
 # VSCode folder repository
 .vscode
+
+# temp files for air hot reloads
+tmp

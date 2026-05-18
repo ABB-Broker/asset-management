@@ -1,149 +1,180 @@
 {{template "layout_top" .}}
 
-<div class="page-title">
-  <div class="title_left">
-    <h3><i class="fa fa-users"></i> User Master</h3>
+<!-- Page header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="mb-0 fw-bold text-dark">
+      <i class="bi bi-people text-primary me-2"></i>User Master
+    </h4>
   </div>
 </div>
-<div class="clearfix"></div>
 
-<!-- Form panel -->
-<div class="row">
-  <div class="col-md-12">
-    <div class="x_panel">
-      <div class="x_title">
-        <h2>{{if .User.ID}}<i class="fa fa-pencil"></i> Edit User{{else}}<i class="fa fa-user-plus"></i> Create User{{end}}</h2>
-        <div class="clearfix"></div>
-      </div>
-      <div class="x_content">
-        <form method="post" action="{{if .User.ID}}/users/update{{else}}/users/create{{end}}" class="form-horizontal">
-          {{if .User.ID}}<input type="hidden" name="id" value="{{.User.ID}}" />{{end}}
-          <div class="row">
-            <div class="col-md-3">
-              <div class="form-group">
-                <label>Username <span class="text-danger">*</span></label>
-                <input class="form-control" name="username" placeholder="Username" value="{{.User.Username}}" required />
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group">
-                <label>Email</label>
-                <input class="form-control" type="email" name="email" placeholder="Email address" value="{{.User.Email}}" />
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group">
-                <label>Full Name</label>
-                <input class="form-control" name="full_name" placeholder="Full name" value="{{.User.FullName}}" />
-              </div>
-            </div>
-            {{if not .User.ID}}
-            <div class="col-md-2">
-              <div class="form-group">
-                <label>Password <span class="text-danger">*</span></label>
-                <input class="form-control" type="password" name="password" placeholder="Password" required />
-              </div>
-            </div>
-            {{end}}
-            <div class="col-md-2">
-              <div class="form-group">
-                <label>Role <span class="text-danger">*</span></label>
-                <select class="form-control" name="role" required>
-                  <option value="viewer"  {{if eq .User.Role "viewer"}}selected{{end}}>Viewer</option>
-                  <option value="editor"  {{if eq .User.Role "editor"}}selected{{end}}>Editor</option>
-                  <option value="admin"   {{if eq .User.Role "admin"}}selected{{end}}>Admin</option>
-                </select>
-              </div>
-            </div>
-            <div class="col-md-1">
-              <div class="form-group">
-                <label>Active</label>
-                <select class="form-control" name="active">
-                  <option value="true"  {{if .User.Active}}selected{{end}}>Yes</option>
-                  <option value="false" {{if not .User.Active}}selected{{end}}>No</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-md-12">
-              <button class="btn btn-primary" type="submit">
-                {{if .User.ID}}<i class="fa fa-save"></i> Update{{else}}<i class="fa fa-user-plus"></i> Create{{end}}
-              </button>
-              {{if .User.ID}}
-              <a href="/users" class="btn btn-default" style="margin-left:5px"><i class="fa fa-times"></i> Cancel</a>
-              {{end}}
-            </div>
-          </div>
-        </form>
-      </div>
+<!-- Form card -->
+<div class="card border-0 shadow-sm rounded-3 mb-4">
+  <div class="card-header bg-white border-bottom d-flex align-items-center gap-2 py-3 px-4">
+    <div class="d-flex align-items-center justify-content-center rounded-2"
+         style="width:32px;height:32px;background:#eff6ff;">
+      {{if .User.ID}}
+      <i class="bi bi-pencil text-primary small"></i>
+      {{else}}
+      <i class="bi bi-person-plus text-primary small"></i>
+      {{end}}
     </div>
+    <h6 class="mb-0 fw-semibold">
+      {{if .User.ID}}Edit User{{else}}Create New User{{end}}
+    </h6>
+  </div>
+  <div class="card-body p-4">
+    <form method="post" action="{{if .User.ID}}/users/update{{else}}/users/create{{end}}">
+      {{if .User.ID}}
+      <input type="hidden" name="id" value="{{.User.ID}}" />
+      {{end}}
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold text-secondary">
+            Username <span class="text-danger">*</span>
+          </label>
+          <input class="form-control" name="username" placeholder="Username"
+                 value="{{.User.Username}}" required />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold text-secondary">Email</label>
+          <input class="form-control" type="email" name="email"
+                 placeholder="user@example.com" value="{{.User.Email}}" />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold text-secondary">Full Name</label>
+          <input class="form-control" name="full_name" placeholder="Full name"
+                 value="{{.User.FullName}}" />
+        </div>
+        {{if not .User.ID}}
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold text-secondary">
+            Password <span class="text-danger">*</span>
+          </label>
+          <input class="form-control" type="password" name="password"
+                 placeholder="Password" required />
+        </div>
+        {{end}}
+        <div class="col-md-1">
+          <label class="form-label small fw-semibold text-secondary">
+            Role <span class="text-danger">*</span>
+          </label>
+          <select class="form-select" name="role" required>
+            <option value="viewer"  {{if eq .User.Role "viewer"}}selected{{end}}>Viewer</option>
+            <option value="editor"  {{if eq .User.Role "editor"}}selected{{end}}>Editor</option>
+            <option value="admin"   {{if eq .User.Role "admin"}}selected{{end}}>Admin</option>
+          </select>
+        </div>
+        <div class="col-md-1">
+          <label class="form-label small fw-semibold text-secondary">Active</label>
+          <select class="form-select" name="active">
+            <option value="true"  {{if .User.Active}}selected{{end}}>Yes</option>
+            <option value="false" {{if not .User.Active}}selected{{end}}>No</option>
+          </select>
+        </div>
+      </div>
+      <div class="mt-3 d-flex gap-2">
+        <button class="btn btn-primary px-4 fw-semibold" type="submit">
+          {{if .User.ID}}
+          <i class="bi bi-check-lg me-1"></i>Update User
+          {{else}}
+          <i class="bi bi-person-plus me-1"></i>Create User
+          {{end}}
+        </button>
+        {{if .User.ID}}
+        <a href="/users" class="btn btn-light border">
+          <i class="bi bi-x-lg me-1"></i>Cancel
+        </a>
+        {{end}}
+      </div>
+    </form>
   </div>
 </div>
 
-<!-- Table panel -->
-<div class="row">
-  <div class="col-md-12">
-    <div class="x_panel">
-      <div class="x_title">
-        <h2><i class="fa fa-list"></i> User List <small>{{len .Users}} record(s)</small></h2>
-        <div class="clearfix"></div>
-      </div>
-      <div class="x_content no-pad">
-        <table class="table table-striped table-bordered">
-          <thead>
-            <tr>
-              <th width="60">#</th>
-              <th>Username</th>
-              <th>Full Name</th>
-              <th>Email</th>
-              <th width="90" class="text-center">Role</th>
-              <th width="80" class="text-center">Active</th>
-              <th width="160" class="text-center">Action</th>
-            </tr>
-          </thead>
-          <tbody>
+<!-- Table card -->
+<div class="card border-0 shadow-sm rounded-3">
+  <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between py-3 px-4">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-list-ul text-primary"></i>
+      <h6 class="mb-0 fw-semibold">User List</h6>
+    </div>
+    <span class="badge bg-primary bg-opacity-10 text-primary fw-semibold rounded-pill">
+      {{len .Users}} record(s)
+    </span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th class="px-4" style="width:60px;">#</th>
+            <th>Username</th>
+            <th>Full Name</th>
+            <th>Email</th>
+            <th class="text-center" style="width:100px;">Role</th>
+            <th class="text-center" style="width:90px;">Active</th>
+            <th class="text-center px-4" style="width:180px;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
           {{range .Users}}
-            <tr>
-              <td>{{.ID}}</td>
-              <td><strong>{{.Username}}</strong></td>
-              <td>{{.FullName}}</td>
-              <td>{{.Email}}</td>
-              <td class="text-center">
-                {{if eq .Role "admin"}}
-                  <span class="label label-danger">Admin</span>
-                {{else if eq .Role "editor"}}
-                  <span class="label label-warning">Editor</span>
-                {{else}}
-                  <span class="label label-default">Viewer</span>
-                {{end}}
-              </td>
-              <td class="text-center">
-                {{if .Active}}
-                  <span class="label label-success">Yes</span>
-                {{else}}
-                  <span class="label label-default">No</span>
-                {{end}}
-              </td>
-              <td class="text-center">
-                <a class="btn btn-xs btn-primary" href="/users/edit?id={{.ID}}" title="Edit">
-                  <i class="fa fa-pencil"></i> Edit
-                </a>
-                <form method="post" action="/users/delete" style="display:inline">
-                  <input type="hidden" name="id" value="{{.ID}}" />
-                  <button class="btn btn-xs btn-danger" type="submit"
-                          onclick="return confirm('Delete user \u0022{{.Username}}\u0022?')">
-                    <i class="fa fa-trash"></i> Delete
-                  </button>
-                </form>
-              </td>
-            </tr>
+          <tr>
+            <td class="px-4 text-muted small">{{.ID}}</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                     style="width:30px;height:30px;background:#f1f5f9;">
+                  <i class="bi bi-person text-secondary small"></i>
+                </div>
+                <span class="fw-semibold text-dark">{{.Username}}</span>
+              </div>
+            </td>
+            <td class="text-muted small">{{.FullName}}</td>
+            <td class="text-muted small">{{.Email}}</td>
+            <td class="text-center">
+              {{if eq .Role "admin"}}
+              <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger fw-semibold px-2">Admin</span>
+              {{else if eq .Role "editor"}}
+              <span class="badge rounded-pill bg-warning bg-opacity-15 text-warning fw-semibold px-2">Editor</span>
+              {{else}}
+              <span class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary fw-semibold px-2">Viewer</span>
+              {{end}}
+            </td>
+            <td class="text-center">
+              {{if .Active}}
+              <span class="badge rounded-pill bg-success bg-opacity-10 text-success fw-semibold px-2">
+                <i class="bi bi-check-circle me-1"></i>Yes
+              </span>
+              {{else}}
+              <span class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary fw-semibold px-2">
+                <i class="bi bi-dash-circle me-1"></i>No
+              </span>
+              {{end}}
+            </td>
+            <td class="text-center px-4">
+              <a class="btn btn-sm btn-outline-primary me-1" href="/users/edit?id={{.ID}}" title="Edit">
+                <i class="bi bi-pencil"></i> Edit
+              </a>
+              <form method="post" action="/users/delete" class="d-inline">
+                <input type="hidden" name="id" value="{{.ID}}" />
+                <button class="btn btn-sm btn-outline-danger" type="submit"
+                        onclick="return confirm('Delete user \u0022{{.Username}}\u0022?')">
+                  <i class="bi bi-trash"></i> Delete
+                </button>
+              </form>
+            </td>
+          </tr>
           {{else}}
-            <tr><td colspan="7" class="text-center text-muted" style="padding:20px"><i class="fa fa-inbox"></i> No users yet.</td></tr>
+          <tr>
+            <td colspan="7" class="text-center text-muted py-5">
+              <i class="bi bi-people fs-2 d-block mb-2 opacity-50"></i>
+              <span class="small">No users yet. Create one above.</span>
+            </td>
+          </tr>
           {{end}}
-          </tbody>
-        </table>
-      </div>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>

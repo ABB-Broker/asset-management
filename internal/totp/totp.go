@@ -7,7 +7,6 @@ import (
 	"encoding/base32"
 	"encoding/binary"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 )
@@ -16,16 +15,11 @@ import (
 // calls to Generate and Validate to avoid re-creating the object on every call.
 var base32Enc = base32.StdEncoding.WithPadding(base32.NoPadding)
 
-// devOTPBypass is the static code accepted in development when
-// DEV_OTP_BYPASS is set in the environment. It is intentionally
-// an unexported package-level var so tests can override it.
-var devOTPBypass = os.Getenv("DEV_OTP_BYPASS")
-
 // Validate checks whether code matches the current TOTP window (±1 step).
 // The Base-32 key is decoded only once and reused for all three window checks.
 // In development, if the DEV_OTP_BYPASS environment variable is set to a
 // non-empty value, any code equal to that value is accepted immediately.
-func Validate(secret, code string, now time.Time) bool {
+func Validate(secret, code, devBypass string, now time.Time) bool {
 	if len(code) != 6 {
 		return false
 	}
@@ -35,8 +29,7 @@ func Validate(secret, code string, now time.Time) bool {
 		}
 	}
 
-	// Dev-mode bypass: accept the static code without TOTP math.
-	if devOTPBypass != "" && code == devOTPBypass {
+	if devBypass != "" && code == devBypass {
 		return true
 	}
 

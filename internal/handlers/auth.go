@@ -69,7 +69,7 @@ func (a *App) Login2FAGet(c fiber.Ctx) error {
 	return c.Render("login_2fa", fiber.Map{
 		"Title":      "2FA Verification",
 		"Pending2FA": true,
-		"TotpSecret": a.Cfg.TOTPSecret,
+		"TotpSecret": a.Cfg.DevOTPBypass,
 		"Username":   sess.Username,
 	})
 }
@@ -82,11 +82,11 @@ func (a *App) Login2FAPost(c fiber.Ctx) error {
 	}
 
 	code := strings.TrimSpace(c.FormValue("code"))
-	if !totp.Validate(a.Cfg.TOTPSecret, code, time.Now()) {
+	if !totp.Validate(a.Cfg.TOTPSecret, code, a.Cfg.DevOTPBypass, time.Now()) {
 		return c.Render("login_2fa", fiber.Map{
 			"Title":      "2FA Verification",
 			"Pending2FA": true,
-			"TotpSecret": a.Cfg.TOTPSecret,
+			"TotpSecret": a.Cfg.DevOTPBypass,
 			"Username":   sess.Username,
 			"Error":      "invalid 2FA code",
 		})
@@ -96,7 +96,7 @@ func (a *App) Login2FAPost(c fiber.Ctx) error {
 		"authenticated": true,
 		"pending_2fa":   false,
 	})
-	return c.Redirect().To("/categories")
+	return c.Redirect().To("/rooms")
 }
 
 // Logout destroys the active session and redirects to the login page.

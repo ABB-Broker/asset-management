@@ -3,41 +3,76 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>2FA Verification — Asset Management</title>
+    <title>2FA Verification — Information Systems Asset Management</title>
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
     />
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
     />
     <link rel="stylesheet" href="/css/login_2fa.css" />
   </head>
   <body>
-    <div class="login-page">
-      <div class="login-box">
-        <div class="login-header">
-          <div class="logo"><i class="fa fa-shield"></i></div>
-          <h2>Two-Factor Verification</h2>
-          <p>Signed in as <strong>{{.Username}}</strong></p>
+    <main>
+      <div class="login-card shadow-lg">
+        <!-- Header band -->
+        <div class="text-center py-5 px-4" style="background: #0f172a">
+          <div
+            class="d-inline-flex align-items-center justify-content-center rounded-3 mb-3"
+            style="
+              width: 56px;
+              height: 56px;
+              background: rgba(16, 185, 129, 0.15);
+            "
+          >
+            <i class="bi bi-shield-check text-success fs-3"></i>
+          </div>
+          <h1 class="text-white fw-bold mb-1" style="font-size: 1.4rem">
+            Two-Factor Verification
+          </h1>
+          <p class="text-secondary mb-0 small">
+            Signed in as <strong class="text-info">{{.Username}}</strong>
+          </p>
         </div>
-        <div class="login-form">
+
+        <!-- Form area -->
+        <div class="bg-white px-4 py-4">
           {{if .Error}}
-          <div class="alert alert-danger">
-            <i class="fa fa-exclamation-circle"></i> {{.Error}}
+          <div
+            class="alert alert-danger d-flex align-items-center gap-2 border-0 rounded-3 small py-2 mb-3"
+            role="alert"
+          >
+            <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+            <span>{{.Error}}</span>
           </div>
           {{end}}
-          <div class="info-box">
-            <i class="fa fa-info-circle"></i>
-            Open your authenticator app and enter the 6-digit TOTP code.<br />
-            Demo secret: <code>{{.TotpSecret}}</code>
+
+          <div
+            class="rounded-3 p-3 mb-4 small d-flex gap-2"
+            style="background: #f0fdf4; border: 1px solid #bbf7d0"
+          >
+            <i
+              class="bi bi-info-circle-fill text-success flex-shrink-0 mt-1"
+            ></i>
+            <div>
+              Open your authenticator app and enter the 6-digit TOTP code.<br />
+              <span class="text-muted">Demo secret:</span>
+              <code class="bg-white rounded px-1 py-0 border small"
+                >{{.TotpSecret}}</code
+              >
+            </div>
           </div>
+
           <form method="post" action="/login/2fa">
-            <div class="form-group">
-              <label>6-Digit Code</label>
+            <div class="mb-4">
+              <label
+                class="form-label small fw-semibold text-secondary text-center d-block"
+                >6-Digit Code</label
+              >
               <input
-                class="form-control"
+                class="form-control otp-input"
                 type="text"
                 name="code"
                 maxlength="6"
@@ -46,17 +81,42 @@
                 required
                 autofocus
                 autocomplete="one-time-code"
+                inputmode="numeric"
               />
+              <div class="text-center mt-2">
+                <span class="text-muted" style="font-size: 0.7rem"
+                  >Code refreshes every 30 seconds</span
+                >
+              </div>
             </div>
-            <button class="btn-login" type="submit">
-              <i class="fa fa-check"></i> Verify &amp; Login
+            <button
+              class="btn btn-verify btn-success w-100 py-2 fw-semibold text-white"
+              type="submit"
+            >
+              <i class="bi bi-check-circle me-1"></i> Verify &amp; Sign In
             </button>
           </form>
         </div>
-        <div class="login-footer">
-          <a href="/login"><i class="fa fa-arrow-left"></i> Back to Login</a>
+
+        <!-- Footer band -->
+        <div
+          class="text-center py-3 px-4"
+          style="background: #f8fafc; border-top: 1px solid #e2e8f0"
+        >
+          <a href="/login" class="text-muted small text-decoration-none">
+            <i class="bi bi-arrow-left me-1"></i>Back to Login
+          </a>
         </div>
       </div>
-    </div>
+    </main>
+
+    <footer
+      class="text-center py-3 px-4 small"
+      style="color: rgba(255, 255, 255, 0.25)"
+    >
+      Asset Management &copy; 2026 &mdash; Powered by Fiber &amp; Go
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>

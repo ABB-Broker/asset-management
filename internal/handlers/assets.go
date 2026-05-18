@@ -14,9 +14,11 @@ import (
 // AssetsIndex renders the Asset Master list with an inline create form.
 func (a *App) AssetsIndex(c fiber.Ctx) error {
 	var assets []models.Asset
-	a.DB.Preload("Category").Order("id asc").Find(&assets)
+	a.DB.Preload("Category").Preload("Room").Order("id asc").Find(&assets)
 	var cats []models.Category
 	a.DB.Order("id asc").Find(&cats)
+	var rooms []models.Room
+	a.DB.Order("id asc").Find(&rooms)
 	return c.Render("assets", fiber.Map{
 		"Title":       "Asset Master",
 		"CurrentPath": "/assets",
@@ -25,6 +27,7 @@ func (a *App) AssetsIndex(c fiber.Ctx) error {
 		"Assets":      assets,
 		"Categories":  cats,
 		"Asset":       models.Asset{},
+		"Rooms":       rooms,
 	})
 }
 
@@ -103,6 +106,7 @@ func (a *App) assetFromCtx(c fiber.Ctx) (models.Asset, error) {
 	name := strings.TrimSpace(c.FormValue("name"))
 	serial := strings.TrimSpace(c.FormValue("serial_number"))
 	purchaseDate := strings.TrimSpace(c.FormValue("purchase_date"))
+	description := strings.TrimSpace(c.FormValue("description"))
 	// Atoi returns int (same bit-width as uint on all supported 64-bit and
 	// 32-bit platforms). The uint() cast is a same-size reinterpretation —
 	// not a narrowing conversion — so no data loss can occur for valid IDs.
@@ -118,10 +122,17 @@ func (a *App) assetFromCtx(c fiber.Ctx) (models.Asset, error) {
 	if err := a.DB.First(&cat, categoryID).Error; err != nil {
 		return models.Asset{}, fmt.Errorf("category not found")
 	}
-	return models.Asset{
+
+	assetModel := &models.Asset{
 		Name:         name,
 		CategoryID:   categoryID,
 		SerialNumber: serial,
 		PurchaseDate: purchaseDate,
-	}, nil
+	}
+
+	if len(description) > 0 {
+		assetModel.Description = description
+	}
+
+	return *assetModel, nil
 }
