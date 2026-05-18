@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// Room is the GORM Model for rooms
 type Room struct {
 	gorm.Model
 	RoomName    string `gorm:"not null"`

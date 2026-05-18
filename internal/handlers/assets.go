@@ -106,6 +106,7 @@ func (a *App) assetFromCtx(c fiber.Ctx) (models.Asset, error) {
 	name := strings.TrimSpace(c.FormValue("name"))
 	serial := strings.TrimSpace(c.FormValue("serial_number"))
 	purchaseDate := strings.TrimSpace(c.FormValue("purchase_date"))
+	purchasePrice := strings.TrimSpace(c.FormValue("purchase_price"))
 	description := strings.TrimSpace(c.FormValue("description"))
 	// Atoi returns int (same bit-width as uint on all supported 64-bit and
 	// 32-bit platforms). The uint() cast is a same-size reinterpretation —
@@ -115,19 +116,34 @@ func (a *App) assetFromCtx(c fiber.Ctx) (models.Asset, error) {
 		return models.Asset{}, fmt.Errorf("invalid category id")
 	}
 	categoryID := uint(catIDInt)
-	if name == "" || serial == "" || purchaseDate == "" {
+
+	roomIDInt, err := strconv.Atoi(c.FormValue("room_id"))
+	if err != nil || roomIDInt <= 0 {
+		return models.Asset{}, fmt.Errorf("invalid room_id")
+	}
+	roomID := uint(roomIDInt)
+
+	if name == "" || serial == "" || purchaseDate == "" || purchasePrice == "" {
 		return models.Asset{}, fmt.Errorf("all asset fields are required")
 	}
+
 	var cat models.Category
 	if err := a.DB.First(&cat, categoryID).Error; err != nil {
 		return models.Asset{}, fmt.Errorf("category not found")
 	}
 
+	price64, err := strconv.ParseUint(purchasePrice, 10, 32)
+	if err != nil {
+		return models.Asset{}, fmt.Errorf("invalid purchase price")
+	}
+
 	assetModel := &models.Asset{
-		Name:         name,
-		CategoryID:   categoryID,
-		SerialNumber: serial,
-		PurchaseDate: purchaseDate,
+		Name:          name,
+		CategoryID:    categoryID,
+		RoomID:        roomID,
+		SerialNumber:  serial,
+		PurchaseDate:  purchaseDate,
+		PurchasePrice: uint(price64),
 	}
 
 	if len(description) > 0 {
