@@ -2,34 +2,157 @@
 
 <!-- Page header -->
 <div class="d-flex align-items-center justify-content-between mb-4">
-  <div>
+  <div class="d-flex align-items-center gap-3">
+    <a href="/rooms" class="btn btn-sm btn-light border">
+      <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
     <h4 class="mb-0 fw-bold text-dark">
-      <i class="bi bi-door-open text-primary me-2"></i>Room Master
+      <i class="bi bi-door-open text-primary me-2"></i>Room Details
     </h4>
   </div>
   <button
     class="btn btn-primary fw-semibold"
     data-bs-toggle="modal"
     data-bs-target="#roomModal"
-    onclick="openCreateModal()"
+    onclick="openEditModal('{{.Room.ID}}', '{{.Room.RoomName | js}}', '{{.Room.Description | js}}')"
   >
-    <i class="bi bi-plus-lg me-1"></i>Create New Room
+    <i class="bi bi-pencil me-1"></i>Edit Room
   </button>
 </div>
 
-<!-- Table card -->
+<div class="row g-4 mb-4">
+  <!-- Info card -->
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm rounded-3 h-100">
+      <div
+        class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center gap-2"
+      >
+        <i class="bi bi-info-circle text-primary"></i>
+        <h6 class="mb-0 fw-semibold">Room Information</h6>
+      </div>
+      <div class="card-body p-4">
+        <dl class="row mb-0" style="row-gap: 0.75rem">
+          <dt class="col-5 text-secondary small fw-semibold">Room Name</dt>
+          <dd class="col-7 fw-semibold text-dark mb-0">{{.Room.RoomName}}</dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Description</dt>
+          <dd class="col-7 text-muted small mb-0">
+            {{if .Room.Description}}{{.Room.Description}}{{else}}<span
+              class="fst-italic opacity-50"
+              >—</span
+            >{{end}}
+          </dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Total Assets</dt>
+          <dd class="col-7 mb-0">
+            <span
+              class="badge bg-primary bg-opacity-10 text-primary fw-semibold rounded-pill"
+            >
+              {{len .Room.Assets}}
+            </span>
+          </dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Created At</dt>
+          <dd class="col-7 text-muted small mb-0">
+            {{.Room.CreatedAt.Format "02 Jan 2006"}}
+          </dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Last Updated</dt>
+          <dd class="col-7 text-muted small mb-0">
+            {{.Room.UpdatedAt.Format "02 Jan 2006"}}
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Photos card -->
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm rounded-3 h-100">
+      <div
+        class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center gap-2"
+      >
+        <i class="bi bi-images text-primary"></i>
+        <h6 class="mb-0 fw-semibold">Photos &amp; Documents</h6>
+        <span
+          class="badge bg-primary bg-opacity-10 text-primary fw-semibold rounded-pill ms-auto"
+        >
+          {{len .Room.RoomPhotos}} file(s)
+        </span>
+      </div>
+      <div class="card-body p-4">
+        {{if .Room.RoomPhotos}}
+        <div class="row g-3">
+          {{range .Room.RoomPhotos}}
+          <div class="col-6 col-md-3">
+            <div
+              class="border rounded-3 overflow-hidden d-flex flex-column"
+              style="background: #f8fafc"
+            >
+              <a href="{{.PhotoUrl}}" target="_blank" class="d-block">
+                <div
+                  style="height: 110px; background: #f1f5f9; overflow: hidden"
+                >
+                  <img
+                    src="{{.PhotoUrl}}"
+                    alt="{{.Name}}"
+                    style="width: 100%; height: 110px; object-fit: cover"
+                    onerror="
+                      this.style.display = 'none';
+                      this.nextElementSibling.style.display = 'flex';
+                    "
+                  />
+                  <div
+                    style="
+                      display: none;
+                      height: 110px;
+                      align-items: center;
+                      justify-content: center;
+                      font-size: 2rem;
+                      color: #94a3b8;
+                    "
+                  >
+                    <i class="bi bi-file-earmark-text"></i>
+                  </div>
+                </div>
+              </a>
+              <div class="p-2 border-top">
+                <p
+                  class="mb-0 small fw-semibold text-dark text-truncate"
+                  title="{{.Name}}"
+                >
+                  {{.Name}}
+                </p>
+              </div>
+            </div>
+          </div>
+          {{end}}
+        </div>
+        {{else}}
+        <div class="text-center text-muted py-5">
+          <i class="bi bi-image fs-2 d-block mb-2 opacity-40"></i>
+          <span class="small">No photos or documents attached.</span>
+        </div>
+        {{end}}
+      </div>
+    </div>
+  </div>
+</div>
+<!-- /info row -->
+
+<!-- Assets in this room -->
 <div class="card border-0 shadow-sm rounded-3">
   <div
     class="card-header bg-white border-bottom d-flex align-items-center justify-content-between py-3 px-4"
   >
     <div class="d-flex align-items-center gap-2">
-      <i class="bi bi-list-ul text-primary"></i>
-      <h6 class="mb-0 fw-semibold">Room List</h6>
+      <i class="bi bi-archive text-primary"></i>
+      <h6 class="mb-0 fw-semibold">Assets in this Room</h6>
     </div>
     <span
       class="badge bg-primary bg-opacity-10 text-primary fw-semibold rounded-pill"
     >
-      {{len .Rooms}} record(s)
+      {{len .Room.Assets}} asset(s)
     </span>
   </div>
   <div class="card-body p-3">
@@ -37,18 +160,18 @@
     <div class="mb-3">
       <input
         type="text"
-        id="roomSearch"
+        id="roomAssetSearch"
         class="form-control form-control-sm w-auto"
-        placeholder="Search rooms…"
+        placeholder="Search assets…"
         style="min-width: 240px"
       />
     </div>
     <div class="table-responsive">
-      <table class="table table-hover mb-0" id="roomTable">
+      <table class="table table-hover mb-0" id="roomAssetTable">
         <thead>
           <tr>
             <th
-              class="px-4 sortable"
+              class="px-3 sortable"
               data-col="0"
               style="width: 60px; cursor: pointer"
             >
@@ -66,53 +189,61 @@
               ></i>
             </th>
             <th class="sortable" data-col="2" style="cursor: pointer">
-              Description
+              Category
               <i
                 class="bi bi-arrow-down-up text-muted"
                 style="font-size: 0.7rem"
               ></i>
             </th>
-            <th class="text-center px-4" style="width: 250px">Action</th>
+            <th class="sortable" data-col="3" style="cursor: pointer">
+              Serial Number
+              <i
+                class="bi bi-arrow-down-up text-muted"
+                style="font-size: 0.7rem"
+              ></i>
+            </th>
+            <th class="sortable" data-col="4" style="cursor: pointer">
+              Purchase Date
+              <i
+                class="bi bi-arrow-down-up text-muted"
+                style="font-size: 0.7rem"
+              ></i>
+            </th>
+            <th class="text-center" style="width: 120px">Action</th>
           </tr>
         </thead>
-        <tbody id="roomBody">
-          {{range .Rooms}}
+        <tbody id="roomAssetBody">
+          {{range .Room.Assets}}
           <tr>
-            <td class="px-4 text-muted small row-number"></td>
-            <td><span class="fw-semibold text-dark">{{.RoomName}}</span></td>
-            <td class="text-muted small">{{.Description}}</td>
-            <td class="text-center px-4">
+            <td class="px-3 text-muted small">{{.ID}}</td>
+            <td><span class="fw-semibold text-dark">{{.Name}}</span></td>
+            <td>
+              <span
+                class="badge rounded-pill bg-info bg-opacity-10 text-info fw-semibold px-2"
+              >
+                {{.Category.Name}}
+              </span>
+            </td>
+            <td>
+              <code class="bg-light rounded px-2 py-1 small text-secondary"
+                >{{.SerialNumber}}</code
+              >
+            </td>
+            <td class="text-muted small">{{.PurchaseDate}}</td>
+            <td class="text-center">
               <a
-                class="btn btn-sm btn-outline-secondary me-1"
-                href="/rooms/detail?id={{.ID}}"
+                class="btn btn-sm btn-outline-primary"
+                href="/assets/detail?id={{.ID}}"
               >
                 <i class="bi bi-eye"></i> View
               </a>
-              <button
-                class="btn btn-sm btn-outline-primary me-1"
-                onclick="openEditModal('{{.ID}}', '{{.RoomName | js}}', '{{.Description | js}}')"
-                data-bs-toggle="modal"
-                data-bs-target="#roomModal"
-              >
-                <i class="bi bi-pencil"></i> Edit
-              </button>
-              <form method="post" action="/rooms/delete" class="d-inline">
-                <input type="hidden" name="id" value="{{.ID}}" />
-                <button
-                  class="btn btn-sm btn-outline-danger"
-                  type="submit"
-                  onclick="return confirm('Delete room \u0022{{.RoomName}}\u0022? All its assets will also be deleted.')"
-                >
-                  <i class="bi bi-trash"></i>
-                </button>
-              </form>
             </td>
           </tr>
           {{else}}
           <tr id="emptyRow">
-            <td colspan="4" class="text-center text-muted py-5">
+            <td colspan="6" class="text-center text-muted py-5">
               <i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>
-              <span class="small">No rooms yet. Create one above.</span>
+              <span class="small">No assets in this room.</span>
             </td>
           </tr>
           {{end}}
@@ -121,22 +252,16 @@
     </div>
     <!-- Pagination -->
     <div class="d-flex align-items-center justify-content-between mt-3 px-1">
-      <span class="text-muted small" id="roomPaginationInfo"></span>
+      <span class="text-muted small" id="roomAssetPaginationInfo"></span>
       <nav>
-        <ul class="pagination pagination-sm mb-0" id="roomPagination"></ul>
+        <ul class="pagination pagination-sm mb-0" id="roomAssetPagination"></ul>
       </nav>
     </div>
   </div>
 </div>
 
-<!-- ===== Room Modal (Create / Edit) ===== -->
-<div
-  class="modal fade"
-  id="roomModal"
-  tabindex="-1"
-  aria-labelledby="roomModalLabel"
-  aria-hidden="true"
->
+<!-- ===== Edit Room Modal ===== -->
+<div class="modal fade" id="roomModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content border-0 shadow">
       <div class="modal-header border-bottom py-3 px-4">
@@ -145,11 +270,9 @@
             class="d-flex align-items-center justify-content-center rounded-2"
             style="width: 32px; height: 32px; background: #eff6ff"
           >
-            <i id="modalIcon" class="bi bi-plus-lg text-primary small"></i>
+            <i class="bi bi-pencil text-primary small"></i>
           </div>
-          <h6 class="modal-title mb-0 fw-semibold" id="roomModalLabel">
-            Create New Room
-          </h6>
+          <h6 class="modal-title mb-0 fw-semibold">Edit Room</h6>
         </div>
         <button
           type="button"
@@ -158,20 +281,19 @@
         ></button>
       </div>
       <div class="modal-body p-4">
-        <form id="roomForm" method="post" enctype="multipart/form-data">
+        <form
+          id="roomForm"
+          method="post"
+          enctype="multipart/form-data"
+          action="/rooms/update"
+        >
           <input type="hidden" id="roomId" name="id" value="" />
           <div class="row g-3 mb-4">
             <div class="col-md-5">
               <label class="form-label small fw-semibold text-secondary"
                 >Room Name <span class="text-danger">*</span></label
               >
-              <input
-                class="form-control"
-                id="roomName"
-                name="name"
-                placeholder="e.g. Meeting Room Artha"
-                required
-              />
+              <input class="form-control" id="roomName" name="name" required />
             </div>
             <div class="col-md-7">
               <label class="form-label small fw-semibold text-secondary"
@@ -181,7 +303,6 @@
                 class="form-control"
                 id="roomDescription"
                 name="description"
-                placeholder="Short description (optional)"
               />
             </div>
           </div>
@@ -240,7 +361,9 @@
                         ></i>
                       </a>
                     </td>
-                    <td class="align-middle small text-muted">{{.PhotoUrl}}</td>
+                    <td class="align-middle small text-muted text-break">
+                      {{.PhotoUrl}}
+                    </td>
                     <td class="align-middle">
                       <input
                         class="form-control form-control-sm"
@@ -259,13 +382,13 @@
                           name="replace_photo[{{.ID}}]"
                           accept="image/*,application/pdf,.doc,.docx"
                           hidden
-                          onchange="previewReplace(this)"
+                          onchange="roomPreviewReplace(this)"
                         />
                       </label>
                       <button
                         type="button"
                         class="btn btn-sm btn-outline-danger"
-                        onclick="markDeleteExisting(this,'{{.ID}}')"
+                        onclick="roomMarkDelete(this,'{{.ID}}')"
                       >
                         <i class="bi bi-trash"></i>
                       </button>
@@ -304,8 +427,7 @@
           class="btn btn-primary fw-semibold px-4"
           onclick="submitRoomForm()"
         >
-          <i class="bi bi-check-lg me-1"></i
-          ><span id="modalSubmitLabel">Create</span>
+          <i class="bi bi-check-lg me-1"></i>Update
         </button>
       </div>
     </div>
@@ -313,69 +435,56 @@
 </div>
 
 <script>
-  /* ── Modal ── */
-  function imgOrIcon(file) {
+  /* ── Room modal helpers ── */
+  let roomNewFileMap = {};
+  function roomImgOrIcon(file) {
     if (file.type.startsWith("image/")) {
       const u = URL.createObjectURL(file);
       return `<a href="${u}" target="_blank"><img src="${u}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;"></a>`;
     }
     return `<i class="bi bi-file-earmark-text fs-4 text-muted"></i>`;
   }
-  let newFileMap = {};
-  function openCreateModal() {
-    document.getElementById("roomModalLabel").textContent = "Create New Room";
-    document.getElementById("modalIcon").className =
-      "bi bi-plus-lg text-primary small";
-    document.getElementById("modalSubmitLabel").textContent = "Create";
-    document.getElementById("roomForm").action = "/rooms/create";
-    document.getElementById("roomId").value = "";
-    document.getElementById("roomName").value = "";
-    document.getElementById("roomDescription").value = "";
+  function updateRoomNoFilesMsg() {
+    const body = document.getElementById("roomFileBody");
     document
-      .querySelectorAll("#roomFileBody tr[data-new-row]")
-      .forEach((r) => r.remove());
-    newFileMap = {};
-    updateNoFilesMsg();
+      .getElementById("roomNoFiles")
+      .classList.toggle("d-none", body.querySelectorAll("tr").length > 0);
   }
   function openEditModal(id, name, desc) {
-    document.getElementById("roomModalLabel").textContent = "Edit Room";
-    document.getElementById("modalIcon").className =
-      "bi bi-pencil text-primary small";
-    document.getElementById("modalSubmitLabel").textContent = "Update";
-    document.getElementById("roomForm").action = "/rooms/update";
     document.getElementById("roomId").value = id;
     document.getElementById("roomName").value = name;
     document.getElementById("roomDescription").value = desc;
-    updateNoFilesMsg();
+    roomNewFileMap = {};
+    updateRoomNoFilesMsg();
   }
   document
     .getElementById("roomFileInput")
     .addEventListener("change", function () {
       Array.from(this.files).forEach((file) => {
         const idx = Date.now() + Math.random();
-        newFileMap[idx] = file;
+        roomNewFileMap[idx] = file;
         const tr = document.createElement("tr");
         tr.dataset.newRow = idx;
-        tr.innerHTML = `<td class="text-center align-middle">${imgOrIcon(file)}</td><td class="align-middle small text-muted">${file.name}</td><td class="align-middle"><input class="form-control form-control-sm" name="new_photo_name[]" value="${file.name.replace(/\.[^.]+$/, "")}"/></td><td class="text-center align-middle"><label class="btn btn-sm btn-outline-secondary me-1" style="cursor:pointer;"><i class="bi bi-arrow-repeat"></i><input type="file" accept="image/*,application/pdf,.doc,.docx" hidden onchange="replaceNewRow(this,${idx})"/></label><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeNewRow(this,${idx})"><i class="bi bi-trash"></i></button></td>`;
+        tr.innerHTML = `<td class="text-center align-middle">${roomImgOrIcon(file)}</td><td class="align-middle small text-muted">${file.name}</td><td class="align-middle"><input class="form-control form-control-sm" name="new_photo_name[]" value="${file.name.replace(/\.[^.]+$/, "")}"/></td><td class="text-center align-middle"><label class="btn btn-sm btn-outline-secondary me-1" style="cursor:pointer;"><i class="bi bi-arrow-repeat"></i><input type="file" hidden onchange="roomReplaceNewRow(this,${idx})"/></label><button type="button" class="btn btn-sm btn-outline-danger" onclick="roomRemoveNewRow(this,${idx})"><i class="bi bi-trash"></i></button></td>`;
         document.getElementById("roomFileBody").appendChild(tr);
       });
       this.value = "";
-      updateNoFilesMsg();
+      updateRoomNoFilesMsg();
     });
-  function removeNewRow(btn, idx) {
+  function roomRemoveNewRow(btn, idx) {
     btn.closest("tr").remove();
-    delete newFileMap[idx];
-    updateNoFilesMsg();
+    delete roomNewFileMap[idx];
+    updateRoomNoFilesMsg();
   }
-  function replaceNewRow(input, idx) {
+  function roomReplaceNewRow(input, idx) {
     if (!input.files[0]) return;
     const f = input.files[0];
-    newFileMap[idx] = f;
+    roomNewFileMap[idx] = f;
     const tr = input.closest("tr");
-    tr.cells[0].innerHTML = imgOrIcon(f);
+    tr.cells[0].innerHTML = roomImgOrIcon(f);
     tr.cells[1].textContent = f.name;
   }
-  function markDeleteExisting(btn, id) {
+  function roomMarkDelete(btn, id) {
     const tr = btn.closest("tr");
     tr.style.opacity = ".4";
     tr.style.textDecoration = "line-through";
@@ -384,7 +493,7 @@
     flag.value = id;
     flag.disabled = false;
   }
-  function previewReplace(input) {
+  function roomPreviewReplace(input) {
     if (!input.files[0]) return;
     const f = input.files[0],
       tr = input.closest("tr");
@@ -394,19 +503,10 @@
     }
     tr.style.outline = "2px solid #0d6efd";
   }
-  function updateNoFilesMsg() {
-    document
-      .getElementById("roomNoFiles")
-      .classList.toggle(
-        "d-none",
-        document.getElementById("roomFileBody").querySelectorAll("tr").length >
-          0,
-      );
-  }
   function submitRoomForm() {
     const form = document.getElementById("roomForm");
     const dt = new DataTransfer();
-    Object.values(newFileMap).forEach((f) => dt.items.add(f));
+    Object.values(roomNewFileMap).forEach((f) => dt.items.add(f));
     let bulk = form.querySelector('input[name="new_photos[]"]');
     if (!bulk) {
       bulk = document.createElement("input");
@@ -420,26 +520,33 @@
     form.submit();
   }
 
-  /* ── Table utility ── */
+  /* ── Asset table: search, sort, paginate ── */
+  initTable(
+    "roomAssetTable",
+    "roomAssetBody",
+    "roomAssetSearch",
+    "roomAssetPagination",
+    "roomAssetPaginationInfo",
+  );
+
   function initTable(tableId, bodyId, searchId, paginationId, infoId) {
     const PAGE_SIZE = 10;
     const body = document.getElementById(bodyId);
     const searchInput = document.getElementById(searchId);
     const paginationEl = document.getElementById(paginationId);
     const infoEl = document.getElementById(infoId);
+
     let allRows = Array.from(body.querySelectorAll("tr:not(#emptyRow)"));
     let filteredRows = [...allRows];
-    let currentPage = 1,
-      sortCol = -1,
+    let currentPage = 1;
+    let sortCol = -1,
       sortAsc = true;
 
     function render() {
-      console.log("render begins");
-      console.log("filteredRows", filteredRows);
       allRows.forEach((r) => (r.style.display = "none"));
-
       const start = (currentPage - 1) * PAGE_SIZE;
       const pageRows = filteredRows.slice(start, start + PAGE_SIZE);
+      pageRows.forEach((r) => (r.style.display = ""));
 
       // Reorder DOM rows
       pageRows.forEach((r, i) => {
@@ -451,49 +558,56 @@
           numberCell.textContent = start + i + 1;
         }
       });
+
+      // info
       const total = filteredRows.length;
       if (infoEl)
         infoEl.textContent =
           total === 0
             ? "No results"
             : `Showing ${start + 1}–${Math.min(start + PAGE_SIZE, total)} of ${total}`;
-      if (!paginationEl) return;
-      paginationEl.innerHTML = "";
-      const totalPages = Math.ceil(total / PAGE_SIZE);
-      if (totalPages <= 1) return;
-      const mkLi = (label, page, disabled, active) => {
-        const li = document.createElement("li");
-        li.className =
-          "page-item" +
-          (disabled ? " disabled" : "") +
-          (active ? " active" : "");
-        li.innerHTML = `<a class="page-link" href="#">${label}</a>`;
-        if (!disabled)
-          li.addEventListener("click", (e) => {
-            e.preventDefault();
-            currentPage = page;
-            render();
-          });
-        return li;
-      };
-      paginationEl.appendChild(mkLi("&laquo;", 1, currentPage === 1));
-      paginationEl.appendChild(
-        mkLi("&lsaquo;", currentPage - 1, currentPage === 1),
-      );
-      for (
-        let p = Math.max(1, currentPage - 2);
-        p <= Math.min(totalPages, currentPage + 2);
-        p++
-      )
-        paginationEl.appendChild(mkLi(p, p, false, p === currentPage));
-      paginationEl.appendChild(
-        mkLi("&rsaquo;", currentPage + 1, currentPage === totalPages),
-      );
-      paginationEl.appendChild(
-        mkLi("&raquo;", totalPages, currentPage === totalPages),
-      );
+
+      // pagination
+      if (paginationEl) {
+        paginationEl.innerHTML = "";
+        const totalPages = Math.ceil(total / PAGE_SIZE);
+        if (totalPages <= 1) return;
+        const mkLi = (label, page, disabled, active) => {
+          const li = document.createElement("li");
+          li.className =
+            "page-item" +
+            (disabled ? " disabled" : "") +
+            (active ? " active" : "");
+          li.innerHTML = `<a class="page-link" href="#">${label}</a>`;
+          if (!disabled)
+            li.addEventListener("click", (e) => {
+              e.preventDefault();
+              currentPage = page;
+              render();
+            });
+          return li;
+        };
+        paginationEl.appendChild(mkLi("&laquo;", 1, currentPage === 1));
+        paginationEl.appendChild(
+          mkLi("&lsaquo;", currentPage - 1, currentPage === 1),
+        );
+        for (
+          let p = Math.max(1, currentPage - 2);
+          p <= Math.min(totalPages, currentPage + 2);
+          p++
+        ) {
+          paginationEl.appendChild(mkLi(p, p, false, p === currentPage));
+        }
+        paginationEl.appendChild(
+          mkLi("&rsaquo;", currentPage + 1, currentPage === totalPages),
+        );
+        paginationEl.appendChild(
+          mkLi("&raquo;", totalPages, currentPage === totalPages),
+        );
+      }
     }
 
+    // search
     if (searchInput) {
       searchInput.addEventListener("input", () => {
         const q = searchInput.value.toLowerCase();
@@ -505,6 +619,7 @@
       });
     }
 
+    // sort
     document.querySelectorAll(`#${tableId} .sortable`).forEach((th) => {
       th.addEventListener("click", () => {
         const col = +th.dataset.col;
@@ -514,10 +629,9 @@
           sortAsc = true;
         }
         filteredRows.sort((a, b) => {
-          console.log("a, b:", a.cells[col], b.cells[col]);
-          const aT = (a.cells[col]?.textContent || "").trim(),
-            bT = (b.cells[col]?.textContent || "").trim(),
-            n = +aT - +bT;
+          const aT = (a.cells[col]?.textContent || "").trim();
+          const bT = (b.cells[col]?.textContent || "").trim();
+          const n = +aT - +bT;
           return (isNaN(n) ? aT.localeCompare(bT) : n) * (sortAsc ? 1 : -1);
         });
         currentPage = 1;
@@ -527,14 +641,6 @@
 
     render();
   }
-
-  initTable(
-    "roomTable",
-    "roomBody",
-    "roomSearch",
-    "roomPagination",
-    "roomPaginationInfo",
-  );
 </script>
 
 {{template "layout_bottom" .}}

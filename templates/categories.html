@@ -7,76 +7,14 @@
       <i class="bi bi-tags text-primary me-2"></i>Category Master
     </h4>
   </div>
-</div>
-
-<!-- Form card -->
-<div class="card border-0 shadow-sm rounded-3 mb-4">
-  <div
-    class="card-header bg-white border-bottom d-flex align-items-center gap-2 py-3 px-4"
+  <button
+    class="btn btn-primary fw-semibold"
+    data-bs-toggle="modal"
+    data-bs-target="#categoryModal"
+    onclick="openCreateModal()"
   >
-    <div
-      class="d-flex align-items-center justify-content-center rounded-2"
-      style="width: 32px; height: 32px; background: #eff6ff"
-    >
-      {{if .Category.ID}}
-      <i class="bi bi-pencil text-primary small"></i>
-      {{else}}
-      <i class="bi bi-plus-lg text-primary small"></i>
-      {{end}}
-    </div>
-    <h6 class="mb-0 fw-semibold">
-      {{if .Category.ID}}Edit Category{{else}}Create New Category{{end}}
-    </h6>
-  </div>
-  <div class="card-body p-4">
-    <form
-      method="post"
-      action="{{if .Category.ID}}/categories/update{{else}}/categories/create{{end}}"
-    >
-      {{if .Category.ID}}
-      <input type="hidden" name="id" value="{{.Category.ID}}" />
-      {{end}}
-      <div class="row g-3 align-items-end">
-        <div class="col-md-4">
-          <label class="form-label small fw-semibold text-secondary">
-            Category Name <span class="text-danger">*</span>
-          </label>
-          <input
-            class="form-control"
-            name="name"
-            placeholder="e.g. Electronics"
-            value="{{.Category.Name}}"
-            required
-          />
-        </div>
-        <div class="col-md-5">
-          <label class="form-label small fw-semibold text-secondary"
-            >Description</label
-          >
-          <input
-            class="form-control"
-            name="description"
-            placeholder="Short description (optional)"
-            value="{{.Category.Description}}"
-          />
-        </div>
-        <div class="col-md-3">
-          <div class="d-flex gap-2">
-            <button class="btn btn-primary px-4 fw-semibold" type="submit">
-              {{if .Category.ID}}
-              <i class="bi bi-check-lg me-1"></i>Update {{else}}
-              <i class="bi bi-plus-lg me-1"></i>Create {{end}}
-            </button>
-            {{if .Category.ID}}
-            <a href="/categories" class="btn btn-light border">
-              <i class="bi bi-x-lg me-1"></i>Cancel
-            </a>
-            {{end}}
-          </div>
-        </div>
-      </div>
-    </form>
-  </div>
+    <i class="bi bi-plus-lg me-1"></i>Create New Category
+  </button>
 </div>
 
 <!-- Table card -->
@@ -109,18 +47,17 @@
           {{range .Categories}}
           <tr>
             <td class="px-4 text-muted small">{{.ID}}</td>
-            <td>
-              <span class="fw-semibold text-dark">{{.Name}}</span>
-            </td>
+            <td><span class="fw-semibold text-dark">{{.Name}}</span></td>
             <td class="text-muted small">{{.Description}}</td>
             <td class="text-center px-4">
-              <a
+              <button
                 class="btn btn-sm btn-outline-primary me-1"
-                href="/categories/edit?id={{.ID}}"
-                title="Edit"
+                onclick="openEditModal('{{.ID}}', '{{.Name | js}}', '{{.Description | js}}')"
+                data-bs-toggle="modal"
+                data-bs-target="#categoryModal"
               >
                 <i class="bi bi-pencil"></i> Edit
-              </a>
+              </button>
               <form method="post" action="/categories/delete" class="d-inline">
                 <input type="hidden" name="id" value="{{.ID}}" />
                 <button
@@ -146,5 +83,110 @@
     </div>
   </div>
 </div>
+
+<!-- ===== Category Modal ===== -->
+<div
+  class="modal fade"
+  id="categoryModal"
+  tabindex="-1"
+  aria-labelledby="categoryModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-bottom py-3 px-4">
+        <div class="d-flex align-items-center gap-2">
+          <div
+            class="d-flex align-items-center justify-content-center rounded-2"
+            style="width: 32px; height: 32px; background: #eff6ff"
+          >
+            <i id="modalIcon" class="bi bi-plus-lg text-primary small"></i>
+          </div>
+          <h6 class="modal-title mb-0 fw-semibold" id="categoryModalLabel">
+            Create New Category
+          </h6>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+
+      <div class="modal-body p-4">
+        <form id="categoryForm" method="post">
+          <input type="hidden" id="categoryId" name="id" value="" />
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">
+              Category Name <span class="text-danger">*</span>
+            </label>
+            <input
+              class="form-control"
+              id="categoryName"
+              name="name"
+              placeholder="e.g. Electronics"
+              required
+            />
+          </div>
+          <div>
+            <label class="form-label small fw-semibold text-secondary"
+              >Description</label
+            >
+            <input
+              class="form-control"
+              id="categoryDescription"
+              name="description"
+              placeholder="Short description (optional)"
+            />
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer border-top py-3 px-4">
+        <button
+          type="button"
+          class="btn btn-light border"
+          data-bs-dismiss="modal"
+        >
+          <i class="bi bi-x-lg me-1"></i>Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary fw-semibold px-4"
+          onclick="document.getElementById('categoryForm').submit()"
+        >
+          <i class="bi bi-check-lg me-1"></i
+          ><span id="modalSubmitLabel">Create</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ===== /Category Modal ===== -->
+
+<script>
+  function openCreateModal() {
+    document.getElementById("categoryModalLabel").textContent =
+      "Create New Category";
+    document.getElementById("modalIcon").className =
+      "bi bi-plus-lg text-primary small";
+    document.getElementById("modalSubmitLabel").textContent = "Create";
+    document.getElementById("categoryForm").action = "/categories/create";
+    document.getElementById("categoryId").value = "";
+    document.getElementById("categoryName").value = "";
+    document.getElementById("categoryDescription").value = "";
+  }
+
+  function openEditModal(id, name, desc) {
+    document.getElementById("categoryModalLabel").textContent = "Edit Category";
+    document.getElementById("modalIcon").className =
+      "bi bi-pencil text-primary small";
+    document.getElementById("modalSubmitLabel").textContent = "Update";
+    document.getElementById("categoryForm").action = "/categories/update";
+    document.getElementById("categoryId").value = id;
+    document.getElementById("categoryName").value = name;
+    document.getElementById("categoryDescription").value = desc;
+  }
+</script>
 
 {{template "layout_bottom" .}}

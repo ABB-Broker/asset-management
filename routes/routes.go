@@ -44,6 +44,7 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 	// Room Master
 	auth.Get("/rooms", h.RoomsIndex)
 	auth.Post("/rooms/create", h.RoomsCreate)
+	auth.Get("/rooms/detail", h.RoomDetailsIndex)
 
 	// Category Master
 	auth.Get("/categories", h.CategoriesIndex)
@@ -58,6 +59,7 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 	auth.Get("/assets/edit", h.AssetsEdit)
 	auth.Post("/assets/update", h.AssetsUpdate)
 	auth.Post("/assets/delete", h.AssetsDelete)
+	auth.Get("/assets/detail", h.AssetDetailsIndex)
 
 	// User Master
 	auth.Get("/users", h.UsersIndex)

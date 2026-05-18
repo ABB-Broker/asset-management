@@ -11,12 +11,31 @@ import (
 	"gorm.io/gorm"
 )
 
+// RoomPhotos is the GORM model for the table that contains photos of the rooms.
+type RoomPhotos struct {
+	gorm.Model
+	RoomID   uint
+	Name     string
+	PhotoUrl string
+	Room     Room `gorm:"foreignKey:RoomID;references:ID;constraint:OnDelete:CASCADE"id`
+}
+
+// AssetPhotos is the GORM model for the table that contains photos of the assets.
+type AssetPhotos struct {
+	gorm.Model
+	AssetID  uint
+	Name     string
+	PhotoUrl string
+	Asset    Asset `gorm:"foreignKey:AssetID;references:ID;constraint:OnDelete:CASCADE"`
+}
+
 // Room is the GORM Model for rooms
 type Room struct {
 	gorm.Model
 	RoomName    string `gorm:"not null"`
 	Description string
-	Assets      []Asset `gorm:"foreignKey:RoomID"`
+	Assets      []Asset      `gorm:"foreignKey:RoomID"`
+	RoomPhotos  []RoomPhotos `gorm:"foreignKey:RoomID"`
 }
 
 // Category is the GORM model for asset categories.
@@ -34,11 +53,12 @@ type Asset struct {
 	Description   string
 	CategoryID    uint
 	RoomID        uint
-	Category      Category `gorm:"constraint:OnDelete:CASCADE"`
-	Room          Room     `gorm:"constraint:OnDelete:CASCADE"`
 	SerialNumber  string
 	PurchaseDate  string
 	PurchasePrice uint
+	Category      Category      `gorm:"foreignKey:CategoryID;references:ID;constraint:OnDelete:CASCADE"`
+	Room          Room          `gorm:"foreignKey:RoomID;references:ID;constraint:OnDelete:CASCADE"`
+	AssetPhotos   []AssetPhotos `gorm:"foreignKey:AssetID"`
 }
 
 // User is the GORM model for application user accounts (separate from the

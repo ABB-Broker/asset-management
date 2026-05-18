@@ -9,7 +9,7 @@ import (
 	"github.com/ABB-Broker/asset-management/internal/models"
 )
 
-// RoomsIndex renders the Category Master list with an inline create form.
+// RoomsIndex renders the Room Master list with an inline create form.
 func (a *App) RoomsIndex(c fiber.Ctx) error {
 	var rooms []models.Room
 	a.DB.Order("id asc").Find(&rooms)
@@ -20,6 +20,16 @@ func (a *App) RoomsIndex(c fiber.Ctx) error {
 		"Error":       c.Query("error"),
 		"Rooms":       rooms,
 		"Category":    models.Room{},
+	})
+}
+
+// RoomDetailsIndex renders the room details page
+func (a *App) RoomDetailsIndex(c fiber.Ctx) error {
+	var room models.Room
+	a.DB.Preload("Assets").Preload("Assets.Category").Preload("RoomPhotos").Where("id = ?", c.Query("id")).First(&room)
+
+	return c.Render("room_details", fiber.Map{
+		"Room": room,
 	})
 }
 

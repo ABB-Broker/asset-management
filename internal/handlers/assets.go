@@ -31,6 +31,20 @@ func (a *App) AssetsIndex(c fiber.Ctx) error {
 	})
 }
 
+// AssetDetailsIndex renders the room details page
+func (a *App) AssetDetailsIndex(c fiber.Ctx) error {
+	var asset models.Asset
+	err := a.DB.Preload("Category").Preload("Room").Preload("AssetPhotos").Where("id = ?", c.Query("id")).First(&asset).Error
+
+	if err != nil {
+		return err
+	}
+
+	return c.Render("asset_details", fiber.Map{
+		"Asset": asset,
+	})
+}
+
 // AssetsCreate persists a new asset.
 func (a *App) AssetsCreate(c fiber.Ctx) error {
 	asset, err := a.assetFromCtx(c)

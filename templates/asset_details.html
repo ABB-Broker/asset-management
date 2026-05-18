@@ -1,0 +1,554 @@
+{{template "layout_top" .}}
+
+<!-- Page header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <a href="/assets" class="btn btn-sm btn-light border">
+      <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+    <div>
+      <h4 class="mb-0 fw-bold text-dark">
+        <i class="bi bi-archive text-primary me-2"></i>Asset Details
+      </h4>
+    </div>
+  </div>
+  <button
+    class="btn btn-primary fw-semibold"
+    data-bs-toggle="modal"
+    data-bs-target="#assetModal"
+    onclick="openEditModal(
+      '{{.Asset.ID}}',
+      '{{.Asset.Name | js}}',
+      '{{.Asset.Description | js}}',
+      '{{.Asset.SerialNumber | js}}',
+      '{{.Asset.PurchaseDate | js}}',
+      '{{.Asset.PurchasePrice}}',
+      '{{.Asset.CategoryID}}',
+      '{{.Asset.RoomID}}'
+    )"
+  >
+    <i class="bi bi-pencil me-1"></i>Edit Asset
+  </button>
+</div>
+
+<div class="row g-4">
+  <!-- Left col: info card -->
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm rounded-3 h-100">
+      <div
+        class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center gap-2"
+      >
+        <i class="bi bi-info-circle text-primary"></i>
+        <h6 class="mb-0 fw-semibold">Asset Information</h6>
+      </div>
+      <div class="card-body p-4">
+        <dl class="row mb-0" style="row-gap: 0.75rem">
+          <dt class="col-5 text-secondary small fw-semibold">Asset Name</dt>
+          <dd class="col-7 fw-semibold text-dark mb-0">{{.Asset.Name}}</dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Description</dt>
+          <dd class="col-7 text-muted small mb-0">
+            {{if .Asset.Description}}{{.Asset.Description}}{{else}}<span
+              class="fst-italic opacity-50"
+              >—</span
+            >{{end}}
+          </dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Serial Number</dt>
+          <dd class="col-7 mb-0">
+            <code class="bg-light rounded px-2 py-1 small text-secondary"
+              >{{.Asset.SerialNumber}}</code
+            >
+          </dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Category</dt>
+          <dd class="col-7 mb-0">
+            <span
+              class="badge rounded-pill bg-info bg-opacity-10 text-info fw-semibold px-2"
+            >
+              {{.Asset.Category.Name}}
+            </span>
+          </dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">
+            Location (Room)
+          </dt>
+          <dd class="col-7 mb-0">
+            <a
+              href="/rooms/detail?id={{.Asset.Room.ID}}"
+              class="text-decoration-none fw-semibold text-primary"
+            >
+              <i class="bi bi-door-open me-1 small"></i>{{.Asset.Room.RoomName}}
+            </a>
+          </dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Purchase Date</dt>
+          <dd class="col-7 text-muted small mb-0">{{.Asset.PurchaseDate}}</dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Purchase Price</dt>
+          <dd class="col-7 fw-semibold text-dark mb-0">
+            Rp {{.Asset.PurchasePrice}}
+          </dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Created At</dt>
+          <dd class="col-7 text-muted small mb-0">
+            {{.Asset.CreatedAt.Format "02 Jan 2006"}}
+          </dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Last Updated</dt>
+          <dd class="col-7 text-muted small mb-0">
+            {{.Asset.UpdatedAt.Format "02 Jan 2006"}}
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right col: photos -->
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm rounded-3">
+      <div
+        class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center gap-2"
+      >
+        <i class="bi bi-images text-primary"></i>
+        <h6 class="mb-0 fw-semibold">Photos &amp; Documents</h6>
+        <span
+          class="badge bg-primary bg-opacity-10 text-primary fw-semibold rounded-pill ms-auto"
+        >
+          {{len .Asset.AssetPhotos}} file(s)
+        </span>
+      </div>
+      <div class="card-body p-4">
+        {{if .Asset.AssetPhotos}}
+        <div class="row g-3">
+          {{range .Asset.AssetPhotos}}
+          <div class="col-6 col-md-4">
+            <div
+              class="border rounded-3 overflow-hidden h-100 d-flex flex-column"
+              style="background: #f8fafc"
+            >
+              <!-- preview area -->
+              <div
+                class="d-flex align-items-center justify-content-center"
+                style="height: 130px; background: #f1f5f9"
+              >
+                {{$ext := .PhotoUrl}}
+                <a
+                  href="{{.PhotoUrl}}"
+                  target="_blank"
+                  class="d-block w-100 h-100 d-flex align-items-center justify-content-center"
+                >
+                  <img
+                    src="{{.PhotoUrl}}"
+                    alt="{{.Name}}"
+                    style="width: 100%; height: 130px; object-fit: cover"
+                    onerror="
+                      this.style.display = 'none';
+                      this.nextElementSibling.style.display = 'flex';
+                    "
+                  />
+                  <span
+                    style="display: none; font-size: 2.5rem; color: #94a3b8"
+                  >
+                    <i class="bi bi-file-earmark-text"></i>
+                  </span>
+                </a>
+              </div>
+              <!-- name -->
+              <div class="p-2 border-top">
+                <p
+                  class="mb-0 small fw-semibold text-dark text-truncate"
+                  title="{{.Name}}"
+                >
+                  {{.Name}}
+                </p>
+                <p
+                  class="mb-0 text-muted"
+                  style="
+                    font-size: 0.68rem;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                  "
+                  title="{{.PhotoUrl}}"
+                >
+                  {{.PhotoUrl}}
+                </p>
+              </div>
+            </div>
+          </div>
+          {{end}}
+        </div>
+        {{else}}
+        <div class="text-center text-muted py-5">
+          <i class="bi bi-image fs-2 d-block mb-2 opacity-40"></i>
+          <span class="small">No photos or documents attached.</span>
+        </div>
+        {{end}}
+      </div>
+    </div>
+  </div>
+</div>
+<!-- /row -->
+
+<!-- ===== Edit Asset Modal (reused from assets.html) ===== -->
+<div
+  class="modal fade"
+  id="assetModal"
+  tabindex="-1"
+  aria-labelledby="assetModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-bottom py-3 px-4">
+        <div class="d-flex align-items-center gap-2">
+          <div
+            class="d-flex align-items-center justify-content-center rounded-2"
+            style="width: 32px; height: 32px; background: #eff6ff"
+          >
+            <i class="bi bi-pencil text-primary small"></i>
+          </div>
+          <h6 class="modal-title mb-0 fw-semibold" id="assetModalLabel">
+            Edit Asset
+          </h6>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body p-4">
+        <form
+          id="assetForm"
+          method="post"
+          enctype="multipart/form-data"
+          action="/assets/update"
+        >
+          <input type="hidden" id="assetId" name="id" value="" />
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold text-secondary"
+                >Asset Name <span class="text-danger">*</span></label
+              >
+              <input class="form-control" id="assetName" name="name" required />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold text-secondary"
+                >Serial Number <span class="text-danger">*</span></label
+              >
+              <input
+                class="form-control font-monospace"
+                id="assetSerial"
+                name="serial_number"
+                required
+              />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold text-secondary"
+                >Description</label
+              >
+              <input
+                class="form-control"
+                id="assetDescription"
+                name="description"
+              />
+            </div>
+          </div>
+          <div class="row g-3 mb-4">
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold text-secondary"
+                >Purchase Date <span class="text-danger">*</span></label
+              >
+              <input
+                type="date"
+                class="form-control"
+                id="assetPurchaseDate"
+                name="purchase_date"
+                required
+              />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold text-secondary"
+                >Purchase Price <span class="text-danger">*</span></label
+              >
+              <input
+                class="form-control"
+                id="assetPurchasePrice"
+                name="purchase_price"
+                required
+              />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold text-secondary"
+                >Category <span class="text-danger">*</span></label
+              >
+              <select
+                class="form-select"
+                id="assetCategoryId"
+                name="category_id"
+                required
+              >
+                <option value="">— Select —</option>
+                {{range .Categories}}
+                <option value="{{.ID}}">{{.Name}}</option>
+                {{end}}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold text-secondary"
+                >Room <span class="text-danger">*</span></label
+              >
+              <select
+                class="form-select"
+                id="assetRoomId"
+                name="room_id"
+                required
+              >
+                <option value="">— Select —</option>
+                {{range .Rooms}}
+                <option value="{{.ID}}">{{.RoomName}}</option>
+                {{end}}
+              </select>
+            </div>
+          </div>
+          <!-- Photos section -->
+          <div class="border rounded-3 p-3">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-images text-primary"></i>
+                <span class="fw-semibold small">Photos &amp; Documents</span>
+              </div>
+              <label
+                class="btn btn-sm btn-outline-primary"
+                style="cursor: pointer"
+              >
+                <i class="bi bi-upload me-1"></i>Add File
+                <input
+                  type="file"
+                  id="assetFileInput"
+                  accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx"
+                  multiple
+                  hidden
+                />
+              </label>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 80px">Preview</th>
+                    <th>Original Filename</th>
+                    <th>Display Name</th>
+                    <th style="width: 110px" class="text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="assetFileBody">
+                  {{range .Asset.AssetPhotos}}
+                  <tr data-existing-id="{{.ID}}">
+                    <td class="text-center align-middle">
+                      <a href="{{.PhotoUrl}}" target="_blank">
+                        <img
+                          src="{{.PhotoUrl}}"
+                          style="
+                            width: 48px;
+                            height: 48px;
+                            object-fit: cover;
+                            border-radius: 4px;
+                          "
+                          onerror="
+                            this.style.display = 'none';
+                            this.nextElementSibling.style.display =
+                              'inline-block';
+                          "
+                        />
+                        <i
+                          class="bi bi-file-earmark-text fs-4 text-muted"
+                          style="display: none"
+                        ></i>
+                      </a>
+                    </td>
+                    <td class="align-middle small text-muted text-break">
+                      {{.PhotoUrl}}
+                    </td>
+                    <td class="align-middle">
+                      <input
+                        class="form-control form-control-sm"
+                        name="existing_photo_name[{{.ID}}]"
+                        value="{{.Name}}"
+                      />
+                    </td>
+                    <td class="text-center align-middle">
+                      <label
+                        class="btn btn-sm btn-outline-secondary me-1"
+                        title="Replace"
+                        style="cursor: pointer"
+                      >
+                        <i class="bi bi-arrow-repeat"></i>
+                        <input
+                          type="file"
+                          name="replace_photo[{{.ID}}]"
+                          accept="image/*,application/pdf,.doc,.docx"
+                          hidden
+                          onchange="assetPreviewReplace(this)"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-danger"
+                        onclick="assetMarkDelete(this,'{{.ID}}')"
+                      >
+                        <i class="bi bi-trash"></i>
+                      </button>
+                      <input
+                        type="hidden"
+                        name="delete_photo[]"
+                        class="delete-flag"
+                        value=""
+                        disabled
+                      />
+                    </td>
+                  </tr>
+                  {{end}}
+                </tbody>
+              </table>
+              <p
+                id="assetNoFiles"
+                class="text-muted small text-center py-2 mb-0 {{if .Asset.AssetPhotos}}d-none{{end}}"
+              >
+                No files added yet.
+              </p>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer border-top py-3 px-4">
+        <button
+          type="button"
+          class="btn btn-light border"
+          data-bs-dismiss="modal"
+        >
+          <i class="bi bi-x-lg me-1"></i>Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary fw-semibold px-4"
+          onclick="submitAssetForm()"
+        >
+          <i class="bi bi-check-lg me-1"></i>Update
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let assetNewFileMap = {};
+  function imgOrIcon(file) {
+    if (file.type.startsWith("image/")) {
+      const url = URL.createObjectURL(file);
+      return `<a href="${url}" target="_blank"><img src="${url}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;"></a>`;
+    }
+    return `<i class="bi bi-file-earmark-text fs-4 text-muted"></i>`;
+  }
+  function updateAssetNoFilesMsg() {
+    const body = document.getElementById("assetFileBody");
+    document
+      .getElementById("assetNoFiles")
+      .classList.toggle("d-none", body.querySelectorAll("tr").length > 0);
+  }
+  function openEditModal(
+    id,
+    name,
+    desc,
+    serial,
+    purchaseDate,
+    purchasePrice,
+    categoryId,
+    roomId,
+  ) {
+    document.getElementById("assetId").value = id;
+    document.getElementById("assetName").value = name;
+    document.getElementById("assetSerial").value = serial;
+    document.getElementById("assetDescription").value = desc;
+    document.getElementById("assetPurchaseDate").value = purchaseDate;
+    document.getElementById("assetPurchasePrice").value = purchasePrice;
+    document.getElementById("assetCategoryId").value = categoryId;
+    document.getElementById("assetRoomId").value = roomId;
+    assetNewFileMap = {};
+    updateAssetNoFilesMsg();
+  }
+  document
+    .getElementById("assetFileInput")
+    .addEventListener("change", function () {
+      Array.from(this.files).forEach((file) => {
+        const idx = Date.now() + Math.random();
+        assetNewFileMap[idx] = file;
+        const tr = document.createElement("tr");
+        tr.dataset.newRow = idx;
+        tr.innerHTML = `
+      <td class="text-center align-middle">${imgOrIcon(file)}</td>
+      <td class="align-middle small text-muted">${file.name}</td>
+      <td class="align-middle"><input class="form-control form-control-sm" name="new_photo_name[]" value="${file.name.replace(/\.[^.]+$/, "")}" /></td>
+      <td class="text-center align-middle">
+        <label class="btn btn-sm btn-outline-secondary me-1" style="cursor:pointer;"><i class="bi bi-arrow-repeat"></i>
+          <input type="file" hidden onchange="assetReplaceNewRow(this,${idx})" /></label>
+        <button type="button" class="btn btn-sm btn-outline-danger" onclick="assetRemoveNewRow(this,${idx})"><i class="bi bi-trash"></i></button>
+      </td>`;
+        document.getElementById("assetFileBody").appendChild(tr);
+      });
+      this.value = "";
+      updateAssetNoFilesMsg();
+    });
+  function assetRemoveNewRow(btn, idx) {
+    btn.closest("tr").remove();
+    delete assetNewFileMap[idx];
+    updateAssetNoFilesMsg();
+  }
+  function assetReplaceNewRow(input, idx) {
+    if (!input.files[0]) return;
+    const f = input.files[0];
+    assetNewFileMap[idx] = f;
+    const tr = input.closest("tr");
+    tr.cells[0].innerHTML = imgOrIcon(f);
+    tr.cells[1].textContent = f.name;
+  }
+  function assetMarkDelete(btn, id) {
+    const tr = btn.closest("tr");
+    tr.style.opacity = ".4";
+    tr.style.textDecoration = "line-through";
+    btn.disabled = true;
+    const flag = tr.querySelector(".delete-flag");
+    flag.value = id;
+    flag.disabled = false;
+  }
+  function assetPreviewReplace(input) {
+    if (!input.files[0]) return;
+    const f = input.files[0],
+      tr = input.closest("tr");
+    if (f.type.startsWith("image/")) {
+      const url = URL.createObjectURL(f);
+      tr.cells[0].innerHTML = `<a href="${url}" target="_blank"><img src="${url}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;"></a>`;
+    }
+    tr.style.outline = "2px solid #0d6efd";
+  }
+  function submitAssetForm() {
+    const form = document.getElementById("assetForm");
+    const dt = new DataTransfer();
+    Object.values(assetNewFileMap).forEach((f) => dt.items.add(f));
+    let bulk = form.querySelector('input[name="new_photos[]"]');
+    if (!bulk) {
+      bulk = document.createElement("input");
+      bulk.type = "file";
+      bulk.name = "new_photos[]";
+      bulk.multiple = true;
+      bulk.hidden = true;
+      form.appendChild(bulk);
+    }
+    bulk.files = dt.files;
+    form.submit();
+  }
+</script>
+
+{{template "layout_bottom" .}}
