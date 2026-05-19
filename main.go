@@ -34,6 +34,7 @@ import (
 	"github.com/ABB-Broker/asset-management/internal/config"
 	"github.com/ABB-Broker/asset-management/internal/database"
 	"github.com/ABB-Broker/asset-management/internal/handlers"
+	"github.com/ABB-Broker/asset-management/internal/utils"
 	"github.com/ABB-Broker/asset-management/routes"
 
 	// Import generated Swagger docs so they are registered on startup.
@@ -42,6 +43,8 @@ import (
 
 func main() {
 	cfg := config.Load()
+
+	utils.BaseURL = cfg.BaseURL
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(cfg.AdminPassword), bcrypt.DefaultCost)
 	if err != nil {

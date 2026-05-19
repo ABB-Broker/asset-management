@@ -50,6 +50,9 @@ type Config struct {
 
 	// Port is the TCP port the HTTP server listens on (default "8080").
 	Port string
+	// BaseURL is the url of the site
+	BaseURL string `yaml:"base_url"`
+
 	// Prefork enables Fiber multi-process prefork mode (one worker per CPU core).
 	Prefork bool
 }
@@ -71,6 +74,7 @@ func Load() Config {
 	v.SetDefault("db_max_idle_connection", 12)
 	v.SetDefault("port", "8080")
 	v.SetDefault("prefork", true)
+	v.SetDefault("base_url", "http://localhost:2005")
 
 	// ── Config file (optional) ───────────────────────────────────────────────
 	// Place a config.yaml (or .env, config.json, config.toml) in the working

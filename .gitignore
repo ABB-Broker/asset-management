@@ -25,3 +25,4 @@ uploads
 # dev files
 .air.toml.dev
 config.yaml.dev
+Dockerfile.dev

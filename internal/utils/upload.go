@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const (
+var (
 	// BaseURL is prepended when serving stored photo paths to the frontend.
 	// Change this when deploying to production (e.g. https://your-domain.com).
 	BaseURL = "http://localhost:2005"
