@@ -30,10 +30,10 @@ COPY --from=builder /app/server /app/server
 COPY --from=builder /app/config.yaml /app/config.yaml
 
 # Copy view templates (Fiber html/template engine)
-COPY --from=builder /app/views /app/views
+COPY --from=builder /app/templates /app/templates
 
 # Copy i18n locale files if present
-COPY --from=builder /app/locales /app/locales
+COPY --from=builder /app/localize /app/localize
 
 # Create runtime directories
 RUN mkdir -p /app/logs /app/uploads
