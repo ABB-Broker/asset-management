@@ -4,7 +4,7 @@ services:
       context: .
     container_name: asset-management
     ports:
-      - "3000:3000"
+      - "2005:2005"
     environment:
       - TZ=Asia/Jakarta
       # Override config.yaml values via env vars (Viper supports this automatically).

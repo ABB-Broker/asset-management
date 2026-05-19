@@ -1,7 +1,7 @@
 # syntax=docker.io/docker/dockerfile:1
 
 # ========= BUILDER =========
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26-alpine AS builder
 WORKDIR /app
 
 # gcc & musl-dev are required for CGO (glebarez/sqlite uses CGO)
@@ -15,7 +15,7 @@ RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
     go build -ldflags="-w -s" -o server ./cmd/server/
 
 # ========= RUNNER =========
-FROM alpine:3.21
+FROM alpine:3.23
 WORKDIR /app
 
 RUN apk add --no-cache ca-certificates tzdata
@@ -40,6 +40,6 @@ RUN mkdir -p /app/logs /app/uploads
 
 USER 0:0
 
-EXPOSE 3000
+EXPOSE 2005
 
 CMD ["./server"]
