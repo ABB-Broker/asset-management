@@ -17,8 +17,8 @@ services:
     networks:
       - assetMgmtNet
     volumes:
-      - ./logs:/app/logs
-      - ./uploads:/app/upload
+      - ${WORKDIR}/logs:/app/logs
+      - ${WORKDIR}/uploads:/app/upload
 
 networks:
   assetMgmtNet:
