@@ -17,11 +17,8 @@ services:
     networks:
       - assetMgmtNet
     volumes:
-      # Persist logs and uploads across container restarts
-      - ${WORKDIR:-./data}/logs:/app/logs
-      - ${WORKDIR:-./data}/uploads:/app/uploads
-      # Optional: mount config.yaml externally so you can change it without rebuilding
-      # - ./config.yaml:/app/config.yaml:ro
+      - ./logs:/app/logs
+      - ./uploads:/app/upload
 
 networks:
   assetMgmtNet:
