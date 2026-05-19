@@ -12,7 +12,7 @@ RUN go mod download
 
 COPY . .
 RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
-    go build -ldflags="-w -s" -o server ./cmd/server/
+    go build -ldflags="-w -s" -o server .
 
 # ========= RUNNER =========
 FROM alpine:3.23
