@@ -24,14 +24,14 @@
       data-bs-toggle="modal"
       data-bs-target="#assetModal"
       onclick="openEditModal(this)"
-      data-id="{{.ID}}"
-      data-name="{{.Name}}"
-      data-description="{{.Description}}"
-      data-serial="{{.SerialNumber}}"
-      data-purchase-date="{{.PurchaseDate}}"
-      data-purchase-price="{{.PurchasePrice}}"
-      data-category-id="{{.Category.ID}}"
-      data-room-id="{{.RoomID}}"
+      data-id="{{.Asset.ID}}"
+      data-name="{{.Asset.Name}}"
+      data-description="{{.Asset.Description}}"
+      data-serial="{{.Asset.SerialNumber}}"
+      data-purchase-date="{{.Asset.PurchaseDate}}"
+      data-purchase-price="{{.Asset.PurchasePrice}}"
+      data-category-id="{{.Asset.Category.ID}}"
+      data-room-id="{{.Asset.RoomID}}"
     >
       <i class="bi bi-pencil"></i> Edit Asset
     </button>
