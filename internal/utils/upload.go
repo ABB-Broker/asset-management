@@ -14,7 +14,7 @@ import (
 const (
 	// BaseURL is prepended when serving stored photo paths to the frontend.
 	// Change this when deploying to production (e.g. https://your-domain.com).
-	BaseURL = "http://localhost:3000"
+	BaseURL = "http://localhost:2005"
 
 	// UploadRoot is the on-disk root for all uploaded files.
 	// The Fiber static middleware should serve this at /uploads.

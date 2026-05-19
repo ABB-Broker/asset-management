@@ -35,6 +35,9 @@ COPY --from=builder /app/templates /app/templates
 # Copy i18n locale files if present
 COPY --from=builder /app/localize /app/localize
 
+# Copy public assets
+COPY --from=builder /app/public /app/public
+
 # Create runtime directories
 RUN mkdir -p /app/logs /app/uploads
 
