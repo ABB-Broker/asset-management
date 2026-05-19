@@ -19,11 +19,17 @@ import (
 // AssetsIndex renders the Asset Master list with an inline create/edit form.
 func (a *App) AssetsIndex(c fiber.Ctx) error {
 	var assets []models.Asset
-	a.DB.Preload("Category").Preload("Room").Order("id asc").Find(&assets)
+	a.DB.Preload("Category").Preload("Room").Preload("AssetPhotos").Order("id asc").Find(&assets)
 	var cats []models.Category
 	a.DB.Order("id asc").Find(&cats)
 	var rooms []models.Room
 	a.DB.Order("id asc").Find(&rooms)
+
+	for i := range assets {
+		for j := range assets[i].AssetPhotos {
+			assets[i].AssetPhotos[j].PhotoUrl = utils.WithBaseURL(assets[i].AssetPhotos[j].PhotoUrl)
+		}
+	}
 
 	return c.Render("assets", fiber.Map{
 		"Title":       "Asset Master",
@@ -42,11 +48,15 @@ func (a *App) AssetsIndex(c fiber.Ctx) error {
 // template so the frontend receives ready-to-use image src values.
 func (a *App) AssetDetailsIndex(c fiber.Ctx) error {
 	var asset models.Asset
+	var cats []models.Category
+	a.DB.Order("id asc").Find(&cats)
+	var rooms []models.Room
+	a.DB.Order("id asc").Find(&rooms)
 	if err := a.DB.
 		Preload("Category").
 		Preload("Room").
 		Preload("AssetPhotos").
-		Where("id = ?", c.Query("id")).
+		Where("asset_uuid = ?", c.Query("uuid")).
 		First(&asset).Error; err != nil {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("asset not found"))
 	}
@@ -60,6 +70,8 @@ func (a *App) AssetDetailsIndex(c fiber.Ctx) error {
 		"Title":       asset.Name,
 		"CurrentPath": "/assets",
 		"Asset":       asset,
+		"Categories":  cats,
+		"Rooms":       rooms,
 	})
 }
 

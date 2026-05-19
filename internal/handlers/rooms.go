@@ -18,7 +18,15 @@ import (
 // RoomsIndex renders the Room Master list with an inline create/edit form.
 func (a *App) RoomsIndex(c fiber.Ctx) error {
 	var rooms []models.Room
-	a.DB.Order("id asc").Find(&rooms)
+	a.DB.
+		Preload("RoomPhotos").Order("id asc").Find(&rooms)
+
+	for i := range rooms {
+		for j := range rooms[i].RoomPhotos {
+			rooms[i].RoomPhotos[j].PhotoUrl = utils.WithBaseURL(rooms[i].RoomPhotos[j].PhotoUrl)
+		}
+	}
+
 	return c.Render("rooms", fiber.Map{
 		"Title":       "Room Master",
 		"CurrentPath": "/rooms",
@@ -38,7 +46,7 @@ func (a *App) RoomDetailsIndex(c fiber.Ctx) error {
 		Preload("Assets").
 		Preload("Assets.Category").
 		Preload("RoomPhotos").
-		Where("id = ?", c.Query("id")).
+		Where("room_uuid = ?", c.Query("uuid")).
 		First(&room).Error; err != nil {
 		return c.Redirect().To("/rooms?error=" + url.QueryEscape("room not found"))
 	}
@@ -142,7 +150,19 @@ func (a *App) RoomsDelete(c fiber.Ctx) error {
 		return c.Redirect().To("/rooms?error=" + url.QueryEscape("room not found"))
 	}
 
-	// Remove photo files from disk first.
+	// Load assets with their photos so we can remove files from disk.
+	var assets []models.Asset
+	a.DB.Preload("AssetPhotos").Where("room_id = ?", room.ID).Find(&assets)
+
+	// Remove each asset's photo files, then delete the asset.
+	for _, asset := range assets {
+		for _, p := range asset.AssetPhotos {
+			utils.DeleteFile(p.PhotoUrl)
+		}
+		a.DB.Delete(&asset)
+	}
+
+	// Remove room photo files from disk.
 	for _, p := range room.RoomPhotos {
 		utils.DeleteFile(p.PhotoUrl)
 	}

@@ -12,23 +12,30 @@
       </h4>
     </div>
   </div>
-  <button
-    class="btn btn-primary fw-semibold"
-    data-bs-toggle="modal"
-    data-bs-target="#assetModal"
-    onclick="openEditModal(
-      '{{.Asset.ID}}',
-      '{{.Asset.Name | js}}',
-      '{{.Asset.Description | js}}',
-      '{{.Asset.SerialNumber | js}}',
-      '{{.Asset.PurchaseDate | js}}',
-      '{{.Asset.PurchasePrice}}',
-      '{{.Asset.CategoryID}}',
-      '{{.Asset.RoomID}}'
-    )"
-  >
-    <i class="bi bi-pencil me-1"></i>Edit Asset
-  </button>
+  <div class="d-flex align-items-center gap-2">
+    <button
+      class="btn btn-outline-secondary fw-semibold"
+      onclick="openQrModal('{{.Asset.AssetUUID}}')"
+    >
+      <i class="bi bi-qr-code me-1"></i>QR Code
+    </button>
+    <button
+      class="btn btn-primary fw-semibold"
+      data-bs-toggle="modal"
+      data-bs-target="#assetModal"
+      onclick="openEditModal(this)"
+      data-id="{{.ID}}"
+      data-name="{{.Name}}"
+      data-description="{{.Description}}"
+      data-serial="{{.SerialNumber}}"
+      data-purchase-date="{{.PurchaseDate}}"
+      data-purchase-price="{{.PurchasePrice}}"
+      data-category-id="{{.Category.ID}}"
+      data-room-id="{{.RoomID}}"
+    >
+      <i class="bi bi-pencil"></i> Edit Asset
+    </button>
+  </div>
 </div>
 
 <div class="row g-4 mb-4">
@@ -67,7 +74,7 @@
           </dt>
           <dd class="col-7 mb-0">
             <a
-              href="/rooms/detail?id={{.Asset.Room.ID}}"
+              href="/rooms/detail?uuid={{.Asset.Room.RoomUUID}}"
               class="text-decoration-none fw-semibold text-primary"
             >
               <i class="bi bi-door-open me-1 small"></i>{{.Asset.Room.RoomName}}
@@ -193,7 +200,7 @@
     <h6 class="mb-0 fw-semibold">Description</h6>
   </div>
   <div class="card-body p-4">
-    <div class="ql-display text-secondary" style="line-height: 1.75">
+    <div class="ql-editor p-0" style="line-height: 1.75">
       {{.Asset.Description | safeHTML}}
     </div>
   </div>
@@ -385,9 +392,10 @@
                         ></i>
                       </a>
                     </td>
-                    <td class="align-middle small text-muted text-break">
-                      {{.PhotoUrl}}
-                    </td>
+                    <td
+                      class="align-middle small text-muted text-break photo-url-cell"
+                      data-url="{{.PhotoUrl}}"
+                    ></td>
                     <td class="align-middle">
                       <input
                         class="form-control form-control-sm"
@@ -462,6 +470,11 @@
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 
 <script>
+  // Show only the filename in the Original Filename column
+  document.querySelectorAll(".photo-url-cell[data-url]").forEach(function (td) {
+    td.textContent = td.dataset.url.split("/").pop();
+  });
+
   const quillAsset = new Quill("#assetDescriptionEditor", {
     theme: "snow",
     placeholder:
@@ -490,35 +503,27 @@
       .getElementById("assetNoFiles")
       .classList.toggle("d-none", body.querySelectorAll("tr").length > 0);
   }
-  function openEditModal(
-    id,
-    name,
-    desc,
-    serial,
-    purchaseDate,
-    purchasePrice,
-    categoryId,
-    roomId,
-  ) {
-    document.getElementById("assetId").value = id;
-    document.getElementById("assetName").value = name;
-    document.getElementById("assetSerial").value = serial;
-    // Decode Go's JS-escaped unicode sequences back to real HTML
-    const decodedDesc = desc
-      .replace(/\\u003C/g, "<")
-      .replace(/\\u003E/g, ">")
-      .replace(/\\u0026/g, "&")
-      .replace(/\\u0027/g, "'")
-      .replace(/\\u0022/g, '"');
-    quillAsset.clipboard.dangerouslyPasteHTML(decodedDesc || "");
-    document.getElementById("assetDescriptionInput").value = decodedDesc || "";
-    document.getElementById("assetPurchaseDate").value = purchaseDate;
-    document.getElementById("assetPurchasePrice").value = purchasePrice;
-    document.getElementById("assetCategoryId").value = categoryId;
-    document.getElementById("assetRoomId").value = roomId;
-    assetNewFileMap = {};
+
+  function openEditModal(btn) {
+    document.getElementById("assetId").value = btn.dataset.id;
+    document.getElementById("assetName").value = btn.dataset.name;
+    document.getElementById("assetSerial").value = btn.dataset.serial;
+    document.getElementById("assetPurchaseDate").value =
+      btn.dataset.purchaseDate;
+    document.getElementById("assetPurchasePrice").value =
+      btn.dataset.purchasePrice;
+    document.getElementById("assetCategoryId").value = btn.dataset.categoryId;
+    document.getElementById("assetRoomId").value = btn.dataset.roomId;
+
+    const desc = btn.dataset.description;
+    quillAsset.setContents([]);
+    quillAsset.clipboard.dangerouslyPasteHTML(desc || "");
+    document.getElementById("assetDescriptionInput").value = desc || "";
+
+    // Photos are already rendered server-side in assetFileBody — no JS needed
     updateAssetNoFilesMsg();
   }
+
   document
     .getElementById("assetFileInput")
     .addEventListener("change", function () {
@@ -590,6 +595,139 @@
     }
     bulk.files = dt.files;
     form.submit();
+  }
+</script>
+
+<!-- ===== QR Code Modal ===== -->
+<div
+  class="modal fade"
+  id="qrModal"
+  tabindex="-1"
+  aria-labelledby="qrModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-bottom py-3 px-4">
+        <div class="d-flex align-items-center gap-2">
+          <div
+            class="d-flex align-items-center justify-content-center rounded-2"
+            style="width: 32px; height: 32px; background: #eff6ff"
+          >
+            <i class="bi bi-qr-code text-primary small"></i>
+          </div>
+          <h6 class="modal-title mb-0 fw-semibold" id="qrModalLabel">
+            QR Code
+          </h6>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body px-4 py-4 text-center">
+        <p
+          class="text-muted small mb-3"
+          id="qrUrlLabel"
+          style="word-break: break-all"
+        ></p>
+        <div id="qrCanvas" class="d-flex justify-content-center mb-3"></div>
+      </div>
+      <div
+        class="modal-footer border-top py-3 px-4 justify-content-center gap-2"
+      >
+        <button
+          type="button"
+          class="btn btn-outline-primary fw-semibold"
+          onclick="downloadQr('png')"
+        >
+          <i class="bi bi-image me-1"></i>Download PNG
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-danger fw-semibold"
+          onclick="downloadQr('pdf')"
+        >
+          <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QR + PDF libs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+  let _qrUrl = "";
+
+  function openQrModal(uuid) {
+    _qrUrl = window.location.origin + "/assets/detail?uuid=" + uuid;
+    document.getElementById("qrUrlLabel").textContent = _qrUrl;
+
+    const container = document.getElementById("qrCanvas");
+    container.innerHTML = "";
+
+    new QRCode(container, {
+      text: _qrUrl,
+      width: 220,
+      height: 220,
+      colorDark: "#1e293b",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H,
+    });
+
+    new bootstrap.Modal(document.getElementById("qrModal")).show();
+  }
+
+  function getQrImg() {
+    return (
+      document.querySelector("#qrCanvas img") ||
+      document.querySelector("#qrCanvas canvas")
+    );
+  }
+
+  function downloadQr(format) {
+    const el = getQrImg();
+    if (!el) return;
+
+    const canvas = document.createElement("canvas");
+    const size = 220;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+
+    const img = new Image();
+    img.onload = function () {
+      ctx.drawImage(img, 0, 0, size, size);
+      if (format === "png") {
+        const a = document.createElement("a");
+        a.href = canvas.toDataURL("image/png");
+        a.download = "asset-qr.png";
+        a.click();
+      } else {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+          orientation: "portrait",
+          unit: "mm",
+          format: "a4",
+        });
+        const pageW = pdf.internal.pageSize.getWidth();
+        const qrMM = 70;
+        const x = (pageW - qrMM) / 2;
+        pdf.setFontSize(13);
+        pdf.setTextColor(30, 41, 59);
+        pdf.text("Asset QR Code", pageW / 2, 22, { align: "center" });
+        pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, 30, qrMM, qrMM);
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 116, 139);
+        const lines = pdf.splitTextToSize(_qrUrl, pageW - 20);
+        pdf.text(lines, pageW / 2, 30 + qrMM + 8, { align: "center" });
+        pdf.save("asset-qr.pdf");
+      }
+    };
+    img.src = el.tagName === "CANVAS" ? el.toDataURL() : el.src;
   }
 </script>
 

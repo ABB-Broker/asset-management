@@ -10,14 +10,25 @@
       <i class="bi bi-door-open text-primary me-2"></i>Room Details
     </h4>
   </div>
-  <button
-    class="btn btn-primary fw-semibold"
-    data-bs-toggle="modal"
-    data-bs-target="#roomModal"
-    onclick="openEditModal('{{.Room.ID}}', '{{.Room.RoomName | js}}', '{{.Room.Description | js}}')"
-  >
-    <i class="bi bi-pencil me-1"></i>Edit Room
-  </button>
+  <div class="d-flex align-items-center gap-2">
+    <button
+      class="btn btn-outline-secondary fw-semibold"
+      onclick="openQrModal('{{.Room.RoomUUID}}')"
+    >
+      <i class="bi bi-qr-code me-1"></i>QR Code
+    </button>
+    <button
+      class="btn btn-primary fw-semibold"
+      data-bs-toggle="modal"
+      data-bs-target="#roomModal"
+      onclick="openEditModal(this)"
+      data-id="{{.Room.ID}}"
+      data-name="{{.Room.RoomName}}"
+      data-description="{{.Room.Description}}"
+    >
+      <i class="bi bi-pencil me-1"></i>Edit Room
+    </button>
+  </div>
 </div>
 
 <div class="row g-4 mb-4">
@@ -115,6 +126,18 @@
                 >
                   {{.Name}}
                 </p>
+                <p
+                  class="mb-0 text-muted"
+                  style="
+                    font-size: 0.68rem;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                  "
+                  title="{{.PhotoUrl}}"
+                >
+                  {{.PhotoUrl}}
+                </p>
               </div>
             </div>
           </div>
@@ -141,8 +164,8 @@
     <i class="bi bi-card-text text-primary"></i>
     <h6 class="mb-0 fw-semibold">Description</h6>
   </div>
-  <div class="card-body p-4">
-    <div class="ql-display text-secondary" style="line-height: 1.75">
+  <div class="card-body px-4">
+    <div class="ql-editor p-0" style="line-height: 1.75">
       {{.Room.Description | safeHTML}}
     </div>
   </div>
@@ -242,7 +265,7 @@
             <td class="text-center">
               <a
                 class="btn btn-sm btn-outline-primary"
-                href="/assets/detail?id={{.ID}}"
+                href="/assets/detail?uuid={{.AssetUUID}}"
               >
                 <i class="bi bi-eye"></i> View
               </a>
@@ -375,9 +398,10 @@
                         ></i>
                       </a>
                     </td>
-                    <td class="align-middle small text-muted text-break">
-                      {{.PhotoUrl}}
-                    </td>
+                    <td
+                      class="align-middle small text-muted text-break photo-url-cell"
+                      data-url="{{.PhotoUrl}}"
+                    ></td>
                     <td class="align-middle">
                       <input
                         class="form-control form-control-sm"
@@ -451,6 +475,11 @@
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 
 <script>
+  // Show only the filename in the Original Filename column
+  document.querySelectorAll(".photo-url-cell[data-url]").forEach(function (td) {
+    td.textContent = td.dataset.url.split("/").pop();
+  });
+
   const quillRoom = new Quill("#roomDescriptionEditor", {
     theme: "snow",
     placeholder: "Describe the room — purpose, capacity, location, notes…",
@@ -479,18 +508,13 @@
       .getElementById("roomNoFiles")
       .classList.toggle("d-none", body.querySelectorAll("tr").length > 0);
   }
-  function openEditModal(id, name, desc) {
-    document.getElementById("roomId").value = id;
-    document.getElementById("roomName").value = name;
-    // Decode Go's JS-escaped unicode sequences back to real HTML
-    const decodedDesc = desc
-      .replace(/\\u003C/g, "<")
-      .replace(/\\u003E/g, ">")
-      .replace(/\\u0026/g, "&")
-      .replace(/\\u0027/g, "'")
-      .replace(/\\u0022/g, '"');
-    quillRoom.clipboard.dangerouslyPasteHTML(decodedDesc || "");
-    document.getElementById("roomDescriptionInput").value = decodedDesc || "";
+  function openEditModal(btn) {
+    document.getElementById("roomId").value = btn.dataset.id;
+    document.getElementById("roomName").value = btn.dataset.name;
+    const desc = btn.dataset.description;
+    quillRoom.setContents([]);
+    quillRoom.clipboard.dangerouslyPasteHTML(desc || "");
+    document.getElementById("roomDescriptionInput").value = desc || "";
     roomNewFileMap = {};
     updateRoomNoFilesMsg();
   }
@@ -679,6 +703,140 @@
     });
 
     render();
+  }
+</script>
+
+<!-- ===== QR Code Modal ===== -->
+<div
+  class="modal fade"
+  id="qrModal"
+  tabindex="-1"
+  aria-labelledby="qrModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-bottom py-3 px-4">
+        <div class="d-flex align-items-center gap-2">
+          <div
+            class="d-flex align-items-center justify-content-center rounded-2"
+            style="width: 32px; height: 32px; background: #eff6ff"
+          >
+            <i class="bi bi-qr-code text-primary small"></i>
+          </div>
+          <h6 class="modal-title mb-0 fw-semibold" id="qrModalLabel">
+            QR Code
+          </h6>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body px-4 py-4 text-center">
+        <p
+          class="text-muted small mb-3"
+          id="qrUrlLabel"
+          style="word-break: break-all"
+        ></p>
+        <div id="qrCanvas" class="d-flex justify-content-center mb-3"></div>
+        <canvas id="qrHidden" style="display: none"></canvas>
+      </div>
+      <div
+        class="modal-footer border-top py-3 px-4 justify-content-center gap-2"
+      >
+        <button
+          type="button"
+          class="btn btn-outline-primary fw-semibold"
+          onclick="downloadQr('png')"
+        >
+          <i class="bi bi-image me-1"></i>Download PNG
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-danger fw-semibold"
+          onclick="downloadQr('pdf')"
+        >
+          <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QR + PDF libs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+  let _qrUrl = "";
+
+  function openQrModal(uuid) {
+    _qrUrl = window.location.origin + "/rooms/detail?uuid=" + uuid;
+    document.getElementById("qrUrlLabel").textContent = _qrUrl;
+
+    const container = document.getElementById("qrCanvas");
+    container.innerHTML = "";
+
+    new QRCode(container, {
+      text: _qrUrl,
+      width: 220,
+      height: 220,
+      colorDark: "#1e293b",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H,
+    });
+
+    new bootstrap.Modal(document.getElementById("qrModal")).show();
+  }
+
+  function getQrImg() {
+    return (
+      document.querySelector("#qrCanvas img") ||
+      document.querySelector("#qrCanvas canvas")
+    );
+  }
+
+  function downloadQr(format) {
+    const el = getQrImg();
+    if (!el) return;
+
+    const canvas = document.createElement("canvas");
+    const size = 220;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+
+    const img = new Image();
+    img.onload = function () {
+      ctx.drawImage(img, 0, 0, size, size);
+      if (format === "png") {
+        const a = document.createElement("a");
+        a.href = canvas.toDataURL("image/png");
+        a.download = "room-qr.png";
+        a.click();
+      } else {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+          orientation: "portrait",
+          unit: "mm",
+          format: "a4",
+        });
+        const pageW = pdf.internal.pageSize.getWidth();
+        const qrMM = 70;
+        const x = (pageW - qrMM) / 2;
+        pdf.setFontSize(13);
+        pdf.setTextColor(30, 41, 59);
+        pdf.text("Room QR Code", pageW / 2, 22, { align: "center" });
+        pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, 30, qrMM, qrMM);
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 116, 139);
+        const lines = pdf.splitTextToSize(_qrUrl, pageW - 20);
+        pdf.text(lines, pageW / 2, 30 + qrMM + 8, { align: "center" });
+        pdf.save("room-qr.pdf");
+      }
+    };
+    img.src = el.tagName === "CANVAS" ? el.toDataURL() : el.src;
   }
 </script>
 

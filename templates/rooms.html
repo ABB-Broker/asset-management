@@ -80,32 +80,36 @@
           <tr>
             <td class="px-4 text-muted small row-number"></td>
             <td><span class="fw-semibold text-dark">{{.RoomName}}</span></td>
-            <td class="text-muted small">{{.Description | safeHTML}}</td>
+            <td class="text-muted small">
+              <div class="ql-editor p-0" style="font-size: inherit">
+                {{.Description | safeHTML}}
+              </div>
+            </td>
             <td class="text-center px-4">
               <a
                 class="btn btn-sm btn-outline-secondary me-1"
-                href="/rooms/detail?id={{.ID}}"
+                href="/rooms/detail?uuid={{.RoomUUID}}"
               >
                 <i class="bi bi-eye"></i> View
               </a>
               <button
                 class="btn btn-sm btn-outline-primary me-1"
-                onclick="openEditModal('{{.ID}}', '{{.RoomName | js}}', '{{.Description | js}}')"
+                onclick="openEditModal(this)"
+                data-id="{{.ID}}"
+                data-name="{{.RoomName}}"
+                data-description="{{.Description}}"
                 data-bs-toggle="modal"
                 data-bs-target="#roomModal"
               >
                 <i class="bi bi-pencil"></i> Edit
               </button>
-              <form method="post" action="/rooms/delete" class="d-inline">
-                <input type="hidden" name="id" value="{{.ID}}" />
-                <button
-                  class="btn btn-sm btn-outline-danger"
-                  type="submit"
-                  onclick="return confirm('Delete room \u0022{{.RoomName}}\u0022? All its assets will also be deleted.')"
-                >
-                  <i class="bi bi-trash"></i>
-                </button>
-              </form>
+              <button
+                class="btn btn-sm btn-outline-danger"
+                type="button"
+                onclick="openDeleteModal('{{.ID}}', '{{.RoomName}}')"
+              >
+                <i class="bi bi-trash"></i>
+              </button>
             </td>
           </tr>
           {{else}}
@@ -318,6 +322,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 
+<script id="roomPhotosData" type="application/json">
+  {
+    {{range $i,$r := .Rooms}}{{if $i}},{{end}}"{{$r.ID}}":[{{range $j,$p := $r.RoomPhotos}}{{if $j}},{{end}}{"id":{{$p.ID}},"name":{{$p.Name | js}},"url":{{$p.PhotoUrl | js}}}{{end}}]{{end}}
+  }
+</script>
+
 <script>
   const quillRoom = new Quill("#roomDescriptionEditor", {
     theme: "snow",
@@ -357,23 +367,46 @@
     newFileMap = {};
     updateNoFilesMsg();
   }
-  function openEditModal(id, name, desc) {
+  function openEditModal(btn) {
     document.getElementById("roomModalLabel").textContent = "Edit Room";
     document.getElementById("modalIcon").className =
       "bi bi-pencil text-primary small";
     document.getElementById("modalSubmitLabel").textContent = "Update";
     document.getElementById("roomForm").action = "/rooms/update";
+
+    const id = btn.dataset.id;
+    const name = btn.dataset.name;
+    const desc = btn.dataset.description;
+
     document.getElementById("roomId").value = id;
     document.getElementById("roomName").value = name;
-    // Decode Go's JS-escaped unicode sequences back to real HTML
-    const decodedDesc = desc
-      .replace(/\\u003C/g, "<")
-      .replace(/\\u003E/g, ">")
-      .replace(/\\u0026/g, "&")
-      .replace(/\\u0027/g, "'")
-      .replace(/\\u0022/g, '"');
-    quillRoom.clipboard.dangerouslyPasteHTML(decodedDesc || "");
-    document.getElementById("roomDescriptionInput").value = decodedDesc || "";
+
+    quillRoom.setContents([]);
+    quillRoom.clipboard.dangerouslyPasteHTML(desc || "");
+    document.getElementById("roomDescriptionInput").value = desc || "";
+
+    // Populate photo rows dynamically
+    const body = document.getElementById("roomFileBody");
+    // Remove only new (non-existing) rows; keep nothing since we rebuild all
+    body.innerHTML = "";
+    newFileMap = {};
+
+    const allPhotos = JSON.parse(
+      document.getElementById("roomPhotosData").textContent,
+    );
+    (allPhotos[id] || []).forEach((p) => {
+      const isImg = /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(p.url);
+      const preview = isImg
+        ? `<a href="${p.url}" target="_blank"><img src="${p.url}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none'"></a>`
+        : `<a href="${p.url}" target="_blank"><i class="bi bi-file-earmark-text fs-4 text-muted"></i></a>`;
+      const tr = document.createElement("tr");
+      tr.dataset.existingId = p.id;
+      tr.innerHTML = `<td class="text-center align-middle">${preview}</td><td class="align-middle small text-muted text-break">${p.url.split("/").pop()}</td><td class="align-middle"><input class="form-control form-control-sm" name="existing_photo_name[${p.id}]"/></td><td class="text-center align-middle"><label class="btn btn-sm btn-outline-secondary me-1" style="cursor:pointer;"><i class="bi bi-arrow-repeat"></i><input type="file" name="replace_photo[${p.id}]" accept="image/*,application/pdf,.doc,.docx" hidden onchange="previewReplace(this)"/></label><button type="button" class="btn btn-sm btn-outline-danger" onclick="markDeleteExisting(this,'${p.id}')"><i class="bi bi-trash"></i></button><input type="hidden" name="delete_photo[]" class="delete-flag" value="" disabled/></td>`;
+      tr.querySelector(`input[name="existing_photo_name[${p.id}]"]`).value =
+        p.name;
+      body.appendChild(tr);
+    });
+
     updateNoFilesMsg();
   }
   document
@@ -571,6 +604,75 @@
     "roomPagination",
     "roomPaginationInfo",
   );
+</script>
+
+<!-- ===== Delete Confirmation Modal ===== -->
+<div
+  class="modal fade"
+  id="deleteRoomModal"
+  tabindex="-1"
+  aria-labelledby="deleteRoomModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-bottom py-3 px-4">
+        <div class="d-flex align-items-center gap-2">
+          <div
+            class="d-flex align-items-center justify-content-center rounded-2"
+            style="width: 32px; height: 32px; background: #fef2f2"
+          >
+            <i class="bi bi-exclamation-triangle-fill text-danger small"></i>
+          </div>
+          <h6 class="modal-title mb-0 fw-semibold" id="deleteRoomModalLabel">
+            Delete Room
+          </h6>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body px-4 py-3">
+        <p class="mb-1">
+          Are you sure you want to delete <strong id="deleteRoomName"></strong>?
+        </p>
+        <p class="text-danger small mb-0">
+          <i class="bi bi-exclamation-circle me-1"></i>All assets in this room
+          will also be permanently deleted. This action cannot be undone.
+        </p>
+      </div>
+      <div class="modal-footer border-top py-3 px-4">
+        <button
+          type="button"
+          class="btn btn-light border"
+          data-bs-dismiss="modal"
+        >
+          <i class="bi bi-x-lg me-1"></i>Cancel
+        </button>
+        <form
+          id="deleteRoomForm"
+          method="post"
+          action="/rooms/delete"
+          class="d-inline"
+        >
+          <input type="hidden" id="deleteRoomId" name="id" value="" />
+          <button type="submit" class="btn btn-danger fw-semibold">
+            <i class="bi bi-trash me-1"></i>Yes, Delete
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openDeleteModal(id, name) {
+    document.getElementById("deleteRoomId").value = id;
+    document.getElementById("deleteRoomName").textContent = name;
+    new bootstrap.Modal(document.getElementById("deleteRoomModal")).show();
+  }
 </script>
 
 {{template "layout_bottom" .}}

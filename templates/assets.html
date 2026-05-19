@@ -109,7 +109,7 @@
             <td class="text-center px-4">
               <a
                 class="btn btn-sm btn-outline-secondary me-1"
-                href="/assets/detail?id={{.ID}}"
+                href="/assets/detail?uuid={{.AssetUUID}}"
               >
                 <i class="bi bi-eye"></i> View
               </a>
@@ -117,20 +117,25 @@
                 class="btn btn-sm btn-outline-primary me-1"
                 data-bs-toggle="modal"
                 data-bs-target="#assetModal"
-                onclick="openEditModal('{{.ID}}','{{.Name | js}}','{{.Description | js}}','{{.SerialNumber | js}}','{{.PurchaseDate | js}}','{{.PurchasePrice}}','{{.CategoryID}}','{{.RoomID}}')"
+                onclick="openEditModal(this)"
+                data-id="{{.ID}}"
+                data-name="{{.Name}}"
+                data-description="{{.Description}}"
+                data-serial="{{.SerialNumber}}"
+                data-purchase-date="{{.PurchaseDate}}"
+                data-purchase-price="{{.PurchasePrice}}"
+                data-category-id="{{.Category.ID}}"
+                data-room-id="{{.RoomID}}"
               >
                 <i class="bi bi-pencil"></i> Edit
               </button>
-              <form method="post" action="/assets/delete" class="d-inline">
-                <input type="hidden" name="id" value="{{.ID}}" />
-                <button
-                  class="btn btn-sm btn-outline-danger"
-                  type="submit"
-                  onclick="return confirm('Delete asset \u0022{{.Name}}\u0022?')"
-                >
-                  <i class="bi bi-trash"></i>
-                </button>
-              </form>
+              <button
+                class="btn btn-sm btn-outline-danger"
+                type="button"
+                onclick="openDeleteModal('{{.ID}}', '{{.Name}}')"
+              >
+                <i class="bi bi-trash"></i>
+              </button>
             </td>
           </tr>
           {{else}}
@@ -415,37 +420,31 @@
     assetNewFileMap = {};
     updateAssetNoFilesMsg();
   }
-  function openEditModal(
-    id,
-    name,
-    desc,
-    serial,
-    purchaseDate,
-    purchasePrice,
-    categoryId,
-    roomId,
-  ) {
+
+  function openEditModal(btn) {
     document.getElementById("assetModalLabel").textContent = "Edit Asset";
     document.getElementById("assetModalIcon").className =
       "bi bi-pencil text-primary small";
     document.getElementById("assetSubmitLabel").textContent = "Update";
     document.getElementById("assetForm").action = "/assets/update";
+
+    const id = btn.dataset.id;
+
     document.getElementById("assetId").value = id;
-    document.getElementById("assetName").value = name;
-    document.getElementById("assetSerial").value = serial;
-    // Decode Go's JS-escaped unicode sequences back to real HTML
-    const decodedDesc = desc
-      .replace(/\\u003C/g, "<")
-      .replace(/\\u003E/g, ">")
-      .replace(/\\u0026/g, "&")
-      .replace(/\\u0027/g, "'")
-      .replace(/\\u0022/g, '"');
-    quillAsset.clipboard.dangerouslyPasteHTML(decodedDesc || "");
-    document.getElementById("assetDescriptionInput").value = decodedDesc || "";
-    document.getElementById("assetPurchaseDate").value = purchaseDate;
-    document.getElementById("assetPurchasePrice").value = purchasePrice;
-    document.getElementById("assetCategoryId").value = categoryId;
-    document.getElementById("assetRoomId").value = roomId;
+    document.getElementById("assetName").value = btn.dataset.name;
+    document.getElementById("assetSerial").value = btn.dataset.serial;
+    document.getElementById("assetPurchaseDate").value =
+      btn.dataset.purchaseDate;
+    document.getElementById("assetPurchasePrice").value =
+      btn.dataset.purchasePrice;
+    document.getElementById("assetCategoryId").value = btn.dataset.categoryId;
+    document.getElementById("assetRoomId").value = btn.dataset.roomId;
+
+    const desc = btn.dataset.description;
+    quillAsset.setContents([]);
+    quillAsset.clipboard.dangerouslyPasteHTML(desc || "");
+    document.getElementById("assetDescriptionInput").value = desc || "";
+
     const body = document.getElementById("assetFileBody");
     body.innerHTML = "";
     assetNewFileMap = {};
@@ -459,11 +458,12 @@
         : `<a href="${p.url}" target="_blank"><i class="bi bi-file-earmark-text fs-4 text-muted"></i></a>`;
       const tr = document.createElement("tr");
       tr.dataset.existingId = p.id;
-      tr.innerHTML = `<td class="text-center align-middle">${preview}</td><td class="align-middle small text-muted text-break">${p.url}</td><td class="align-middle"><input class="form-control form-control-sm" name="existing_photo_name[${p.id}]" value="${p.name}"/></td><td class="text-center align-middle"><label class="btn btn-sm btn-outline-secondary me-1" style="cursor:pointer;"><i class="bi bi-arrow-repeat"></i><input type="file" name="replace_photo[${p.id}]" accept="image/*,application/pdf,.doc,.docx" hidden onchange="assetPreviewReplace(this)"/></label><button type="button" class="btn btn-sm btn-outline-danger" onclick="assetMarkDelete(this,${p.id})"><i class="bi bi-trash"></i></button><input type="hidden" name="delete_photo[]" class="delete-flag" value="" disabled/></td>`;
+      tr.innerHTML = `<td class="text-center align-middle">${preview}</td><td class="align-middle small text-muted text-break">${p.url.split("/").pop()}</td><td class="align-middle"><input class="form-control form-control-sm" name="existing_photo_name[${p.id}]" value="${p.name}"/></td><td class="text-center align-middle"><label class="btn btn-sm btn-outline-secondary me-1" style="cursor:pointer;"><i class="bi bi-arrow-repeat"></i><input type="file" name="replace_photo[${p.id}]" accept="image/*,application/pdf,.doc,.docx" hidden onchange="assetPreviewReplace(this)"/></label><button type="button" class="btn btn-sm btn-outline-danger" onclick="assetMarkDelete(this,${p.id})"><i class="bi bi-trash"></i></button><input type="hidden" name="delete_photo[]" class="delete-flag" value="" disabled/></td>`;
       body.appendChild(tr);
     });
     updateAssetNoFilesMsg();
   }
+
   document
     .getElementById("assetFileInput")
     .addEventListener("change", function () {
@@ -638,6 +638,76 @@
     "assetPagination",
     "assetPaginationInfo",
   );
+</script>
+
+<!-- ===== Delete Confirmation Modal ===== -->
+<div
+  class="modal fade"
+  id="deleteAssetModal"
+  tabindex="-1"
+  aria-labelledby="deleteAssetModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-bottom py-3 px-4">
+        <div class="d-flex align-items-center gap-2">
+          <div
+            class="d-flex align-items-center justify-content-center rounded-2"
+            style="width: 32px; height: 32px; background: #fef2f2"
+          >
+            <i class="bi bi-exclamation-triangle-fill text-danger small"></i>
+          </div>
+          <h6 class="modal-title mb-0 fw-semibold" id="deleteAssetModalLabel">
+            Delete Asset
+          </h6>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body px-4 py-3">
+        <p class="mb-1">
+          Are you sure you want to delete
+          <strong id="deleteAssetName"></strong>?
+        </p>
+        <p class="text-danger small mb-0">
+          <i class="bi bi-exclamation-circle me-1"></i>This action cannot be
+          undone.
+        </p>
+      </div>
+      <div class="modal-footer border-top py-3 px-4">
+        <button
+          type="button"
+          class="btn btn-light border"
+          data-bs-dismiss="modal"
+        >
+          <i class="bi bi-x-lg me-1"></i>Cancel
+        </button>
+        <form
+          id="deleteAssetForm"
+          method="post"
+          action="/assets/delete"
+          class="d-inline"
+        >
+          <input type="hidden" id="deleteAssetId" name="id" value="" />
+          <button type="submit" class="btn btn-danger fw-semibold">
+            <i class="bi bi-trash me-1"></i>Yes, Delete
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openDeleteModal(id, name) {
+    document.getElementById("deleteAssetId").value = id;
+    document.getElementById("deleteAssetName").textContent = name;
+    new bootstrap.Modal(document.getElementById("deleteAssetModal")).show();
+  }
 </script>
 
 {{template "layout_bottom" .}}
