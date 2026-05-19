@@ -1,0 +1,169 @@
+basePath: /api/v1
+definitions:
+  gorm.DeletedAt:
+    properties:
+      time:
+        type: string
+      valid:
+        description: Valid is true if Time is not NULL
+        type: boolean
+    type: object
+  models.User:
+    properties:
+      active:
+        type: boolean
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: "#/definitions/gorm.DeletedAt"
+      email:
+        type: string
+      fullName:
+        type: string
+      id:
+        type: integer
+      role:
+        description: '"admin" | "editor" | "viewer"'
+        type: string
+      updatedAt:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    name: ABB-Broker
+    url: https://github.com/ABB-Broker/asset-management
+  description: REST API for the Information Systems Asset Management system — users, categories, and assets.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Information Systems Asset Management API
+  version: "1.0"
+paths:
+  /api/v1/users:
+    get:
+      description: Returns all user accounts.
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: "#/definitions/models.User"
+            type: array
+      security:
+        - SessionCookie: []
+      summary: List users
+      tags:
+        - users
+    post:
+      consumes:
+        - application/x-www-form-urlencoded
+      description: Creates a new user account.
+      parameters:
+        - description: Username
+          in: formData
+          name: username
+          required: true
+          type: string
+        - description: Email address
+          in: formData
+          name: email
+          type: string
+        - description: Full name
+          in: formData
+          name: full_name
+          type: string
+        - description: Role (admin|editor|viewer)
+          in: formData
+          name: role
+          required: true
+          type: string
+        - description: Active (true|false)
+          in: formData
+          name: active
+          type: string
+      produces:
+        - application/json
+      responses:
+        "303":
+          description: See Other
+      security:
+        - SessionCookie: []
+      summary: Create user
+      tags:
+        - users
+  /api/v1/users/delete:
+    post:
+      consumes:
+        - application/x-www-form-urlencoded
+      description: Deletes a user account by ID.
+      parameters:
+        - description: User ID
+          in: formData
+          name: id
+          required: true
+          type: integer
+      produces:
+        - application/json
+      responses:
+        "303":
+          description: See Other
+      security:
+        - SessionCookie: []
+      summary: Delete user
+      tags:
+        - users
+  /api/v1/users/update:
+    post:
+      consumes:
+        - application/x-www-form-urlencoded
+      description: Updates an existing user account.
+      parameters:
+        - description: User ID
+          in: formData
+          name: id
+          required: true
+          type: integer
+        - description: Username
+          in: formData
+          name: username
+          required: true
+          type: string
+        - description: Email address
+          in: formData
+          name: email
+          type: string
+        - description: Full name
+          in: formData
+          name: full_name
+          type: string
+        - description: Role (admin|editor|viewer)
+          in: formData
+          name: role
+          required: true
+          type: string
+        - description: Active (true|false)
+          in: formData
+          name: active
+          type: string
+      produces:
+        - application/json
+      responses:
+        "303":
+          description: See Other
+      security:
+        - SessionCookie: []
+      summary: Update user
+      tags:
+        - users
+securityDefinitions:
+  SessionCookie:
+    in: cookie
+    name: session_id
+    type: apiKey
+swagger: "2.0"

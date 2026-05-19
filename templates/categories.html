@@ -1,0 +1,192 @@
+{{template "layout_top" .}}
+
+<!-- Page header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="mb-0 fw-bold text-dark">
+      <i class="bi bi-tags text-primary me-2"></i>Category Master
+    </h4>
+  </div>
+  <button
+    class="btn btn-primary fw-semibold"
+    data-bs-toggle="modal"
+    data-bs-target="#categoryModal"
+    onclick="openCreateModal()"
+  >
+    <i class="bi bi-plus-lg me-1"></i>Create New Category
+  </button>
+</div>
+
+<!-- Table card -->
+<div class="card border-0 shadow-sm rounded-3">
+  <div
+    class="card-header bg-white border-bottom d-flex align-items-center justify-content-between py-3 px-4"
+  >
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-list-ul text-primary"></i>
+      <h6 class="mb-0 fw-semibold">Category List</h6>
+    </div>
+    <span
+      class="badge bg-primary bg-opacity-10 text-primary fw-semibold rounded-pill"
+    >
+      {{len .Categories}} record(s)
+    </span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th class="px-4" style="width: 60px">#</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th class="text-center px-4" style="width: 180px">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Categories}}
+          <tr>
+            <td class="px-4 text-muted small">{{.ID}}</td>
+            <td><span class="fw-semibold text-dark">{{.Name}}</span></td>
+            <td class="text-muted small">{{.Description}}</td>
+            <td class="text-center px-4">
+              <button
+                class="btn btn-sm btn-outline-primary me-1"
+                onclick="openEditModal('{{.ID}}', '{{.Name | js}}', '{{.Description | js}}')"
+                data-bs-toggle="modal"
+                data-bs-target="#categoryModal"
+              >
+                <i class="bi bi-pencil"></i> Edit
+              </button>
+              <form method="post" action="/categories/delete" class="d-inline">
+                <input type="hidden" name="id" value="{{.ID}}" />
+                <button
+                  class="btn btn-sm btn-outline-danger"
+                  type="submit"
+                  onclick="return confirm('Delete category \u0022{{.Name}}\u0022? All its assets will also be deleted.')"
+                >
+                  <i class="bi bi-trash"></i> Delete
+                </button>
+              </form>
+            </td>
+          </tr>
+          {{else}}
+          <tr>
+            <td colspan="4" class="text-center text-muted py-5">
+              <i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>
+              <span class="small">No categories yet. Create one above.</span>
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Category Modal ===== -->
+<div
+  class="modal fade"
+  id="categoryModal"
+  tabindex="-1"
+  aria-labelledby="categoryModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-bottom py-3 px-4">
+        <div class="d-flex align-items-center gap-2">
+          <div
+            class="d-flex align-items-center justify-content-center rounded-2"
+            style="width: 32px; height: 32px; background: #eff6ff"
+          >
+            <i id="modalIcon" class="bi bi-plus-lg text-primary small"></i>
+          </div>
+          <h6 class="modal-title mb-0 fw-semibold" id="categoryModalLabel">
+            Create New Category
+          </h6>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+
+      <div class="modal-body p-4">
+        <form id="categoryForm" method="post">
+          <input type="hidden" id="categoryId" name="id" value="" />
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">
+              Category Name <span class="text-danger">*</span>
+            </label>
+            <input
+              class="form-control"
+              id="categoryName"
+              name="name"
+              placeholder="e.g. Electronics"
+              required
+            />
+          </div>
+          <div>
+            <label class="form-label small fw-semibold text-secondary"
+              >Description</label
+            >
+            <input
+              class="form-control"
+              id="categoryDescription"
+              name="description"
+              placeholder="Short description (optional)"
+            />
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer border-top py-3 px-4">
+        <button
+          type="button"
+          class="btn btn-light border"
+          data-bs-dismiss="modal"
+        >
+          <i class="bi bi-x-lg me-1"></i>Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary fw-semibold px-4"
+          onclick="document.getElementById('categoryForm').submit()"
+        >
+          <i class="bi bi-check-lg me-1"></i
+          ><span id="modalSubmitLabel">Create</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ===== /Category Modal ===== -->
+
+<script>
+  function openCreateModal() {
+    document.getElementById("categoryModalLabel").textContent =
+      "Create New Category";
+    document.getElementById("modalIcon").className =
+      "bi bi-plus-lg text-primary small";
+    document.getElementById("modalSubmitLabel").textContent = "Create";
+    document.getElementById("categoryForm").action = "/categories/create";
+    document.getElementById("categoryId").value = "";
+    document.getElementById("categoryName").value = "";
+    document.getElementById("categoryDescription").value = "";
+  }
+
+  function openEditModal(id, name, desc) {
+    document.getElementById("categoryModalLabel").textContent = "Edit Category";
+    document.getElementById("modalIcon").className =
+      "bi bi-pencil text-primary small";
+    document.getElementById("modalSubmitLabel").textContent = "Update";
+    document.getElementById("categoryForm").action = "/categories/update";
+    document.getElementById("categoryId").value = id;
+    document.getElementById("categoryName").value = name;
+    document.getElementById("categoryDescription").value = desc;
+  }
+</script>
+
+{{template "layout_bottom" .}}

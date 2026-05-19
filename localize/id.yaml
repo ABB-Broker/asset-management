@@ -1,0 +1,65 @@
+- id: app.title
+  translation: Manajemen Aset
+
+- id: nav.categories
+  translation: Master Kategori
+
+- id: nav.assets
+  translation: Master Aset
+
+- id: nav.users
+  translation: Master Pengguna
+
+- id: nav.logout
+  translation: Keluar
+
+- id: nav.master_data
+  translation: Data Master
+
+- id: nav.account
+  translation: Akun
+
+- id: login.title
+  translation: Manajemen Aset
+
+- id: login.subtitle
+  translation: Masuk ke akun administrator Anda
+
+- id: login.username
+  translation: Nama Pengguna
+
+- id: login.password
+  translation: Kata Sandi
+
+- id: login.button
+  translation: Lanjut ke 2FA
+
+- id: login.error_invalid
+  translation: Nama pengguna atau kata sandi tidak valid
+
+- id: user.created
+  translation: Pengguna berhasil dibuat
+
+- id: user.updated
+  translation: Pengguna berhasil diperbarui
+
+- id: user.deleted
+  translation: Pengguna berhasil dihapus
+
+- id: category.created
+  translation: Kategori berhasil dibuat
+
+- id: category.updated
+  translation: Kategori berhasil diperbarui
+
+- id: category.deleted
+  translation: Kategori berhasil dihapus
+
+- id: asset.created
+  translation: Aset berhasil dibuat
+
+- id: asset.updated
+  translation: Aset berhasil diperbarui
+
+- id: asset.deleted
+  translation: Aset berhasil dihapus

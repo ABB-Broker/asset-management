@@ -1,0 +1,23 @@
+# compiled binary
+asset-management
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+
+# Config files
+config.yaml
+.env
+
+# Go test caches / temp files
+*.test
+
+# VSCode folder repository
+.vscode
+
+# temp files for air hot reloads
+tmp
+
+# uploaded files folder
+uploads
