@@ -251,12 +251,15 @@ func (a *App) assetFromCtx(c fiber.Ctx) (models.Asset, error) {
 		assetType = "fixed"
 	}
 
-	// Replace the locationID parsing block:
-	locationIDInt, _ := strconv.Atoi(c.FormValue("location_id"))
-	locationID := uint(locationIDInt) // will be 0 if empty, which is fine for movable
-
-	// And update the validation — only require location for fixed assets:
-	if assetType == "fixed" && locationID == 0 {
+	// Replace lines 254–261 with:
+	var locationID *uint
+	if raw := strings.TrimSpace(c.FormValue("location_id")); raw != "" {
+		if n, err := strconv.Atoi(raw); err == nil && n > 0 {
+			u := uint(n)
+			locationID = &u
+		}
+	}
+	if assetType == "fixed" && locationID == nil {
 		return models.Asset{}, fmt.Errorf("location is required for fixed assets")
 	}
 

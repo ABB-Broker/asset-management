@@ -67,7 +67,7 @@ type Asset struct {
 	Description   string
 	AssetType     string `gorm:"not null;default:'fixed'"` // "fixed" | "movable"
 	CategoryID    uint
-	LocationID    uint
+	LocationID    *uint
 	SerialNumber  string
 	PurchaseDate  string
 	PurchasePrice uint

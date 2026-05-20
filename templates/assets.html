@@ -403,7 +403,6 @@
       locationSelect.required = false;
       requiredStar.style.display = "none";
       optionalNote.style.display = "";
-      locationSelect.value = ""; // clear it so stale data isn't submitted
     } else {
       locationSelect.required = true;
       requiredStar.style.display = "";
@@ -435,16 +434,27 @@
     input.value = raw;
   }
 
-  // Before form submission, strip formatting so the server gets a plain integer
   function submitAssetForm() {
     document.getElementById("assetDescriptionInput").value =
       quillAsset.root.innerHTML;
 
-    // Strip digit separators from price before submitting
     const priceEl = document.getElementById("assetPurchasePrice");
     priceEl.value = priceEl.value.replace(/\./g, "");
 
-    // ... (rest of existing submitAssetForm code)
+    const form = document.getElementById("assetForm");
+    const dt = new DataTransfer();
+    Object.values(assetNewFileMap).forEach((f) => dt.items.add(f));
+    let bulk = form.querySelector('input[name="new_photos[]"]');
+    if (!bulk) {
+      bulk = document.createElement("input");
+      bulk.type = "file";
+      bulk.name = "new_photos[]";
+      bulk.multiple = true;
+      bulk.hidden = true;
+      form.appendChild(bulk);
+    }
+    bulk.files = dt.files;
+    form.submit();
   }
 
   const quillAsset = new Quill("#assetDescriptionEditor", {
