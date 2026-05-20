@@ -26,14 +26,16 @@ func (a *App) LoginPost(c fiber.Ctx) error {
 
 	authenticated := false
 
-	if username == a.Cfg.AdminUsername && bcrypt.CompareHashAndPassword(a.AdminHash, []byte(password)) != nil {
+	if username == a.Cfg.AdminUsername && bcrypt.CompareHashAndPassword(a.AdminHash, []byte(password)) == nil {
 		authenticated = true
 	}
 
 	if !authenticated {
 		var u models.User
 		if err := a.DB.Where("username = ? AND active = ?", username, true).First(&u).Error; err == nil {
-			authenticated = true
+			if bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)) == nil {
+				authenticated = true
+			}
 		}
 	}
 

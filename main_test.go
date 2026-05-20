@@ -31,17 +31,38 @@ const sessionTTL = 24 * time.Hour
 func newTestApp(t testing.TB) (*handlers.App, *fiber.App) {
 	t.Helper()
 
-	hash, err := bcrypt.GenerateFromPassword([]byte("secret123"), bcrypt.DefaultCost)
-	if err != nil {
-		t.Fatalf("hash password: %v", err)
-	}
-
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open in-memory db: %v", err)
 	}
-	if err := db.AutoMigrate(&models.Category{}, &models.Asset{}, &models.User{}, &models.Session{}); err != nil {
+	if err := db.AutoMigrate(
+		&models.LocationPhotos{},
+		&models.Location{},
+		&models.Category{},
+		&models.AssetPhotos{},
+		&models.Asset{},
+		&models.User{},
+		&models.Assignee{},
+		&models.LendingLog{},
+		&models.HandoverForm{},
+		&models.Session{}); err != nil {
 		t.Fatalf("migrate: %v", err)
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("secret123"), bcrypt.DefaultCost)
+
+	if err != nil {
+		t.Fatalf("hash seed password: %v", err)
+	}
+
+	user := models.User{
+		Username: "admin",
+		Password: string(hashedPassword),
+		Active:   true,
+	}
+
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatalf("seed user: %v", err)
 	}
 
 	cfg := config.Config{
@@ -50,7 +71,7 @@ func newTestApp(t testing.TB) (*handlers.App, *fiber.App) {
 		TOTPSecret:    "JBSWY3DPEHPK3PXP",
 		Prefork:       false,
 	}
-	h := &handlers.App{DB: db, Cfg: cfg, AdminHash: hash, Translator: nil}
+	h := &handlers.App{DB: db, Cfg: cfg, AdminHash: hashedPassword, Translator: nil}
 
 	fApp := newFiberApp(h, nil)
 
@@ -180,12 +201,24 @@ func TestCategoryAndAssetCRUD(t *testing.T) {
 		t.Fatalf("category name not updated: got %q", cat.Name)
 	}
 
+	location := models.Location{
+		LocationName: "IT Room",
+		Description:  "Main IT Room",
+	}
+
+	if err := h.DB.Create(&location).Error; err != nil {
+		t.Fatalf("create location: %v", err)
+	}
+
 	// --- Asset create ---
 	assetForm := url.Values{
-		"name":          {"Laptop"},
-		"serial_number": {"SN-001"},
-		"purchase_date": {"2026-01-01"},
-		"category_id":   {strconv.FormatUint(uint64(cat.ID), 10)},
+		"name":           {"Laptop"},
+		"serial_number":  {"SN-001"},
+		"purchase_date":  {"2026-01-01"},
+		"purchase_price": {"15000000"},
+		"category_id":    {strconv.FormatUint(uint64(cat.ID), 10)},
+		"asset_type":     {"fixed"},
+		"location_id":    {strconv.FormatUint(uint64(location.ID), 10)},
 	}
 	req3 := httptest.NewRequest(http.MethodPost, "/assets/create", strings.NewReader(assetForm.Encode()))
 	req3.Header.Set("Content-Type", "application/x-www-form-urlencoded")
