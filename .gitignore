@@ -22,6 +22,9 @@ tmp
 # uploaded files folder
 uploads
 
+# email config file
+internal/config/email.go
+
 # dev files
 .air.toml.dev
 config.yaml.dev
