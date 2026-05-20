@@ -182,6 +182,7 @@ func (a *App) AssetsUpdate(c fiber.Ctx) error {
 	a.DB.Model(&existing).Updates(map[string]any{
 		"name":           updated.Name,
 		"description":    updated.Description,
+		"asset_type":     updated.AssetType,
 		"category_id":    updated.CategoryID,
 		"location_id":    updated.LocationID,
 		"serial_number":  updated.SerialNumber,

@@ -126,6 +126,7 @@
                 data-purchase-price="{{.PurchasePrice}}"
                 data-category-id="{{.Category.ID}}"
                 data-location-id="{{.Location.ID}}"
+                data-asset-type="{{.AssetType}}"
               >
                 <i class="bi bi-pencil"></i> Edit
               </button>
@@ -532,7 +533,8 @@
     document.getElementById("assetPurchasePrice").value =
       rawPrice > 0 ? rawPrice.toLocaleString("id-ID") : "";
     document.getElementById("assetCategoryId").value = btn.dataset.categoryId;
-    document.getElementById("assetLocationId").value = btn.dataset.locationId;
+    document.getElementById("assetLocationId").value =
+      btn.dataset.locationId == 0 ? "" : btn.dataset.locationId;
     document.getElementById("assetType").value =
       btn.dataset.assetType || "fixed";
 

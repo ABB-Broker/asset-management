@@ -32,6 +32,7 @@
       data-purchase-price="{{.Asset.PurchasePrice}}"
       data-category-id="{{.Asset.Category.ID}}"
       data-location-id="{{.Asset.Location.ID}}"
+      data-asset-type="{{.Asset.AssetType}}"
     >
       <i class="bi bi-pencil"></i> Edit Asset
     </button>
@@ -52,6 +53,15 @@
         <dl class="row mb-0" style="row-gap: 0.75rem">
           <dt class="col-5 text-secondary small fw-semibold">Asset Name</dt>
           <dd class="col-7 fw-semibold text-dark mb-0">{{.Asset.Name}}</dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Asset Type</dt>
+          <dd class="col-7 mb-0">
+            <span
+              class="badge rounded-pill bg-warning bg-opacity-10 text-warning fw-semibold px-2 text-capitalize"
+            >
+              {{.Asset.AssetType}}
+            </span>
+          </dd>
 
           <dt class="col-5 text-secondary small fw-semibold">Serial Number</dt>
           <dd class="col-7 mb-0">
@@ -584,15 +594,21 @@
                 <option value="movable">Movable Asset</option>
               </select>
             </div>
-            <div class="col-md-3">
-              <label class="form-label small fw-semibold text-secondary"
-                >Location <span class="text-danger">*</span></label
-              >
+            <div class="col-md-3" id="locationFieldWrapper">
+              <label class="form-label small fw-semibold text-secondary">
+                Location
+                <span class="text-danger" id="locationRequired">*</span>
+                <span
+                  class="text-muted"
+                  id="locationOptional"
+                  style="display: none; font-weight: normal"
+                  >(not required for movable)</span
+                >
+              </label>
               <select
                 class="form-select"
                 id="assetLocationId"
                 name="location_id"
-                required
               >
                 <option value="">— Select —</option>
                 {{range .Locations}}
@@ -735,6 +751,28 @@
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 
 <script>
+  function updateLocationRequirement() {
+    const assetType = document.getElementById("assetType").value;
+    const locationSelect = document.getElementById("assetLocationId");
+    const requiredStar = document.getElementById("locationRequired");
+    const optionalNote = document.getElementById("locationOptional");
+
+    if (assetType === "movable") {
+      locationSelect.required = false;
+      requiredStar.style.display = "none";
+      optionalNote.style.display = "";
+    } else {
+      locationSelect.required = true;
+      requiredStar.style.display = "";
+      optionalNote.style.display = "none";
+    }
+  }
+
+  // Hook to the type dropdown
+  document
+    .getElementById("assetType")
+    .addEventListener("change", updateLocationRequirement);
+
   document.addEventListener("DOMContentLoaded", function () {
     const today = new Date().toISOString().split("T")[0];
     document
@@ -763,7 +801,20 @@
     const priceEl = document.getElementById("assetPurchasePrice");
     priceEl.value = priceEl.value.replace(/\./g, "");
 
-    // ... (rest of existing submitAssetForm code)
+    const form = document.getElementById("assetForm");
+    const dt = new DataTransfer();
+    Object.values(assetNewFileMap).forEach((f) => dt.items.add(f));
+    let bulk = form.querySelector('input[name="new_photos[]"]');
+    if (!bulk) {
+      bulk = document.createElement("input");
+      bulk.type = "file";
+      bulk.name = "new_photos[]";
+      bulk.multiple = true;
+      bulk.hidden = true;
+      form.appendChild(bulk);
+    }
+    bulk.files = dt.files;
+    form.submit();
   }
 
   // Show only the filename in the Original Filename column
@@ -801,6 +852,7 @@
   }
 
   function openEditModal(btn) {
+    console.log(btn.dataset);
     document.getElementById("assetId").value = btn.dataset.id;
     document.getElementById("assetName").value = btn.dataset.name;
     document.getElementById("assetSerial").value = btn.dataset.serial;
@@ -810,9 +862,12 @@
     document.getElementById("assetPurchasePrice").value =
       rawPrice > 0 ? rawPrice.toLocaleString("id-ID") : "";
     document.getElementById("assetCategoryId").value = btn.dataset.categoryId;
-    document.getElementById("assetLocationId").value = btn.dataset.locationId;
+    document.getElementById("assetLocationId").value =
+      btn.dataset.locationId == 0 ? "" : btn.dataset.locationId;
     document.getElementById("assetType").value =
       btn.dataset.assetType || "fixed";
+
+    updateLocationRequirement();
 
     const desc = btn.dataset.description;
     quillAsset.setContents([]);

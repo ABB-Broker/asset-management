@@ -147,14 +147,14 @@
     {{if .Message}}
     <div class="alert alert-success alert-dismissible d-flex align-items-center gap-2 border-0 rounded-3 shadow-sm mb-4" role="alert">
       <i class="bi bi-check-circle-fill flex-shrink-0"></i>
-      <div class="small fw-medium">{{.Message}}</div>
+      <div class="small fw-medium text-capitalize">{{.Message}}</div>
       <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
     </div>
     {{end}}
     {{if .Error}}
     <div class="alert alert-danger alert-dismissible d-flex align-items-center gap-2 border-0 rounded-3 shadow-sm mb-4" role="alert">
       <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
-      <div class="small fw-medium">{{.Error}}</div>
+      <div class="small fw-medium text-capitalize">{{.Error}}</div>
       <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
     </div>
     {{end}}
