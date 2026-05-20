@@ -20,7 +20,6 @@ import (
 	"github.com/ABB-Broker/asset-management/internal/config"
 	"github.com/ABB-Broker/asset-management/internal/handlers"
 	"github.com/ABB-Broker/asset-management/internal/models"
-	"github.com/ABB-Broker/asset-management/internal/totp"
 	"github.com/ABB-Broker/asset-management/internal/utils"
 )
 
@@ -55,7 +54,6 @@ func newTestApp(t testing.TB) (*handlers.App, *fiber.App) {
 		&models.HandoverForm{},
 		&models.Session{},
 		&models.PasswordSetToken{},
-		&models.EmailOTP{},
 	); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
@@ -233,9 +231,14 @@ func TestLogin2FAFlow(t *testing.T) {
 	}
 
 	// Step 2: POST /login/2fa with valid TOTP code → redirect to /categories.
-	code := totp.Generate(h.Cfg.TOTPSecret, time.Now())
+	otpCode := "123456"
+	h.DB.Create(&models.EmailOTP{
+		Username:  "admin",
+		Code:      otpCode,
+		ExpiresAt: time.Now().Add(5 * time.Minute),
+	})
 	resp2 := postForm(t, fApp, "/login/2fa",
-		url.Values{"code": {code}}, sessionCookie)
+		url.Values{"code": {otpCode}}, sessionCookie)
 	assertRedirect(t, resp2)
 
 	// Verify the session is fully authenticated in the database.
@@ -991,10 +994,11 @@ func TestForgotPasswordPostValidUser(t *testing.T) {
 
 	// Create a user with a known email.
 	h.DB.Create(&models.User{
-		Username: "resetme",
-		Email:    "resetme@example.com",
-		Password: "$2a$10$placeholder",
-		Active:   true,
+		Username:   "resetme",
+		Email:      "resetme@example.com",
+		Password:   "$2a$10$placeholder",
+		Active:     true,
+		EmployeeID: "EMP-resetme",
 	})
 
 	resp := postForm(t, fApp, "/forgot-password", url.Values{
@@ -1022,10 +1026,11 @@ func TestForgotPasswordPostWrongEmail(t *testing.T) {
 	h, fApp := newTestApp(t)
 
 	h.DB.Create(&models.User{
-		Username: "wrongemail",
-		Email:    "correct@example.com",
-		Password: "$2a$10$placeholder",
-		Active:   true,
+		Username:   "wrongemail",
+		Email:      "correct@example.com",
+		Password:   "$2a$10$placeholder",
+		Active:     true,
+		EmployeeID: "EMP-wrongemail",
 	})
 
 	resp := postForm(t, fApp, "/forgot-password", url.Values{
@@ -1051,10 +1056,11 @@ func TestForgotPasswordPostInactiveUser(t *testing.T) {
 	h, fApp := newTestApp(t)
 
 	h.DB.Create(&models.User{
-		Username: "inactive",
-		Email:    "inactive@example.com",
-		Password: "$2a$10$placeholder",
-		Active:   false, // inactive
+		Username:   "inactive",
+		Email:      "inactive@example.com",
+		Password:   "$2a$10$placeholder",
+		Active:     false,
+		EmployeeID: "EMP-inactive", // inactive
 	})
 
 	resp := postForm(t, fApp, "/forgot-password", url.Values{
@@ -1094,10 +1100,11 @@ func TestForgotPasswordDuplicateTokenInvalidated(t *testing.T) {
 	h, fApp := newTestApp(t)
 
 	h.DB.Create(&models.User{
-		Username: "dupuser",
-		Email:    "dup@example.com",
-		Password: "$2a$10$placeholder",
-		Active:   true,
+		Username:   "dupuser",
+		Email:      "dup@example.com",
+		Password:   "$2a$10$placeholder",
+		Active:     true,
+		EmployeeID: "EMP-dupuser",
 	})
 
 	// Request a reset twice.
@@ -1143,11 +1150,12 @@ func seedUserWithPassword(t testing.TB, h *handlers.App, username, email, plainP
 		t.Fatalf("hash password for %s: %v", username, err)
 	}
 	u := models.User{
-		Username: username,
-		Email:    email,
-		Password: string(hash),
-		Active:   true,
-		Role:     "viewer",
+		Username:   username,
+		Email:      email,
+		Password:   string(hash),
+		Active:     true,
+		Role:       "viewer",
+		EmployeeID: fmt.Sprintf("EMP-%s-%d", username, time.Now().UnixNano()),
 	}
 	if err := h.DB.Create(&u).Error; err != nil {
 		t.Fatalf("seed user %s: %v", username, err)
@@ -1333,10 +1341,11 @@ func TestChangePasswordPostInactiveUser(t *testing.T) {
 
 	hash, _ := bcrypt.GenerateFromPassword([]byte("pass1234"), bcrypt.DefaultCost)
 	h.DB.Create(&models.User{
-		Username: "inactive",
-		Email:    "inactive@example.com",
-		Password: string(hash),
-		Active:   false,
+		Username:   "inactive",
+		Email:      "inactive@example.com",
+		Password:   string(hash),
+		Active:     false,
+		EmployeeID: "EMP-inactive",
 	})
 
 	resp := postForm(t, fApp, "/change-password", url.Values{
