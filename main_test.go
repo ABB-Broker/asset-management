@@ -12,7 +12,6 @@ import (
 
 	"github.com/glebarez/sqlite"
 	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/template/html/v2"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
@@ -20,7 +19,6 @@ import (
 	"github.com/ABB-Broker/asset-management/internal/handlers"
 	"github.com/ABB-Broker/asset-management/internal/models"
 	"github.com/ABB-Broker/asset-management/internal/totp"
-	"github.com/ABB-Broker/asset-management/routes"
 )
 
 // sessionTTL mirrors the constant from the handlers package so tests can create
@@ -54,9 +52,7 @@ func newTestApp(t testing.TB) (*handlers.App, *fiber.App) {
 	}
 	h := &handlers.App{DB: db, Cfg: cfg, AdminHash: hash, Translator: nil}
 
-	engine := html.New("./templates", ".html")
-	fApp := fiber.New(fiber.Config{Views: engine})
-	routes.Setup(fApp, h, nil)
+	fApp := newFiberApp(h, nil)
 
 	return h, fApp
 }

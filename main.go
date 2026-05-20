@@ -125,7 +125,20 @@ func newFiberApp(h *handlers.App, logger *zap.Logger) *fiber.App {
 		return string(result)
 	})
 
-	engine.AddFunc("inc", func(i int) int { return i + 1 })
+	engine.AddFunc("inc", func(i interface{}) int {
+		switch v := i.(type) {
+		case int:
+			return v + 1
+		case int64:
+			return int(v) + 1
+		case uint:
+			return int(v) + 1
+		case uint64:
+			return int(v) + 1
+		default:
+			return 0
+		}
+	})
 
 	engine.AddFunc("formatDate", func(t *time.Time) string {
 		if t == nil {
