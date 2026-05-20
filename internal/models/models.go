@@ -65,7 +65,7 @@ type Asset struct {
 	AssetUUID     string
 	Name          string
 	Description   string
-	AssetType     string `gorm:"not null;default:'fixed';type:enum('fixed','movable')"` // "fixed" | "movable"
+	AssetType     string `gorm:"not null;default:'fixed'"` // "fixed" | "movable"
 	CategoryID    uint
 	LocationID    uint
 	SerialNumber  string
@@ -96,8 +96,8 @@ type User struct {
 	PhoneNumber string
 	Department  string
 	Position    string // Job title / position
-	EmployeeID  string `gorm:"uniqueIndex"`                                           // NIK / employee number
-	Role        string `gorm:"default:'viewer';type:enum('admin','editor','viewer')"` // "admin" | "editor" | "viewer"
+	EmployeeID  string `gorm:"uniqueIndex"`      // NIK / employee number
+	Role        string `gorm:"default:'viewer'"` // "admin" | "editor" | "viewer"
 	Active      bool   `gorm:"default:true"`
 	AssigneeID  *uint  // FK back to Assignee (set after Assignee row is created)
 }
@@ -148,7 +148,7 @@ type LendingLog struct {
 	AssigneeID   uint
 	LentAt       time.Time
 	ReturnedAt   *time.Time // nil while still lent out
-	Status       string     `gorm:"default:'pending_signature';type:enum('pending_signature','active','returned')"`
+	Status       string     `gorm:"default:'pending_signature'"` // pending_signature / active / returned
 	Notes        string
 	Asset        Asset         `gorm:"foreignKey:AssetID;constraint:OnDelete:CASCADE"`
 	Assignee     Assignee      `gorm:"foreignKey:AssigneeID;constraint:OnDelete:CASCADE"`
