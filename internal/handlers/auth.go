@@ -96,7 +96,7 @@ func (a *App) Login2FAPost(c fiber.Ctx) error {
 		"authenticated": true,
 		"pending_2fa":   false,
 	})
-	return c.Redirect().To("/rooms")
+	return c.Redirect().To("/locations")
 }
 
 // Logout destroys the active session and redirects to the login page.

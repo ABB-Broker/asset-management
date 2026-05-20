@@ -68,7 +68,18 @@ func Init(cfg config.Config) *gorm.DB {
 		}
 	}
 
-	if err := db.AutoMigrate(&models.Category{}, &models.Asset{}, &models.User{}, &models.Session{}, &models.Room{}, &models.RoomPhotos{}, &models.AssetPhotos{}); err != nil {
+	if err := db.AutoMigrate(
+		&models.LocationPhotos{},
+		&models.Location{},
+		&models.Category{},
+		&models.AssetPhotos{},
+		&models.Asset{},
+		&models.User{},
+		&models.Assignee{},
+		&models.LendingLog{},
+		&models.HandoverForm{},
+		&models.Session{},
+	); err != nil {
 		log.Fatalf("database migration failed: %v", err)
 	}
 

@@ -31,7 +31,7 @@
       data-purchase-date="{{.Asset.PurchaseDate}}"
       data-purchase-price="{{.Asset.PurchasePrice}}"
       data-category-id="{{.Asset.Category.ID}}"
-      data-room-id="{{.Asset.RoomID}}"
+      data-location-id="{{.Asset.Location.ID}}"
     >
       <i class="bi bi-pencil"></i> Edit Asset
     </button>
@@ -69,15 +69,14 @@
             </span>
           </dd>
 
-          <dt class="col-5 text-secondary small fw-semibold">
-            Location (Room)
-          </dt>
+          <dt class="col-5 text-secondary small fw-semibold">Location</dt>
           <dd class="col-7 mb-0">
             <a
-              href="/rooms/detail?uuid={{.Asset.Room.RoomUUID}}"
+              href="/locations/detail?uuid={{.Asset.Location.LocationUUID}}"
               class="text-decoration-none fw-semibold text-primary"
             >
-              <i class="bi bi-door-open me-1 small"></i>{{.Asset.Room.RoomName}}
+              <i class="bi bi-door-open me-1 small"></i
+              >{{.Asset.Location.LocationName}}
             </a>
           </dd>
 
@@ -86,7 +85,7 @@
 
           <dt class="col-5 text-secondary small fw-semibold">Purchase Price</dt>
           <dd class="col-7 fw-semibold text-dark mb-0">
-            Rp {{.Asset.PurchasePrice}}
+            IDR {{.Asset.PurchasePrice}}
           </dd>
 
           <dt class="col-5 text-secondary small fw-semibold">Created At</dt>
@@ -190,6 +189,251 @@
 </div>
 <!-- /row -->
 
+{{if eq .Asset.AssetType "movable"}}
+<!-- Lending History -->
+<div class="card border-0 shadow-sm rounded-3 mt-4 mb-4">
+  <div
+    class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between"
+  >
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-clock-history text-primary"></i>
+      <h6 class="mb-0 fw-semibold">Lending History</h6>
+    </div>
+    <div class="d-flex gap-2">
+      {{if gt .CurrentAssigneeID 0}}
+      <button
+        class="btn btn-sm btn-outline-primary"
+        data-bs-toggle="modal"
+        data-bs-target="#borrowSelfModal"
+      >
+        <i class="bi bi-hand-index me-1"></i>Borrow for Myself
+      </button>
+      {{end}}
+      <button
+        class="btn btn-sm btn-primary"
+        data-bs-toggle="modal"
+        data-bs-target="#lendModal"
+      >
+        <i class="bi bi-box-arrow-up-right me-1"></i>Lend to Someone
+      </button>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th class="px-4">#</th>
+          <th>Assignee</th>
+          <th>Type</th>
+          <th>Lent At</th>
+          <th>Returned At</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $i, $log := .Asset.LendingLogs}}
+        <tr>
+          <td class="px-4 text-muted small">{{inc $i}}</td>
+          <td>
+            <a
+              href="/assignees/detail?uuid={{$log.Assignee.AssigneeUUID}}"
+              class="fw-semibold text-decoration-none"
+            >
+              {{$log.Assignee.FullName}}
+            </a>
+          </td>
+          <td>
+            {{if $log.Assignee.UserID}}
+            <span class="badge bg-success bg-opacity-10 text-success small"
+              >Internal</span
+            >
+            {{else}}
+            <span class="badge bg-warning bg-opacity-10 text-warning small"
+              >External</span
+            >
+            {{end}}
+          </td>
+          <td class="text-muted small">{{$log.LentAt.Format "02 Jan 2006"}}</td>
+          <td class="text-muted small">{{formatDate $log.ReturnedAt}}</td>
+          <td>
+            {{if eq $log.Status "returned"}}
+            <span class="badge bg-secondary bg-opacity-10 text-secondary"
+              >Returned</span
+            >
+            {{else if eq $log.Status "active"}}
+            <span class="badge bg-success bg-opacity-10 text-success"
+              >Active</span
+            >
+            {{else}}
+            <span class="badge bg-warning bg-opacity-10 text-warning"
+              >Pending Signature</span
+            >
+            {{end}}
+          </td>
+          <td>
+            {{if $log.HandoverForm}} {{if $log.HandoverForm.ReceiptPath}}
+            <a
+              href="/handover/receipt?form_uuid={{$log.HandoverForm.FormUUID}}"
+              class="btn btn-sm btn-outline-primary me-1"
+            >
+              <i class="bi bi-download"></i> Receipt
+            </a>
+            {{end}} {{end}} {{if ne $log.Status "returned"}}
+            <form method="post" action="/lending/return" class="d-inline">
+              <input type="hidden" name="lending_id" value="{{$log.ID}}" />
+              <button
+                type="submit"
+                class="btn btn-sm btn-outline-secondary"
+                onclick="return confirm('Mark this asset as returned?');"
+              >
+                <i class="bi bi-box-arrow-in-left"></i> Return
+              </button>
+            </form>
+            {{end}}
+          </td>
+        </tr>
+        {{else}}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-4">
+            <i class="bi bi-inbox d-block mb-2 fs-4 opacity-50"></i>
+            No lending history yet.
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Lend Asset Modal -->
+<div class="modal fade" id="lendModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-bottom py-3 px-4">
+        <h6 class="modal-title fw-semibold">
+          <i class="bi bi-box-arrow-up-right text-primary me-2"></i>Lend Asset
+        </h6>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body p-4">
+        <form method="post" action="/lending/lend">
+          <input type="hidden" name="asset_id" value="{{.Asset.ID}}" />
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary"
+              >Assignee <span class="text-danger">*</span></label
+            >
+            <select class="form-select" name="assignee_id" required>
+              <option value="">— Select Assignee —</option>
+              {{range .Assignees}}
+              <option value="{{.ID}}">
+                {{.FullName}}{{if .UserID}} (Internal){{else}} (External){{end}}
+              </option>
+              {{end}}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary"
+              >Notes</label
+            >
+            <textarea
+              class="form-control"
+              name="notes"
+              rows="2"
+              placeholder="Optional notes…"
+            ></textarea>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary fw-semibold">
+              <i class="bi bi-send me-1"></i>Lend & Send Form
+            </button>
+            <button
+              type="button"
+              class="btn btn-light border"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Self-Borrow Modal -->
+<div class="modal fade" id="borrowSelfModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-bottom py-3 px-4">
+        <h6 class="modal-title fw-semibold">
+          <i class="bi bi-hand-index text-primary me-2"></i>Borrow This Asset
+        </h6>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="text-muted small mb-3">
+          You are borrowing <strong>{{.Asset.Name}}</strong> for yourself. A
+          handover form will be sent to your email for you to sign.
+        </p>
+        <div
+          class="alert alert-light border d-flex align-items-center gap-2 mb-3"
+        >
+          <i class="bi bi-person-circle text-primary fs-5"></i>
+          <div>
+            <div class="fw-semibold small">{{.CurrentUser.FullName}}</div>
+            <div class="text-muted" style="font-size: 0.8rem">
+              {{.CurrentUser.Email}}
+            </div>
+          </div>
+        </div>
+        <form method="post" action="/lending/lend">
+          <input type="hidden" name="asset_id" value="{{.Asset.ID}}" />
+          <input
+            type="hidden"
+            name="assignee_id"
+            value="{{.CurrentAssigneeID}}"
+          />
+
+          <input type="hidden" name="self_borrow" value="true" />
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary"
+              >Purpose / Notes</label
+            >
+            <textarea
+              class="form-control"
+              name="notes"
+              rows="2"
+              placeholder="e.g. Going to client meeting at Bank BCA on Friday"
+            ></textarea>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary fw-semibold">
+              <i class="bi bi-send me-1"></i>Submit Borrow Request
+            </button>
+            <button
+              type="button"
+              class="btn btn-light border"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{{end}}
+
 <!-- Description card -->
 {{if .Asset.Description}}
 <div class="card border-0 shadow-sm rounded-3 mb-4">
@@ -289,6 +533,7 @@
                 class="form-control"
                 id="assetPurchaseDate"
                 name="purchase_date"
+                max=""
                 required
               />
             </div>
@@ -296,12 +541,18 @@
               <label class="form-label small fw-semibold text-secondary"
                 >Purchase Price <span class="text-danger">*</span></label
               >
-              <input
-                class="form-control"
-                id="assetPurchasePrice"
-                name="purchase_price"
-                required
-              />
+              <div class="input-group">
+                <span class="input-group-text text-secondary small">IDR</span>
+                <input
+                  class="form-control"
+                  id="assetPurchasePrice"
+                  name="purchase_price"
+                  placeholder="100.000"
+                  inputmode="numeric"
+                  required
+                  oninput="formatPriceInput(this)"
+                />
+              </div>
             </div>
             <div class="col-md-3">
               <label class="form-label small fw-semibold text-secondary"
@@ -320,18 +571,32 @@
               </select>
             </div>
             <div class="col-md-3">
+              <label class="form-label small fw-semibold text-secondary">
+                Asset Type <span class="text-danger">*</span>
+              </label>
+              <select
+                class="form-select"
+                id="assetType"
+                name="asset_type"
+                required
+              >
+                <option value="fixed">Fixed Asset</option>
+                <option value="movable">Movable Asset</option>
+              </select>
+            </div>
+            <div class="col-md-3">
               <label class="form-label small fw-semibold text-secondary"
-                >Room <span class="text-danger">*</span></label
+                >Location <span class="text-danger">*</span></label
               >
               <select
                 class="form-select"
-                id="assetRoomId"
-                name="room_id"
+                id="assetLocationId"
+                name="location_id"
                 required
               >
                 <option value="">— Select —</option>
-                {{range .Rooms}}
-                <option value="{{.ID}}">{{.RoomName}}</option>
+                {{range .Locations}}
+                <option value="{{.ID}}">{{.LocationName}}</option>
                 {{end}}
               </select>
             </div>
@@ -470,6 +735,37 @@
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 
 <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const today = new Date().toISOString().split("T")[0];
+    document
+      .querySelectorAll('input[name="purchase_date"]')
+      .forEach(function (el) {
+        el.setAttribute("max", today);
+      });
+  });
+
+  function formatPriceInput(input) {
+    // Strip all non-digits
+    let raw = input.value.replace(/\D/g, "");
+    // Format with period as thousands separator (Indonesian style)
+    if (raw !== "") {
+      raw = parseInt(raw, 10).toLocaleString("id-ID");
+    }
+    input.value = raw;
+  }
+
+  // Before form submission, strip formatting so the server gets a plain integer
+  function submitAssetForm() {
+    document.getElementById("assetDescriptionInput").value =
+      quillAsset.root.innerHTML;
+
+    // Strip digit separators from price before submitting
+    const priceEl = document.getElementById("assetPurchasePrice");
+    priceEl.value = priceEl.value.replace(/\./g, "");
+
+    // ... (rest of existing submitAssetForm code)
+  }
+
   // Show only the filename in the Original Filename column
   document.querySelectorAll(".photo-url-cell[data-url]").forEach(function (td) {
     td.textContent = td.dataset.url.split("/").pop();
@@ -510,10 +806,13 @@
     document.getElementById("assetSerial").value = btn.dataset.serial;
     document.getElementById("assetPurchaseDate").value =
       btn.dataset.purchaseDate;
+    const rawPrice = parseInt(btn.dataset.purchasePrice || "0", 10);
     document.getElementById("assetPurchasePrice").value =
-      btn.dataset.purchasePrice;
+      rawPrice > 0 ? rawPrice.toLocaleString("id-ID") : "";
     document.getElementById("assetCategoryId").value = btn.dataset.categoryId;
-    document.getElementById("assetRoomId").value = btn.dataset.roomId;
+    document.getElementById("assetLocationId").value = btn.dataset.locationId;
+    document.getElementById("assetType").value =
+      btn.dataset.assetType || "fixed";
 
     const desc = btn.dataset.description;
     quillAsset.setContents([]);

@@ -32,21 +32,52 @@
       {{len .Categories}} record(s)
     </span>
   </div>
-  <div class="card-body p-0">
+  <div class="card-body p-3">
+    <div class="mb-3">
+      <input
+        type="text"
+        id="categorySearch"
+        class="form-control form-control-sm w-auto"
+        placeholder="Search categories…"
+        style="min-width: 240px"
+      />
+    </div>
     <div class="table-responsive">
-      <table class="table table-hover mb-0">
+      <table class="table table-hover mb-0" id="categoryTable">
         <thead>
           <tr>
-            <th class="px-4" style="width: 60px">#</th>
-            <th>Name</th>
-            <th>Description</th>
+            <th
+              class="px-4 sortable"
+              data-col="0"
+              style="width: 60px; cursor: pointer"
+            >
+              #
+              <i
+                class="bi bi-arrow-down-up text-muted"
+                style="font-size: 0.7rem"
+              ></i>
+            </th>
+            <th class="sortable" data-col="1" style="cursor: pointer">
+              Name
+              <i
+                class="bi bi-arrow-down-up text-muted"
+                style="font-size: 0.7rem"
+              ></i>
+            </th>
+            <th class="sortable" data-col="2" style="cursor: pointer">
+              Description
+              <i
+                class="bi bi-arrow-down-up text-muted"
+                style="font-size: 0.7rem"
+              ></i>
+            </th>
             <th class="text-center px-4" style="width: 180px">Action</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="categoryBody">
           {{range .Categories}}
           <tr>
-            <td class="px-4 text-muted small">{{.ID}}</td>
+            <td class="px-4 text-muted small row-number"></td>
             <td><span class="fw-semibold text-dark">{{.Name}}</span></td>
             <td class="text-muted small">{{.Description}}</td>
             <td class="text-center px-4">
@@ -58,20 +89,17 @@
               >
                 <i class="bi bi-pencil"></i> Edit
               </button>
-              <form method="post" action="/categories/delete" class="d-inline">
-                <input type="hidden" name="id" value="{{.ID}}" />
-                <button
-                  class="btn btn-sm btn-outline-danger"
-                  type="submit"
-                  onclick="return confirm('Delete category \u0022{{.Name}}\u0022? All its assets will also be deleted.')"
-                >
-                  <i class="bi bi-trash"></i> Delete
-                </button>
-              </form>
+              <button
+                class="btn btn-sm btn-outline-danger"
+                type="button"
+                onclick="openDeleteCategoryModal('{{.ID}}', '{{.Name | js}}')"
+              >
+                <i class="bi bi-trash"></i> Delete
+              </button>
             </td>
           </tr>
           {{else}}
-          <tr>
+          <tr id="emptyRow">
             <td colspan="4" class="text-center text-muted py-5">
               <i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>
               <span class="small">No categories yet. Create one above.</span>
@@ -80,6 +108,12 @@
           {{end}}
         </tbody>
       </table>
+    </div>
+    <div class="d-flex align-items-center justify-content-between mt-3 px-1">
+      <span class="text-muted small" id="categoryPaginationInfo"></span>
+      <nav>
+        <ul class="pagination pagination-sm mb-0" id="categoryPagination"></ul>
+      </nav>
     </div>
   </div>
 </div>
@@ -112,7 +146,6 @@
           data-bs-dismiss="modal"
         ></button>
       </div>
-
       <div class="modal-body p-4">
         <form id="categoryForm" method="post">
           <input type="hidden" id="categoryId" name="id" value="" />
@@ -141,7 +174,6 @@
           </div>
         </form>
       </div>
-
       <div class="modal-footer border-top py-3 px-4">
         <button
           type="button"
@@ -162,7 +194,66 @@
     </div>
   </div>
 </div>
-<!-- ===== /Category Modal ===== -->
+
+<!-- ===== Delete Confirmation Modal ===== -->
+<div
+  class="modal fade"
+  id="deleteCategoryModal"
+  tabindex="-1"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-bottom py-3 px-4">
+        <div class="d-flex align-items-center gap-2">
+          <div
+            class="d-flex align-items-center justify-content-center rounded-2"
+            style="width: 32px; height: 32px; background: #fef2f2"
+          >
+            <i class="bi bi-exclamation-triangle-fill text-danger small"></i>
+          </div>
+          <h6 class="modal-title mb-0 fw-semibold">Delete Category</h6>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body px-4 py-3">
+        <p class="mb-1">
+          Are you sure you want to delete
+          <strong id="deleteCategoryName"></strong>?
+        </p>
+        <p class="text-danger small mb-0">
+          <i class="bi bi-exclamation-circle me-1"></i>All assets in this
+          category will also be permanently deleted. This action cannot be
+          undone.
+        </p>
+      </div>
+      <div class="modal-footer border-top py-3 px-4">
+        <button
+          type="button"
+          class="btn btn-light border"
+          data-bs-dismiss="modal"
+        >
+          <i class="bi bi-x-lg me-1"></i>Cancel
+        </button>
+        <form
+          id="deleteCategoryForm"
+          method="post"
+          action="/categories/delete"
+          class="d-inline"
+        >
+          <input type="hidden" id="deleteCategoryId" name="id" value="" />
+          <button type="submit" class="btn btn-danger fw-semibold">
+            <i class="bi bi-trash me-1"></i>Yes, Delete
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
   function openCreateModal() {
@@ -187,6 +278,119 @@
     document.getElementById("categoryName").value = name;
     document.getElementById("categoryDescription").value = desc;
   }
+
+  function openDeleteCategoryModal(id, name) {
+    document.getElementById("deleteCategoryId").value = id;
+    document.getElementById("deleteCategoryName").textContent = name;
+    new bootstrap.Modal(document.getElementById("deleteCategoryModal")).show();
+  }
+
+  /* ── Shared table utility ── */
+  function initTable(tableId, bodyId, searchId, paginationId, infoId) {
+    const PAGE_SIZE = 10;
+    const body = document.getElementById(bodyId);
+    const searchInput = document.getElementById(searchId);
+    const paginationEl = document.getElementById(paginationId);
+    const infoEl = document.getElementById(infoId);
+    let allRows = Array.from(body.querySelectorAll("tr:not(#emptyRow)"));
+    let filteredRows = [...allRows];
+    let currentPage = 1,
+      sortCol = -1,
+      sortAsc = true;
+
+    function render() {
+      allRows.forEach((r) => (r.style.display = "none"));
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const pageRows = filteredRows.slice(start, start + PAGE_SIZE);
+      pageRows.forEach((r, i) => {
+        r.style.display = "";
+        body.appendChild(r);
+        const nc = r.querySelector(".row-number");
+        if (nc) nc.textContent = start + i + 1;
+      });
+      const total = filteredRows.length;
+      if (infoEl)
+        infoEl.textContent =
+          total === 0
+            ? "No results"
+            : `Showing ${start + 1}–${Math.min(start + PAGE_SIZE, total)} of ${total}`;
+      if (!paginationEl) return;
+      paginationEl.innerHTML = "";
+      const totalPages = Math.ceil(total / PAGE_SIZE);
+      if (totalPages <= 1) return;
+      const mkLi = (label, page, disabled, active) => {
+        const li = document.createElement("li");
+        li.className =
+          "page-item" +
+          (disabled ? " disabled" : "") +
+          (active ? " active" : "");
+        li.innerHTML = `<a class="page-link" href="#">${label}</a>`;
+        if (!disabled)
+          li.addEventListener("click", (e) => {
+            e.preventDefault();
+            currentPage = page;
+            render();
+          });
+        return li;
+      };
+      paginationEl.appendChild(mkLi("&laquo;", 1, currentPage === 1));
+      paginationEl.appendChild(
+        mkLi("&lsaquo;", currentPage - 1, currentPage === 1),
+      );
+      for (
+        let p = Math.max(1, currentPage - 2);
+        p <= Math.min(totalPages, currentPage + 2);
+        p++
+      )
+        paginationEl.appendChild(mkLi(p, p, false, p === currentPage));
+      paginationEl.appendChild(
+        mkLi("&rsaquo;", currentPage + 1, currentPage === totalPages),
+      );
+      paginationEl.appendChild(
+        mkLi("&raquo;", totalPages, currentPage === totalPages),
+      );
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        const q = searchInput.value.toLowerCase();
+        filteredRows = allRows.filter((r) =>
+          r.textContent.toLowerCase().includes(q),
+        );
+        currentPage = 1;
+        render();
+      });
+    }
+
+    document.querySelectorAll(`#${tableId} .sortable`).forEach((th) => {
+      th.addEventListener("click", () => {
+        const col = +th.dataset.col;
+        if (sortCol === col) sortAsc = !sortAsc;
+        else {
+          sortCol = col;
+          sortAsc = true;
+        }
+        filteredRows.sort((a, b) => {
+          const aT = (a.cells[col]?.textContent || "").trim(),
+            bT = (b.cells[col]?.textContent || "").trim(),
+            n = +aT - +bT;
+          return (isNaN(n) ? aT.localeCompare(bT) : n) * (sortAsc ? 1 : -1);
+        });
+        currentPage = 1;
+        render();
+      });
+    });
+
+    render();
+  }
+
+  initTable(
+    "categoryTable",
+    "categoryBody",
+    "categorySearch",
+    "categoryPagination",
+    "categoryPaginationInfo",
+  );
 </script>
 
 {{template "layout_bottom" .}}

@@ -22,6 +22,9 @@ package main
 import (
 	"html/template"
 	"log"
+	"os"
+	"strconv"
+	"time"
 
 	contribi18n "github.com/gofiber/contrib/v3/i18n"
 	"github.com/gofiber/fiber/v3"
@@ -72,6 +75,12 @@ func main() {
 		Translator: translator,
 	}
 
+	cwd, _ := os.Getwd()
+	log.Println("CWD:", cwd)
+
+	_, err = os.Stat("./templates/login.html")
+	log.Println("template check:", err)
+
 	fApp := newFiberApp(h, logger)
 
 	isProduction := cfg.AppEnv == "production"
@@ -92,10 +101,37 @@ func main() {
 // without triggering the prefork machinery.
 // logger may be nil; when nil a no-op zap logger is used.
 func newFiberApp(h *handlers.App, logger *zap.Logger) *fiber.App {
+
 	engine := html.New("./templates", ".html")
 
 	engine.AddFunc("safeHTML", func(s string) template.HTML {
 		return template.HTML(s)
+	})
+
+	engine.AddFunc("formatPrice", func(v uint) string {
+		// Format with period as thousands separator: 1000000 → 1.000.000
+		s := strconv.FormatUint(uint64(v), 10)
+		n := len(s)
+		if n <= 3 {
+			return s
+		}
+		var result []byte
+		for i, c := range s {
+			if i > 0 && (n-i)%3 == 0 {
+				result = append(result, '.')
+			}
+			result = append(result, byte(c))
+		}
+		return string(result)
+	})
+
+	engine.AddFunc("inc", func(i int) int { return i + 1 })
+
+	engine.AddFunc("formatDate", func(t *time.Time) string {
+		if t == nil {
+			return "—"
+		}
+		return t.Format("02 Jan 2006")
 	})
 
 	fApp := fiber.New(fiber.Config{

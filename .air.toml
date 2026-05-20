@@ -57,7 +57,8 @@ tmp_dir = "tmp"
   clean_on_exit = false
 
 [proxy]
-  app_port = 2005 # Change this to your desired port
+  app_port = 3000 # Dev Port
+  # app_port = 2005 # Change this to your desired port
   app_start_timeout = 0
   enabled = true
   proxy_port = 8080 # Change this to whatever you want but different from app_port

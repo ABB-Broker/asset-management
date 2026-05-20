@@ -1,0 +1,177 @@
+{{template "layout_top" .}}
+
+<div class="d-flex justify-content-center">
+  <div
+    class="card border-0 shadow-sm rounded-3"
+    style="max-width: 640px; width: 100%"
+  >
+    <div class="card-header bg-white border-bottom py-3 px-4">
+      <h5 class="mb-0 fw-bold">
+        <i class="bi bi-pen text-primary me-2"></i>Asset Handover Form
+      </h5>
+      <p class="text-muted small mb-0 mt-1">
+        Please review the details below and sign to acknowledge receipt.
+      </p>
+    </div>
+    <div class="card-body p-4">
+      <!-- Asset & Assignee info summary -->
+      <dl class="row mb-4">
+        <dt class="col-5 text-secondary small fw-semibold">Asset</dt>
+        <dd class="col-7 fw-semibold mb-0">{{.Form.LendingLog.Asset.Name}}</dd>
+
+        <dt class="col-5 text-secondary small fw-semibold">Serial Number</dt>
+        <dd class="col-7 text-muted small mb-0">
+          {{.Form.LendingLog.Asset.SerialNumber}}
+        </dd>
+
+        <dt class="col-5 text-secondary small fw-semibold">Assignee</dt>
+        <dd class="col-7 fw-semibold mb-0">
+          {{.Form.LendingLog.Assignee.FullName}}
+        </dd>
+
+        <dt class="col-5 text-secondary small fw-semibold">Lent At</dt>
+        <dd class="col-7 text-muted small mb-0">
+          {{.Form.LendingLog.LentAt.Format "02 January 2006"}}
+        </dd>
+      </dl>
+
+      <hr />
+
+      <form method="post" action="/handover/sign" id="signForm">
+        <input type="hidden" name="token" value="{{.Token}}" />
+
+        <label class="form-label small fw-semibold text-secondary mb-2">
+          Your Signature <span class="text-danger">*</span>
+        </label>
+        <p class="text-muted small mb-2">
+          Draw your signature in the box below using your mouse or touchscreen.
+        </p>
+
+        <div class="border rounded-2 mb-2" style="background: #f9fafb">
+          <canvas
+            id="signatureCanvas"
+            width="560"
+            height="180"
+            style="
+              display: block;
+              cursor: crosshair;
+              touch-action: none;
+              border-radius: inherit;
+            "
+          ></canvas>
+        </div>
+
+        <div class="d-flex gap-2 mb-4">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            onclick="clearSignature()"
+          >
+            <i class="bi bi-eraser me-1"></i>Clear
+          </button>
+        </div>
+
+        <input type="hidden" name="signature_data" id="signatureData" />
+
+        <div class="d-grid">
+          <button
+            type="button"
+            class="btn btn-primary fw-semibold"
+            onclick="submitSignature()"
+          >
+            <i class="bi bi-check-lg me-1"></i>Sign & Submit
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Signature Canvas ──────────────────────────────────────────────────────
+  const canvas = document.getElementById("signatureCanvas");
+  const ctx = canvas.getContext("2d");
+  let drawing = false;
+  let lastX = 0,
+    lastY = 0;
+
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    if (e.touches) {
+      return {
+        x: (e.touches[0].clientX - rect.left) * scaleX,
+        y: (e.touches[0].clientY - rect.top) * scaleY,
+      };
+    }
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    };
+  }
+
+  function startDraw(e) {
+    e.preventDefault();
+    drawing = true;
+    const pos = getPos(e);
+    lastX = pos.x;
+    lastY = pos.y;
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+  }
+
+  function draw(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const pos = getPos(e);
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#1e293b";
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    lastX = pos.x;
+    lastY = pos.y;
+  }
+
+  function stopDraw(e) {
+    drawing = false;
+  }
+
+  canvas.addEventListener("mousedown", startDraw);
+  canvas.addEventListener("mousemove", draw);
+  canvas.addEventListener("mouseup", stopDraw);
+  canvas.addEventListener("mouseleave", stopDraw);
+  canvas.addEventListener("touchstart", startDraw, { passive: false });
+  canvas.addEventListener("touchmove", draw, { passive: false });
+  canvas.addEventListener("touchend", stopDraw);
+
+  function clearSignature() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function isCanvasBlank() {
+    return !canvas.toDataURL().includes("data:image/png;base64,iVBORw0KGgo");
+    // Simpler check:
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    return !data.some((v) => v !== 0);
+  }
+
+  function submitSignature() {
+    const imageData = canvas.toDataURL("image/png");
+    // Basic empty-canvas check
+    const blank = ctx
+      .getImageData(0, 0, canvas.width, canvas.height)
+      .data.every((v) => v === 0);
+    if (blank) {
+      alert("Please draw your signature before submitting.");
+      return;
+    }
+    document.getElementById("signatureData").value = imageData;
+    document.getElementById("signForm").submit();
+  }
+</script>
+
+{{template "layout_bottom" .}}

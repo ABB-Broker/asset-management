@@ -4,6 +4,8 @@
 package routes
 
 import (
+	"time"
+
 	swaggo "github.com/gofiber/contrib/v3/swaggo"
 	fiberZap "github.com/gofiber/contrib/v3/zap"
 	"github.com/gofiber/fiber/v3"
@@ -44,15 +46,38 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 	// fApp.Post("/admin/create", h.UsersCreate)
 	fApp.Get("/logout", h.Logout)
 
+	// Digital Signature Form
+	fApp.Get("/handover/sign", h.HandoverSignGet)
+	fApp.Post("/handover/sign", h.HandoverSignPost)
+
+	fApp.Get("/handover/sign/preview", func(c fiber.Ctx) error {
+		return c.Render("handover_sign", fiber.Map{
+			"Title": "Asset Handover Form",
+			"Token": "preview-token",
+			"Form": fiber.Map{
+				"LendingLog": fiber.Map{
+					"Asset": fiber.Map{
+						"Name":         "MacBook Pro 14\"",
+						"SerialNumber": "SN-MBP-2024-001",
+					},
+					"Assignee": fiber.Map{
+						"FullName": "Kevin Pratama",
+					},
+					"LentAt": time.Now(),
+				},
+			},
+		})
+	})
+
 	// ── Protected routes (require valid session) ──────────────────────────
 	auth := fApp.Group("/", h.AuthRequired)
 
-	// Room Master
-	auth.Get("/rooms", h.RoomsIndex)
-	auth.Post("/rooms/create", h.RoomsCreate)
-	auth.Post("/rooms/update", h.RoomsUpdate)
-	auth.Post("/rooms/delete", h.RoomsDelete)
-	auth.Get("/rooms/detail", h.RoomDetailsIndex)
+	// ── Location Master (was Room Master) ────────────────────────────────────────
+	auth.Get("/locations", h.LocationsIndex)
+	auth.Post("/locations/create", h.LocationsCreate)
+	auth.Post("/locations/update", h.LocationsUpdate)
+	auth.Post("/locations/delete", h.LocationsDelete)
+	auth.Get("/locations/detail", h.LocationDetailsIndex)
 
 	// Category Master
 	auth.Get("/categories", h.CategoriesIndex)
@@ -71,7 +96,21 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 
 	// User Master
 	auth.Get("/users", h.UsersIndex)
+	auth.Post("/users/create", h.UsersCreate)
 	auth.Get("/users/edit", h.UsersEdit)
 	auth.Post("/users/update", h.UsersUpdate)
 	auth.Post("/users/delete", h.UsersDelete)
+
+	// Assignees
+	auth.Get("/assignees", h.AssigneesIndex)
+	auth.Get("/assignees/detail", h.AssigneeDetailsIndex)
+	auth.Post("/assignees/create", h.AssigneesCreate)
+	auth.Post("/assignees/update", h.AssigneesUpdate)
+	auth.Post("/assignees/delete", h.AssigneesDelete)
+
+	// Lending Workflow
+	auth.Post("/lending/lend", h.LendAsset)
+	auth.Post("/lending/return", h.ReturnAsset)
+	auth.Get("/handover/receipt", h.HandoverReceiptDownload)
+
 }

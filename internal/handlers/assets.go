@@ -19,11 +19,11 @@ import (
 // AssetsIndex renders the Asset Master list with an inline create/edit form.
 func (a *App) AssetsIndex(c fiber.Ctx) error {
 	var assets []models.Asset
-	a.DB.Preload("Category").Preload("Room").Preload("AssetPhotos").Order("id asc").Find(&assets)
+	a.DB.Preload("Category").Preload("Location").Preload("AssetPhotos").Order("id asc").Find(&assets)
 	var cats []models.Category
 	a.DB.Order("id asc").Find(&cats)
-	var rooms []models.Room
-	a.DB.Order("id asc").Find(&rooms)
+	var locations []models.Location
+	a.DB.Order("id asc").Find(&locations)
 
 	for i := range assets {
 		for j := range assets[i].AssetPhotos {
@@ -38,7 +38,7 @@ func (a *App) AssetsIndex(c fiber.Ctx) error {
 		"Error":       c.Query("error"),
 		"Assets":      assets,
 		"Categories":  cats,
-		"Rooms":       rooms,
+		"Locations":   locations,
 		"Asset":       models.Asset{},
 	})
 }
@@ -50,12 +50,15 @@ func (a *App) AssetDetailsIndex(c fiber.Ctx) error {
 	var asset models.Asset
 	var cats []models.Category
 	a.DB.Order("id asc").Find(&cats)
-	var rooms []models.Room
-	a.DB.Order("id asc").Find(&rooms)
+	var locations []models.Location
+	a.DB.Order("id asc").Find(&locations)
 	if err := a.DB.
 		Preload("Category").
-		Preload("Room").
+		Preload("Location"). // ← was Room
 		Preload("AssetPhotos").
+		Preload("LendingLogs").              // ← new
+		Preload("LendingLogs.Assignee").     // ← new
+		Preload("LendingLogs.HandoverForm"). // ← new
 		Where("asset_uuid = ?", c.Query("uuid")).
 		First(&asset).Error; err != nil {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("asset not found"))
@@ -66,12 +69,32 @@ func (a *App) AssetDetailsIndex(c fiber.Ctx) error {
 		asset.AssetPhotos[i].PhotoUrl = utils.WithBaseURL(asset.AssetPhotos[i].PhotoUrl)
 	}
 
+	var assignees []models.Assignee
+	a.DB.Order("id asc").Find(&assignees)
+
+	var currentUser *models.User
+	if username, ok := c.Locals("username").(string); ok && username != "" {
+		var u models.User
+		if err := a.DB.Where("username = ? AND active = ?", username, true).First(&u).Error; err == nil {
+			currentUser = &u
+		}
+	}
+
+	var currentAssigneeID uint
+	if currentUser != nil && currentUser.AssigneeID != nil {
+		currentAssigneeID = *currentUser.AssigneeID
+	}
+
 	return c.Render("asset_details", fiber.Map{
-		"Title":       asset.Name,
-		"CurrentPath": "/assets",
-		"Asset":       asset,
-		"Categories":  cats,
-		"Rooms":       rooms,
+		"Title":             asset.Name,
+		"CurrentPath":       "/assets",
+		"Asset":             asset,
+		"Categories":        cats,
+		"Locations":         locations,
+		"Assignees":         assignees,
+		"CurrentUser":       currentUser,
+		"CurrentAssigneeID": currentAssigneeID, // 0 if not applicable
+
 	})
 }
 
@@ -96,8 +119,8 @@ func (a *App) AssetsEdit(c fiber.Ctx) error {
 
 	var cats []models.Category
 	a.DB.Order("id asc").Find(&cats)
-	var rooms []models.Room
-	a.DB.Order("id asc").Find(&rooms)
+	var locations []models.Location
+	a.DB.Order("id asc").Find(&locations)
 
 	return c.Render("assets", fiber.Map{
 		"Title":       "Asset Master",
@@ -106,7 +129,7 @@ func (a *App) AssetsEdit(c fiber.Ctx) error {
 		"Error":       c.Query("error"),
 		"Assets":      []models.Asset{},
 		"Categories":  cats,
-		"Rooms":       rooms,
+		"Locations":   locations,
 		"Asset":       asset,
 	})
 }
@@ -160,7 +183,7 @@ func (a *App) AssetsUpdate(c fiber.Ctx) error {
 		"name":           updated.Name,
 		"description":    updated.Description,
 		"category_id":    updated.CategoryID,
-		"room_id":        updated.RoomID,
+		"location_id":    updated.LocationID,
 		"serial_number":  updated.SerialNumber,
 		"purchase_date":  updated.PurchaseDate,
 		"purchase_price": updated.PurchasePrice,
@@ -223,11 +246,19 @@ func (a *App) assetFromCtx(c fiber.Ctx) (models.Asset, error) {
 	}
 	categoryID := uint(catIDInt)
 
-	roomIDInt, err := strconv.Atoi(c.FormValue("room_id"))
-	if err != nil || roomIDInt <= 0 {
-		return models.Asset{}, fmt.Errorf("invalid room_id")
+	assetType := strings.TrimSpace(c.FormValue("asset_type"))
+	if assetType != "fixed" && assetType != "movable" {
+		assetType = "fixed"
 	}
-	roomID := uint(roomIDInt)
+
+	// Replace the locationID parsing block:
+	locationIDInt, _ := strconv.Atoi(c.FormValue("location_id"))
+	locationID := uint(locationIDInt) // will be 0 if empty, which is fine for movable
+
+	// And update the validation — only require location for fixed assets:
+	if assetType == "fixed" && locationID == 0 {
+		return models.Asset{}, fmt.Errorf("location is required for fixed assets")
+	}
 
 	if name == "" || serial == "" || purchaseDate == "" || purchasePrice == "" {
 		return models.Asset{}, fmt.Errorf("all asset fields are required")
@@ -238,6 +269,8 @@ func (a *App) assetFromCtx(c fiber.Ctx) (models.Asset, error) {
 		return models.Asset{}, fmt.Errorf("category not found")
 	}
 
+	purchasePrice = strings.ReplaceAll(purchasePrice, ".", "")
+	purchasePrice = strings.ReplaceAll(purchasePrice, ",", "")
 	price64, err := strconv.ParseUint(purchasePrice, 10, 32)
 	if err != nil {
 		return models.Asset{}, fmt.Errorf("invalid purchase price")
@@ -246,8 +279,9 @@ func (a *App) assetFromCtx(c fiber.Ctx) (models.Asset, error) {
 	m := models.Asset{
 		Name:          name,
 		Description:   description,
+		AssetType:     assetType,
 		CategoryID:    categoryID,
-		RoomID:        roomID,
+		LocationID:    locationID,
 		SerialNumber:  serial,
 		PurchaseDate:  purchaseDate,
 		PurchasePrice: uint(price64),

@@ -29,7 +29,7 @@ var (
 //
 //	<entityUUID>/<subdir>/<randomhex><ext>
 //
-// subdir should be "rooms" or "assets" depending on the entity type.
+// subdir should be "Locations" or "assets" depending on the entity type.
 func SaveFile(fh *multipart.FileHeader, entityUUID, subdir string) (string, error) {
 	dir := filepath.Join(UploadRoot, entityUUID, subdir)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -75,8 +75,8 @@ func DeleteFile(relativePath string) {
 	_ = os.Remove(filepath.Join(UploadRoot, filepath.FromSlash(relativePath)))
 }
 
-// WithBaseURL converts a stored relative path (e.g. "abc-123/rooms/deadbeef.png")
-// to a full URL the frontend can use (e.g. "http://localhost:3000/uploads/abc-123/rooms/deadbeef.png").
+// WithBaseURL converts a stored relative path (e.g. "abc-123/locations/deadbeef.png")
+// to a full URL the frontend can use (e.g. "http://localhost:3000/uploads/abc-123/locations/deadbeef.png").
 // Returns an empty string unchanged so templates can safely call it on any value.
 func WithBaseURL(relativePath string) string {
 	if relativePath == "" {

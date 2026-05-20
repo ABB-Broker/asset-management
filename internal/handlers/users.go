@@ -12,14 +12,6 @@ import (
 )
 
 // UsersIndex renders the User Master list with an inline create form.
-//
-// @Summary     List users
-// @Description Returns all user accounts.
-// @Tags        users
-// @Produce     json
-// @Success     200 {array} models.User
-// @Security    SessionCookie
-// @Router      /api/v1/users [get]
 func (a *App) UsersIndex(c fiber.Ctx) error {
 	var users []models.User
 	a.DB.Order("id asc").Find(&users)
@@ -33,21 +25,7 @@ func (a *App) UsersIndex(c fiber.Ctx) error {
 	})
 }
 
-// UsersCreate persists a new user account.
-//
-// @Summary     Create user
-// @Description Creates a new user account.
-// @Tags        users
-// @Accept      application/x-www-form-urlencoded
-// @Produce     json
-// @Param       username  formData string true  "Username"
-// @Param       email     formData string false "Email address"
-// @Param       full_name formData string false "Full name"
-// @Param       role      formData string true  "Role (admin|editor|viewer)"
-// @Param       active    formData string false "Active (true|false)"
-// @Success     303
-// @Security    SessionCookie
-// @Router      /api/v1/users [post]
+// UsersCreate persists a new user account and its linked Assignee row.
 func (a *App) UsersCreate(c fiber.Ctx) error {
 	u, err := a.userFromCtx(c)
 	if err != nil {
@@ -64,9 +42,34 @@ func (a *App) UsersCreate(c fiber.Ctx) error {
 	}
 	u.Password = string(hash)
 
-	if res := a.DB.Create(&u); res.Error != nil {
+	// Use a transaction so User + Assignee are created atomically.
+	tx := a.DB.Begin()
+
+	if res := tx.Create(&u); res.Error != nil {
+		tx.Rollback()
 		return c.Redirect().To("/users?error=" + url.QueryEscape("username or email already exists"))
 	}
+
+	// Auto-create the linked Assignee row for internal employees.
+	assignee := models.Assignee{
+		FullName:    u.FullName,
+		Email:       u.Email,
+		PhoneNumber: u.PhoneNumber,
+		Department:  u.Department,
+		Position:    u.Position,
+		EmployeeID:  u.EmployeeID,
+		UserID:      &u.ID,
+	}
+	if res := tx.Create(&assignee); res.Error != nil {
+		tx.Rollback()
+		return c.Redirect().To("/users?error=" + url.QueryEscape("failed to create assignee record"))
+	}
+
+	// Link the user back to the assignee.
+	tx.Model(&u).Update("assignee_id", assignee.ID)
+
+	tx.Commit()
+
 	return c.Redirect().To("/users?message=" + url.QueryEscape("user created"))
 }
 
@@ -90,22 +93,7 @@ func (a *App) UsersEdit(c fiber.Ctx) error {
 	})
 }
 
-// UsersUpdate persists changes to an existing user account.
-//
-// @Summary     Update user
-// @Description Updates an existing user account.
-// @Tags        users
-// @Accept      application/x-www-form-urlencoded
-// @Produce     json
-// @Param       id        formData int    true  "User ID"
-// @Param       username  formData string true  "Username"
-// @Param       email     formData string false "Email address"
-// @Param       full_name formData string false "Full name"
-// @Param       role      formData string true  "Role (admin|editor|viewer)"
-// @Param       active    formData string false "Active (true|false)"
-// @Success     303
-// @Security    SessionCookie
-// @Router      /api/v1/users/update [post]
+// UsersUpdate persists changes to an existing user account and syncs the linked Assignee.
 func (a *App) UsersUpdate(c fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.FormValue("id"), 10, 64)
 	if err != nil {
@@ -119,44 +107,75 @@ func (a *App) UsersUpdate(c fiber.Ctx) error {
 	if err != nil {
 		return c.Redirect().To("/users?error=" + url.QueryEscape(err.Error()))
 	}
-	if res := a.DB.Model(&existing).Updates(map[string]any{
-		"username":  updated.Username,
-		"email":     updated.Email,
-		"full_name": updated.FullName,
-		"role":      updated.Role,
-		"active":    updated.Active,
+
+	tx := a.DB.Begin()
+
+	if res := tx.Model(&existing).Updates(map[string]any{
+		"username":     updated.Username,
+		"email":        updated.Email,
+		"full_name":    updated.FullName,
+		"phone_number": updated.PhoneNumber,
+		"department":   updated.Department,
+		"position":     updated.Position,
+		"employee_id":  updated.EmployeeID,
+		"role":         updated.Role,
+		"active":       updated.Active,
 	}); res.Error != nil {
+		tx.Rollback()
 		return c.Redirect().To("/users?error=" + url.QueryEscape("username or email already in use"))
 	}
+
+	// Sync the linked Assignee if it exists.
+	if existing.AssigneeID != nil {
+		tx.Model(&models.Assignee{}).Where("id = ?", *existing.AssigneeID).Updates(map[string]any{
+			"full_name":    updated.FullName,
+			"email":        updated.Email,
+			"phone_number": updated.PhoneNumber,
+			"department":   updated.Department,
+			"position":     updated.Position,
+			"employee_id":  updated.EmployeeID,
+		})
+	}
+
+	tx.Commit()
+
 	return c.Redirect().To("/users?message=" + url.QueryEscape("user updated"))
 }
 
-// UsersDelete removes a user account.
-//
-// @Summary     Delete user
-// @Description Deletes a user account by ID.
-// @Tags        users
-// @Accept      application/x-www-form-urlencoded
-// @Produce     json
-// @Param       id formData int true "User ID"
-// @Success     303
-// @Security    SessionCookie
-// @Router      /api/v1/users/delete [post]
+// UsersDelete removes a user account and its linked internal Assignee record.
 func (a *App) UsersDelete(c fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.FormValue("id"), 10, 64)
 	if err != nil {
 		return c.Redirect().To("/users?error=" + url.QueryEscape("invalid user id"))
 	}
+
 	var u models.User
 	if err := a.DB.First(&u, id).Error; err != nil {
 		return c.Redirect().To("/users?error=" + url.QueryEscape("user not found"))
 	}
-	a.DB.Delete(&u)
+
+	tx := a.DB.Begin()
+
+	// Delete the linked internal Assignee first (if one exists).
+	if u.AssigneeID != nil {
+		if err := tx.Delete(&models.Assignee{}, *u.AssigneeID).Error; err != nil {
+			tx.Rollback()
+			return c.Redirect().To("/users?error=" + url.QueryEscape("failed to remove linked assignee"))
+		}
+	}
+
+	// Now delete the user.
+	if err := tx.Delete(&u).Error; err != nil {
+		tx.Rollback()
+		return c.Redirect().To("/users?error=" + url.QueryEscape("failed to delete user"))
+	}
+
+	tx.Commit()
+
 	return c.Redirect().To("/users?message=" + url.QueryEscape("user deleted"))
 }
 
 // validRoles is the set of accepted role values for User accounts.
-// Defined at package level to avoid re-allocating the map on every request.
 var validRoles = map[string]bool{"admin": true, "editor": true, "viewer": true}
 
 // userFromCtx parses and validates user fields from a Fiber form context.
@@ -164,6 +183,10 @@ func (a *App) userFromCtx(c fiber.Ctx) (models.User, error) {
 	username := strings.TrimSpace(c.FormValue("username"))
 	email := strings.TrimSpace(c.FormValue("email"))
 	fullName := strings.TrimSpace(c.FormValue("full_name"))
+	phoneNumber := strings.TrimSpace(c.FormValue("phone_number"))
+	department := strings.TrimSpace(c.FormValue("department"))
+	position := strings.TrimSpace(c.FormValue("position"))
+	employeeID := strings.TrimSpace(c.FormValue("employee_id"))
 	role := strings.TrimSpace(c.FormValue("role"))
 	active := c.FormValue("active") != "false"
 
@@ -177,10 +200,14 @@ func (a *App) userFromCtx(c fiber.Ctx) (models.User, error) {
 		return models.User{}, fiber.NewError(fiber.StatusBadRequest, "role must be admin, editor, or viewer")
 	}
 	return models.User{
-		Username: username,
-		Email:    email,
-		FullName: fullName,
-		Role:     role,
-		Active:   active,
+		Username:    username,
+		Email:       email,
+		FullName:    fullName,
+		PhoneNumber: phoneNumber,
+		Department:  department,
+		Position:    position,
+		EmployeeID:  employeeID,
+		Role:        role,
+		Active:      active,
 	}, nil
 }

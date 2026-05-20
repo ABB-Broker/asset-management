@@ -34,6 +34,7 @@ require (
 	github.com/go-openapi/swag/stringutils v0.26.0 // indirect
 	github.com/go-openapi/swag/typeutils v0.26.0 // indirect
 	github.com/go-openapi/swag/yamlutils v0.26.0 // indirect
+	github.com/go-pdf/fpdf v0.9.0 // indirect
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gofiber/schema v1.7.1 // indirect

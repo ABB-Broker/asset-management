@@ -4,7 +4,7 @@
 <div class="d-flex align-items-center justify-content-between mb-4">
   <div>
     <h4 class="mb-0 fw-bold text-dark">
-      <i class="bi bi-archive text-primary me-2"></i>Asset Master
+      <i class="bi bi-archive text-primary me-2"></i>Assets
     </h4>
   </div>
   <button
@@ -125,7 +125,7 @@
                 data-purchase-date="{{.PurchaseDate}}"
                 data-purchase-price="{{.PurchasePrice}}"
                 data-category-id="{{.Category.ID}}"
-                data-room-id="{{.RoomID}}"
+                data-location-id="{{.Location.ID}}"
               >
                 <i class="bi bi-pencil"></i> Edit
               </button>
@@ -245,6 +245,7 @@
                 class="form-control"
                 id="assetPurchaseDate"
                 name="purchase_date"
+                max=""
                 required
               />
             </div>
@@ -252,13 +253,18 @@
               <label class="form-label small fw-semibold text-secondary"
                 >Purchase Price <span class="text-danger">*</span></label
               >
-              <input
-                class="form-control"
-                id="assetPurchasePrice"
-                name="purchase_price"
-                placeholder="1000000"
-                required
-              />
+              <div class="input-group">
+                <span class="input-group-text text-secondary small">IDR</span>
+                <input
+                  class="form-control"
+                  id="assetPurchasePrice"
+                  name="purchase_price"
+                  placeholder="100.000"
+                  inputmode="numeric"
+                  required
+                  oninput="formatPriceInput(this)"
+                />
+              </div>
             </div>
             <div class="col-md-3">
               <label class="form-label small fw-semibold text-secondary"
@@ -277,18 +283,38 @@
               </select>
             </div>
             <div class="col-md-3">
-              <label class="form-label small fw-semibold text-secondary"
-                >Room <span class="text-danger">*</span></label
-              >
+              <label class="form-label small fw-semibold text-secondary">
+                Asset Type <span class="text-danger">*</span>
+              </label>
               <select
                 class="form-select"
-                id="assetRoomId"
-                name="room_id"
+                id="assetType"
+                name="asset_type"
                 required
               >
+                <option value="fixed">Fixed Asset</option>
+                <option value="movable">Movable Asset</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="locationFieldWrapper">
+              <label class="form-label small fw-semibold text-secondary">
+                Location
+                <span class="text-danger" id="locationRequired">*</span>
+                <span
+                  class="text-muted"
+                  id="locationOptional"
+                  style="display: none; font-weight: normal"
+                  >(not required for movable)</span
+                >
+              </label>
+              <select
+                class="form-select"
+                id="assetLocationId"
+                name="location_id"
+              >
                 <option value="">— Select —</option>
-                {{range .Rooms}}
-                <option value="{{.ID}}">{{.RoomName}}</option>
+                {{range .Locations}}
+                <option value="{{.ID}}">{{.LocationName}}</option>
                 {{end}}
               </select>
             </div>
@@ -367,6 +393,60 @@
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 
 <script>
+  function updateLocationRequirement() {
+    const assetType = document.getElementById("assetType").value;
+    const locationSelect = document.getElementById("assetLocationId");
+    const requiredStar = document.getElementById("locationRequired");
+    const optionalNote = document.getElementById("locationOptional");
+
+    if (assetType === "movable") {
+      locationSelect.required = false;
+      requiredStar.style.display = "none";
+      optionalNote.style.display = "";
+      locationSelect.value = ""; // clear it so stale data isn't submitted
+    } else {
+      locationSelect.required = true;
+      requiredStar.style.display = "";
+      optionalNote.style.display = "none";
+    }
+  }
+
+  // Hook to the type dropdown
+  document
+    .getElementById("assetType")
+    .addEventListener("change", updateLocationRequirement);
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const today = new Date().toISOString().split("T")[0];
+    document
+      .querySelectorAll('input[name="purchase_date"]')
+      .forEach(function (el) {
+        el.setAttribute("max", today);
+      });
+  });
+
+  function formatPriceInput(input) {
+    // Strip all non-digits
+    let raw = input.value.replace(/\D/g, "");
+    // Format with period as thousands separator (Indonesian style)
+    if (raw !== "") {
+      raw = parseInt(raw, 10).toLocaleString("id-ID");
+    }
+    input.value = raw;
+  }
+
+  // Before form submission, strip formatting so the server gets a plain integer
+  function submitAssetForm() {
+    document.getElementById("assetDescriptionInput").value =
+      quillAsset.root.innerHTML;
+
+    // Strip digit separators from price before submitting
+    const priceEl = document.getElementById("assetPurchasePrice");
+    priceEl.value = priceEl.value.replace(/\./g, "");
+
+    // ... (rest of existing submitAssetForm code)
+  }
+
   const quillAsset = new Quill("#assetDescriptionEditor", {
     theme: "snow",
     placeholder:
@@ -405,6 +485,9 @@
       "bi bi-plus-lg text-primary small";
     document.getElementById("assetSubmitLabel").textContent = "Create";
     document.getElementById("assetForm").action = "/assets/create";
+    document.getElementById("assetType").value = "fixed";
+    updateLocationRequirement();
+
     [
       "assetId",
       "assetName",
@@ -413,7 +496,7 @@
       "assetPurchaseDate",
       "assetPurchasePrice",
       "assetCategoryId",
-      "assetRoomId",
+      "assetLocationId",
     ].forEach((id) => (document.getElementById(id).value = ""));
     quillAsset.setContents([]);
     document.getElementById("assetFileBody").innerHTML = "";
@@ -435,10 +518,15 @@
     document.getElementById("assetSerial").value = btn.dataset.serial;
     document.getElementById("assetPurchaseDate").value =
       btn.dataset.purchaseDate;
+    const rawPrice = parseInt(btn.dataset.purchasePrice || "0", 10);
     document.getElementById("assetPurchasePrice").value =
-      btn.dataset.purchasePrice;
+      rawPrice > 0 ? rawPrice.toLocaleString("id-ID") : "";
     document.getElementById("assetCategoryId").value = btn.dataset.categoryId;
-    document.getElementById("assetRoomId").value = btn.dataset.roomId;
+    document.getElementById("assetLocationId").value = btn.dataset.locationId;
+    document.getElementById("assetType").value =
+      btn.dataset.assetType || "fixed";
+
+    updateLocationRequirement();
 
     const desc = btn.dataset.description;
     quillAsset.setContents([]);

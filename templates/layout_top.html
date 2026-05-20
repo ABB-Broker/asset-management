@@ -41,12 +41,16 @@
 
     <!-- Nav -->
     <div class="flex-grow-1 px-3 py-3">
-      <p class="px-2 mb-1 text-secondary text-uppercase fw-bold"
-         style="font-size:.62rem;letter-spacing:.1em;">Master Data</p>
+      <p
+        class="px-2 mb-1 text-secondary text-uppercase fw-bold"
+        style="font-size:.62rem;letter-spacing:.1em;"
+      >
+        Data
+      </p>
       <ul class="nav nav-pills flex-column gap-1 mb-4">
         <li class="nav-item">
-          <a href="/rooms" class="nav-link py-2 px-3 {{if eq .CurrentPath "/rooms"}}active{{end}}">
-            <i class="bi bi-door-open me-2"></i>Room Master
+          <a href="/locations" class="nav-link py-2 px-3 {{if eq .CurrentPath "/locations"}}active{{end}}">
+            <i class="bi bi-geo-alt me-2"></i>Location Master
           </a>
         </li>
         <li class="nav-item">
@@ -55,13 +59,18 @@
           </a>
         </li>
         <li class="nav-item">
-          <a href="/assets" class="nav-link py-2 px-3 {{if eq .CurrentPath "/assets"}}active{{end}}">
-            <i class="bi bi-archive me-2"></i>Asset Master
+          <a href="/users" class="nav-link py-2 px-3 {{if eq .CurrentPath "/users"}}active{{end}}">
+            <i class="bi bi-people me-2"></i>User Master
           </a>
         </li>
         <li class="nav-item">
-          <a href="/users" class="nav-link py-2 px-3 {{if eq .CurrentPath "/users"}}active{{end}}">
-            <i class="bi bi-people me-2"></i>User Master
+          <a href="/assets" class="nav-link py-2 px-3 {{if eq .CurrentPath "/assets"}}active{{end}}">
+            <i class="bi bi-archive me-2"></i>Assets
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="/assignees" class="nav-link py-2 px-3 {{if eq .CurrentPath "/assignees"}}active{{end}}">
+            <i class="bi bi-person-badge me-2"></i>Assignees
           </a>
         </li>
       </ul>

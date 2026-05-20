@@ -1,0 +1,146 @@
+{{template "layout_top" .}}
+
+<div class="d-flex align-items-center gap-3 mb-4">
+  <a href="/assignees" class="btn btn-sm btn-light border"
+    ><i class="bi bi-arrow-left me-1"></i>Back</a
+  >
+  <h4 class="mb-0 fw-bold text-dark">
+    <i class="bi bi-person-badge text-primary me-2"></i>Assignee Details
+  </h4>
+</div>
+
+<div class="row g-4">
+  <!-- Info card -->
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm rounded-3">
+      <div class="card-header bg-white border-bottom py-3 px-4">
+        <h6 class="mb-0 fw-semibold">
+          <i class="bi bi-info-circle text-primary me-2"></i>Information
+        </h6>
+      </div>
+      <div class="card-body p-4">
+        <dl class="row mb-0" style="row-gap: 0.75rem">
+          <dt class="col-5 text-secondary small fw-semibold">Name</dt>
+          <dd class="col-7 fw-semibold mb-0">{{.Assignee.FullName}}</dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Type</dt>
+          <dd class="col-7 mb-0">
+            {{if .Assignee.UserID}}
+            <span class="badge bg-success bg-opacity-10 text-success"
+              >Internal Employee</span
+            >
+            {{else}}
+            <span class="badge bg-warning bg-opacity-10 text-warning"
+              >External</span
+            >
+            {{end}}
+          </dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Email</dt>
+          <dd class="col-7 text-muted small mb-0">{{.Assignee.Email}}</dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Phone</dt>
+          <dd class="col-7 text-muted small mb-0">{{.Assignee.PhoneNumber}}</dd>
+
+          {{if .Assignee.UserID}}
+          <dt class="col-5 text-secondary small fw-semibold">Employee ID</dt>
+          <dd class="col-7 text-muted small mb-0">{{.Assignee.EmployeeID}}</dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Department</dt>
+          <dd class="col-7 text-muted small mb-0">{{.Assignee.Department}}</dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Position</dt>
+          <dd class="col-7 text-muted small mb-0">{{.Assignee.Position}}</dd>
+          {{else}}
+          <dt class="col-5 text-secondary small fw-semibold">Company</dt>
+          <dd class="col-7 text-muted small mb-0">{{.Assignee.Company}}</dd>
+
+          <dt class="col-5 text-secondary small fw-semibold">Notes</dt>
+          <dd class="col-7 text-muted small mb-0">{{.Assignee.Notes}}</dd>
+          {{end}}
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lending history -->
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm rounded-3">
+      <div class="card-header bg-white border-bottom py-3 px-4">
+        <h6 class="mb-0 fw-semibold">
+          <i class="bi bi-clock-history text-primary me-2"></i>Lending History
+        </h6>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th class="px-4">#</th>
+              <th>Asset</th>
+              <th>Lent At</th>
+              <th>Returned At</th>
+              <th>Status</th>
+              <th>Receipt</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $i, $log := .Assignee.LendingLogs}}
+            <tr>
+              <td class="px-4 text-muted small">{{inc $i}}</td>
+              <td>
+                <a
+                  href="/assets/detail?uuid={{$log.Asset.AssetUUID}}"
+                  class="fw-semibold text-decoration-none"
+                >
+                  {{$log.Asset.Name}}
+                </a>
+              </td>
+              <td class="text-muted small">
+                {{$log.LentAt.Format "02 Jan 2006"}}
+              </td>
+              <td class="text-muted small">{{formatDate $log.ReturnedAt}}</td>
+              <td>
+                {{if eq $log.Status "returned"}}
+                <span class="badge bg-secondary bg-opacity-10 text-secondary"
+                  >Returned</span
+                >
+                {{else if eq $log.Status "active"}}
+                <span class="badge bg-success bg-opacity-10 text-success"
+                  >Active</span
+                >
+                {{else}}
+                <span class="badge bg-warning bg-opacity-10 text-warning"
+                  >Pending Signature</span
+                >
+                {{end}}
+              </td>
+              <td>
+                {{if $log.HandoverForm}} {{if $log.HandoverForm.ReceiptPath}}
+                <a
+                  href="/handover/receipt?form_uuid={{$log.HandoverForm.FormUUID}}"
+                  class="btn btn-sm btn-outline-primary"
+                >
+                  <i class="bi bi-download me-1"></i>Receipt
+                </a>
+                {{else}}
+                <span class="text-muted small">Not yet signed</span>
+                {{end}} {{else}}
+                <span class="text-muted small">—</span>
+                {{end}}
+              </td>
+            </tr>
+            {{else}}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">
+                No lending history yet.
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{template "layout_bottom" .}}

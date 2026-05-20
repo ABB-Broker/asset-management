@@ -4,16 +4,16 @@
 <div class="d-flex align-items-center justify-content-between mb-4">
   <div>
     <h4 class="mb-0 fw-bold text-dark">
-      <i class="bi bi-door-open text-primary me-2"></i>Room Master
+      <i class="bi bi-door-open text-primary me-2"></i>Location Master
     </h4>
   </div>
   <button
     class="btn btn-primary fw-semibold"
     data-bs-toggle="modal"
-    data-bs-target="#roomModal"
+    data-bs-target="#locationModal"
     onclick="openCreateModal()"
   >
-    <i class="bi bi-plus-lg me-1"></i>Create New Room
+    <i class="bi bi-plus-lg me-1"></i>Create New Location
   </button>
 </div>
 
@@ -24,12 +24,12 @@
   >
     <div class="d-flex align-items-center gap-2">
       <i class="bi bi-list-ul text-primary"></i>
-      <h6 class="mb-0 fw-semibold">Room List</h6>
+      <h6 class="mb-0 fw-semibold">Location List</h6>
     </div>
     <span
       class="badge bg-primary bg-opacity-10 text-primary fw-semibold rounded-pill"
     >
-      {{len .Rooms}} record(s)
+      {{len .Locations}} record(s)
     </span>
   </div>
   <div class="card-body p-3">
@@ -37,14 +37,14 @@
     <div class="mb-3">
       <input
         type="text"
-        id="roomSearch"
+        id="locationSearch"
         class="form-control form-control-sm w-auto"
-        placeholder="Search rooms…"
+        placeholder="Search Locations…"
         style="min-width: 240px"
       />
     </div>
     <div class="table-responsive">
-      <table class="table table-hover mb-0" id="roomTable">
+      <table class="table table-hover mb-0" id="locationTable">
         <thead>
           <tr>
             <th
@@ -75,11 +75,13 @@
             <th class="text-center px-4" style="width: 250px">Action</th>
           </tr>
         </thead>
-        <tbody id="roomBody">
-          {{range .Rooms}}
+        <tbody id="locationBody">
+          {{range .Locations}}
           <tr>
             <td class="px-4 text-muted small row-number"></td>
-            <td><span class="fw-semibold text-dark">{{.RoomName}}</span></td>
+            <td>
+              <span class="fw-semibold text-dark">{{.LocationName}}</span>
+            </td>
             <td class="text-muted small">
               <div class="ql-editor p-0" style="font-size: inherit">
                 {{.Description | safeHTML}}
@@ -88,7 +90,7 @@
             <td class="text-center px-4">
               <a
                 class="btn btn-sm btn-outline-secondary me-1"
-                href="/rooms/detail?uuid={{.RoomUUID}}"
+                href="/locations/detail?uuid={{.LocationUUID}}"
               >
                 <i class="bi bi-eye"></i> View
               </a>
@@ -96,17 +98,17 @@
                 class="btn btn-sm btn-outline-primary me-1"
                 onclick="openEditModal(this)"
                 data-id="{{.ID}}"
-                data-name="{{.RoomName}}"
+                data-name="{{.LocationName}}"
                 data-description="{{.Description}}"
                 data-bs-toggle="modal"
-                data-bs-target="#roomModal"
+                data-bs-target="#locationModal"
               >
                 <i class="bi bi-pencil"></i> Edit
               </button>
               <button
                 class="btn btn-sm btn-outline-danger"
                 type="button"
-                onclick="openDeleteModal('{{.ID}}', '{{.RoomName}}')"
+                onclick="openDeleteModal('{{.ID}}', '{{.LocationName}}')"
               >
                 <i class="bi bi-trash"></i>
               </button>
@@ -116,7 +118,7 @@
           <tr id="emptyRow">
             <td colspan="4" class="text-center text-muted py-5">
               <i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>
-              <span class="small">No rooms yet. Create one above.</span>
+              <span class="small">No locations yet. Create one above.</span>
             </td>
           </tr>
           {{end}}
@@ -125,20 +127,20 @@
     </div>
     <!-- Pagination -->
     <div class="d-flex align-items-center justify-content-between mt-3 px-1">
-      <span class="text-muted small" id="roomPaginationInfo"></span>
+      <span class="text-muted small" id="locationPaginationInfo"></span>
       <nav>
-        <ul class="pagination pagination-sm mb-0" id="roomPagination"></ul>
+        <ul class="pagination pagination-sm mb-0" id="locationPagination"></ul>
       </nav>
     </div>
   </div>
 </div>
 
-<!-- ===== Room Modal (Create / Edit) ===== -->
+<!-- ===== Location Modal (Create / Edit) ===== -->
 <div
   class="modal fade"
-  id="roomModal"
+  id="locationModal"
   tabindex="-1"
-  aria-labelledby="roomModalLabel"
+  aria-labelledby="locationModalLabel"
   aria-hidden="true"
 >
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
@@ -151,8 +153,8 @@
           >
             <i id="modalIcon" class="bi bi-plus-lg text-primary small"></i>
           </div>
-          <h6 class="modal-title mb-0 fw-semibold" id="roomModalLabel">
-            Create New Room
+          <h6 class="modal-title mb-0 fw-semibold" id="locationModalLabel">
+            Create New Location
           </h6>
         </div>
         <button
@@ -162,18 +164,18 @@
         ></button>
       </div>
       <div class="modal-body p-4">
-        <form id="roomForm" method="post" enctype="multipart/form-data">
-          <input type="hidden" id="roomId" name="id" value="" />
+        <form id="locationForm" method="post" enctype="multipart/form-data">
+          <input type="hidden" id="locationId" name="id" value="" />
           <div class="row g-3 mb-4">
             <div class="col-md-5">
               <label class="form-label small fw-semibold text-secondary"
-                >Room Name <span class="text-danger">*</span></label
+                >Location Name <span class="text-danger">*</span></label
               >
               <input
                 class="form-control"
-                id="roomName"
+                id="locationName"
                 name="name"
-                placeholder="e.g. Meeting Room Artha"
+                placeholder="e.g. Meeting Location Artha"
                 required
               />
             </div>
@@ -183,12 +185,15 @@
               >
               <!-- Quill rich text editor -->
               <div class="ql-wrapper">
-                <div id="roomDescriptionEditor" style="min-height: 180px"></div>
+                <div
+                  id="locationDescriptionEditor"
+                  style="min-height: 180px"
+                ></div>
               </div>
               <input
                 type="hidden"
                 name="description"
-                id="roomDescriptionInput"
+                id="locationDescriptionInput"
               />
             </div>
           </div>
@@ -206,7 +211,7 @@
                 <i class="bi bi-upload me-1"></i>Add File
                 <input
                   type="file"
-                  id="roomFileInput"
+                  id="locationFileInput"
                   accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx"
                   multiple
                   hidden
@@ -223,8 +228,8 @@
                     <th style="width: 110px" class="text-center">Actions</th>
                   </tr>
                 </thead>
-                <tbody id="roomFileBody">
-                  {{range .Room.RoomPhotos}}
+                <tbody id="locationFileBody">
+                  {{range .Location.LocationPhotos}}
                   <tr data-existing-id="{{.ID}}">
                     <td class="text-center align-middle">
                       <a href="{{.PhotoUrl}}" target="_blank">
@@ -290,8 +295,8 @@
                 </tbody>
               </table>
               <p
-                id="roomNoFiles"
-                class="text-muted small text-center py-2 mb-0 {{if .Room.RoomPhotos}}d-none{{end}}"
+                id="locationNoFiles"
+                class="text-muted small text-center py-2 mb-0 {{if .Location.LocationPhotos}}d-none{{end}}"
               >
                 No files added yet.
               </p>
@@ -310,7 +315,7 @@
         <button
           type="button"
           class="btn btn-primary fw-semibold px-4"
-          onclick="submitRoomForm()"
+          onclick="submitLocationForm()"
         >
           <i class="bi bi-check-lg me-1"></i
           ><span id="modalSubmitLabel">Create</span>
@@ -322,16 +327,16 @@
 
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 
-<script id="roomPhotosData" type="application/json">
+<script id="locationPhotosData" type="application/json">
   {
-    {{range $i,$r := .Rooms}}{{if $i}},{{end}}"{{$r.ID}}":[{{range $j,$p := $r.RoomPhotos}}{{if $j}},{{end}}{"id":{{$p.ID}},"name":{{$p.Name | js}},"url":{{$p.PhotoUrl | js}}}{{end}}]{{end}}
+    {{range $i,$r := .Locations}}{{if $i}},{{end}}"{{$r.ID}}":[{{range $j,$p := $r.LocationPhotos}}{{if $j}},{{end}}{"id":{{$p.ID}},"name":{{$p.Name | js}},"url":{{$p.PhotoUrl | js}}}{{end}}]{{end}}
   }
 </script>
 
 <script>
-  const quillRoom = new Quill("#roomDescriptionEditor", {
+  const quillLocation = new Quill("#locationDescriptionEditor", {
     theme: "snow",
-    placeholder: "Describe the room…",
+    placeholder: "Describe the location…",
     modules: {
       toolbar: [
         ["bold", "italic", "underline"],
@@ -352,47 +357,48 @@
   }
   let newFileMap = {};
   function openCreateModal() {
-    document.getElementById("roomModalLabel").textContent = "Create New Room";
+    document.getElementById("locationModalLabel").textContent =
+      "Create New Location";
     document.getElementById("modalIcon").className =
       "bi bi-plus-lg text-primary small";
     document.getElementById("modalSubmitLabel").textContent = "Create";
-    document.getElementById("roomForm").action = "/rooms/create";
-    document.getElementById("roomId").value = "";
-    document.getElementById("roomName").value = "";
-    quillRoom.setContents([]);
-    document.getElementById("roomDescriptionInput").value = "";
+    document.getElementById("locationForm").action = "/locations/create";
+    document.getElementById("locationId").value = "";
+    document.getElementById("locationName").value = "";
+    quillLocation.setContents([]);
+    document.getElementById("locationDescriptionInput").value = "";
     document
-      .querySelectorAll("#roomFileBody tr[data-new-row]")
+      .querySelectorAll("#locationFileBody tr[data-new-row]")
       .forEach((r) => r.remove());
     newFileMap = {};
     updateNoFilesMsg();
   }
   function openEditModal(btn) {
-    document.getElementById("roomModalLabel").textContent = "Edit Room";
+    document.getElementById("locationModalLabel").textContent = "Edit Location";
     document.getElementById("modalIcon").className =
       "bi bi-pencil text-primary small";
     document.getElementById("modalSubmitLabel").textContent = "Update";
-    document.getElementById("roomForm").action = "/rooms/update";
+    document.getElementById("locationForm").action = "/locations/update";
 
     const id = btn.dataset.id;
     const name = btn.dataset.name;
     const desc = btn.dataset.description;
 
-    document.getElementById("roomId").value = id;
-    document.getElementById("roomName").value = name;
+    document.getElementById("locationId").value = id;
+    document.getElementById("locationName").value = name;
 
-    quillRoom.setContents([]);
-    quillRoom.clipboard.dangerouslyPasteHTML(desc || "");
-    document.getElementById("roomDescriptionInput").value = desc || "";
+    quillLocation.setContents([]);
+    quillLocation.clipboard.dangerouslyPasteHTML(desc || "");
+    document.getElementById("locationDescriptionInput").value = desc || "";
 
     // Populate photo rows dynamically
-    const body = document.getElementById("roomFileBody");
+    const body = document.getElementById("locationFileBody");
     // Remove only new (non-existing) rows; keep nothing since we rebuild all
     body.innerHTML = "";
     newFileMap = {};
 
     const allPhotos = JSON.parse(
-      document.getElementById("roomPhotosData").textContent,
+      document.getElementById("locationPhotosData").textContent,
     );
     (allPhotos[id] || []).forEach((p) => {
       const isImg = /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(p.url);
@@ -410,7 +416,7 @@
     updateNoFilesMsg();
   }
   document
-    .getElementById("roomFileInput")
+    .getElementById("locationFileInput")
     .addEventListener("change", function () {
       Array.from(this.files).forEach((file) => {
         const idx = Date.now() + Math.random();
@@ -418,7 +424,7 @@
         const tr = document.createElement("tr");
         tr.dataset.newRow = idx;
         tr.innerHTML = `<td class="text-center align-middle">${imgOrIcon(file)}</td><td class="align-middle small text-muted">${file.name}</td><td class="align-middle"><input class="form-control form-control-sm" name="new_photo_name[]" value="${file.name.replace(/\.[^.]+$/, "")}"/></td><td class="text-center align-middle"><label class="btn btn-sm btn-outline-secondary me-1" style="cursor:pointer;"><i class="bi bi-arrow-repeat"></i><input type="file" accept="image/*,application/pdf,.doc,.docx" hidden onchange="replaceNewRow(this,${idx})"/></label><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeNewRow(this,${idx})"><i class="bi bi-trash"></i></button></td>`;
-        document.getElementById("roomFileBody").appendChild(tr);
+        document.getElementById("locationFileBody").appendChild(tr);
       });
       this.value = "";
       updateNoFilesMsg();
@@ -457,18 +463,18 @@
   }
   function updateNoFilesMsg() {
     document
-      .getElementById("roomNoFiles")
+      .getElementById("locationNoFiles")
       .classList.toggle(
         "d-none",
-        document.getElementById("roomFileBody").querySelectorAll("tr").length >
-          0,
+        document.getElementById("locationFileBody").querySelectorAll("tr")
+          .length > 0,
       );
   }
-  function submitRoomForm() {
-    document.getElementById("roomDescriptionInput").value =
-      quillRoom.root.innerHTML;
+  function submitLocationForm() {
+    document.getElementById("locationDescriptionInput").value =
+      quillLocation.root.innerHTML;
 
-    const form = document.getElementById("roomForm");
+    const form = document.getElementById("locationForm");
 
     const dt = new DataTransfer();
     Object.values(newFileMap).forEach((f) => dt.items.add(f));
@@ -598,20 +604,20 @@
   }
 
   initTable(
-    "roomTable",
-    "roomBody",
-    "roomSearch",
-    "roomPagination",
-    "roomPaginationInfo",
+    "locationTable",
+    "locationBody",
+    "locationSearch",
+    "locationPagination",
+    "locationPaginationInfo",
   );
 </script>
 
 <!-- ===== Delete Confirmation Modal ===== -->
 <div
   class="modal fade"
-  id="deleteRoomModal"
+  id="deleteLocationModal"
   tabindex="-1"
-  aria-labelledby="deleteRoomModalLabel"
+  aria-labelledby="deleteLocationModalLabel"
   aria-hidden="true"
 >
   <div class="modal-dialog modal-dialog-centered">
@@ -624,8 +630,11 @@
           >
             <i class="bi bi-exclamation-triangle-fill text-danger small"></i>
           </div>
-          <h6 class="modal-title mb-0 fw-semibold" id="deleteRoomModalLabel">
-            Delete Room
+          <h6
+            class="modal-title mb-0 fw-semibold"
+            id="deleteLocationModalLabel"
+          >
+            Delete Location
           </h6>
         </div>
         <button
@@ -636,11 +645,13 @@
       </div>
       <div class="modal-body px-4 py-3">
         <p class="mb-1">
-          Are you sure you want to delete <strong id="deleteRoomName"></strong>?
+          Are you sure you want to delete
+          <strong id="deleteLocationName"></strong>?
         </p>
         <p class="text-danger small mb-0">
-          <i class="bi bi-exclamation-circle me-1"></i>All assets in this room
-          will also be permanently deleted. This action cannot be undone.
+          <i class="bi bi-exclamation-circle me-1"></i>All assets in this
+          location will also be permanently deleted. This action cannot be
+          undone.
         </p>
       </div>
       <div class="modal-footer border-top py-3 px-4">
@@ -652,12 +663,12 @@
           <i class="bi bi-x-lg me-1"></i>Cancel
         </button>
         <form
-          id="deleteRoomForm"
+          id="deleteLocationForm"
           method="post"
-          action="/rooms/delete"
+          action="/locations/delete"
           class="d-inline"
         >
-          <input type="hidden" id="deleteRoomId" name="id" value="" />
+          <input type="hidden" id="deleteLocationId" name="id" value="" />
           <button type="submit" class="btn btn-danger fw-semibold">
             <i class="bi bi-trash me-1"></i>Yes, Delete
           </button>
@@ -669,9 +680,9 @@
 
 <script>
   function openDeleteModal(id, name) {
-    document.getElementById("deleteRoomId").value = id;
-    document.getElementById("deleteRoomName").textContent = name;
-    new bootstrap.Modal(document.getElementById("deleteRoomModal")).show();
+    document.getElementById("deleteLocationId").value = id;
+    document.getElementById("deleteLocationName").textContent = name;
+    new bootstrap.Modal(document.getElementById("deleteLocationModal")).show();
   }
 </script>
 
