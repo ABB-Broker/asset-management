@@ -1,4 +1,15 @@
-{{template "layout_top" .}}
+{{template "layout_top" .}} {{if not .IsLoggedIn}}
+<div
+  class="alert alert-info d-flex align-items-center gap-2 border-0 rounded-3 small mb-4 py-2"
+  role="alert"
+>
+  <i class="bi bi-qr-code-scan flex-shrink-0"></i>
+  <span
+    >You are viewing this page via QR Code in read-only mode.
+    <a href="/login" class="alert-link">Log in</a> to manage this asset.</span
+  >
+</div>
+{{end}}
 
 <!-- Page header -->
 <div class="d-flex align-items-center justify-content-between mb-4">
@@ -19,6 +30,7 @@
     >
       <i class="bi bi-qr-code me-1"></i>QR Code
     </button>
+    {{if .IsLoggedIn}}
     <button
       class="btn btn-primary fw-semibold"
       data-bs-toggle="modal"
@@ -36,6 +48,7 @@
     >
       <i class="bi bi-pencil"></i> Edit Asset
     </button>
+    {{end}}
   </div>
 </div>
 
@@ -57,7 +70,7 @@
           <dt class="col-5 text-secondary small fw-semibold">Asset Type</dt>
           <dd class="col-7 mb-0">
             <span
-              class="badge rounded-pill bg-success bg-opacity-10 text-success fw-semibold px-2 text-capitalize"
+              class="badge rounded-pill bg-success bg-opacity-10 text-succebg-success fw-semibold px-2 text-capitalize"
             >
               {{.Asset.AssetType}}
             </span>
@@ -80,7 +93,6 @@
           </dd>
 
           <dt class="col-5 text-secondary small fw-semibold">Location</dt>
-          {{if .Asset.Location.LocationName}}
           <dd class="col-7 mb-0">
             <a
               href="/locations/detail?uuid={{.Asset.Location.LocationUUID}}"
@@ -90,9 +102,6 @@
               >{{.Asset.Location.LocationName}}
             </a>
           </dd>
-          {{else}}
-          <dd class="col-7 mb-0"><em>No location provided</em></dd>
-          {{end}}
 
           <dt class="col-5 text-secondary small fw-semibold">Purchase Date</dt>
           <dd class="col-7 text-muted small mb-0">{{.Asset.PurchaseDate}}</dd>
@@ -214,7 +223,7 @@
       <h6 class="mb-0 fw-semibold">Lending History</h6>
     </div>
     <div class="d-flex gap-2">
-      {{if gt .CurrentAssigneeID 0}}
+      {{if .IsLoggedIn}} {{if gt .CurrentAssigneeID 0}}
       <button
         class="btn btn-sm btn-outline-primary"
         data-bs-toggle="modal"
@@ -230,6 +239,13 @@
       >
         <i class="bi bi-box-arrow-up-right me-1"></i>Lend to Someone
       </button>
+      {{else}}
+      <span
+        class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-2 py-1 small"
+      >
+        <i class="bi bi-lock me-1"></i>Log in to manage lending
+      </span>
+      {{end}}
     </div>
   </div>
   <div class="card-body p-0">
@@ -305,15 +321,18 @@
             >
               <i class="bi bi-download"></i> Receipt
             </a>
-            {{end}} {{end}} {{if ne $log.Status "returned"}}
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-secondary"
-              onclick="openReturnModal('{{$log.ID}}')"
-            >
-              <i class="bi bi-box-arrow-in-left"></i> Return
-            </button>
-            {{end}}
+            {{end}} {{end}} {{if .IsLoggedIn}} {{if ne $log.Status "returned"}}
+            <form method="post" action="/lending/return" class="d-inline">
+              <input type="hidden" name="lending_id" value="{{$log.ID}}" />
+              <button
+                type="submit"
+                class="btn btn-sm btn-outline-secondary"
+                onclick="return confirm('Mark this asset as returned?');"
+              >
+                <i class="bi bi-box-arrow-in-left"></i> Return
+              </button>
+            </form>
+            {{end}} {{end}}
           </td>
         </tr>
         {{else}}
@@ -330,6 +349,7 @@
 </div>
 
 <!-- Lend Asset Modal -->
+{{if .IsLoggedIn}}
 <div class="modal fade" id="lendModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow">
@@ -761,8 +781,65 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<!-- ===== QR Code Modal ===== -->
+<div
+  class="modal fade"
+  id="qrModal"
+  tabindex="-1"
+  aria-labelledby="qrModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-bottom py-3 px-4">
+        <div class="d-flex align-items-center gap-2">
+          <div
+            class="d-flex align-items-center justify-content-center rounded-2"
+            style="width: 32px; height: 32px; background: #eff6ff"
+          >
+            <i class="bi bi-qr-code text-primary small"></i>
+          </div>
+          <h6 class="modal-title mb-0 fw-semibold" id="qrModalLabel">
+            QR Code
+          </h6>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body px-4 py-4 text-center">
+        <p
+          class="text-muted small mb-3"
+          id="qrUrlLabel"
+          style="word-break: break-all"
+        ></p>
+        <div id="qrCanvas" class="d-flex justify-content-center mb-3"></div>
+      </div>
+      <div
+        class="modal-footer border-top py-3 px-4 justify-content-center gap-2"
+      >
+        <button
+          type="button"
+          class="btn btn-outline-primary fw-semibold"
+          onclick="downloadQr('png')"
+        >
+          <i class="bi bi-image me-1"></i>Download PNG
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-danger fw-semibold"
+          onclick="downloadQr('pdf')"
+        >
+          <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script>
   function updateLocationRequirement() {
     const assetType = document.getElementById("assetType").value;
@@ -964,65 +1041,6 @@
     form.submit();
   }
 </script>
-
-<!-- ===== QR Code Modal ===== -->
-<div
-  class="modal fade"
-  id="qrModal"
-  tabindex="-1"
-  aria-labelledby="qrModalLabel"
-  aria-hidden="true"
->
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow">
-      <div class="modal-header border-bottom py-3 px-4">
-        <div class="d-flex align-items-center gap-2">
-          <div
-            class="d-flex align-items-center justify-content-center rounded-2"
-            style="width: 32px; height: 32px; background: #eff6ff"
-          >
-            <i class="bi bi-qr-code text-primary small"></i>
-          </div>
-          <h6 class="modal-title mb-0 fw-semibold" id="qrModalLabel">
-            QR Code
-          </h6>
-        </div>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="modal"
-        ></button>
-      </div>
-      <div class="modal-body px-4 py-4 text-center">
-        <p
-          class="text-muted small mb-3"
-          id="qrUrlLabel"
-          style="word-break: break-all"
-        ></p>
-        <div id="qrCanvas" class="d-flex justify-content-center mb-3"></div>
-      </div>
-      <div
-        class="modal-footer border-top py-3 px-4 justify-content-center gap-2"
-      >
-        <button
-          type="button"
-          class="btn btn-outline-primary fw-semibold"
-          onclick="downloadQr('png')"
-        >
-          <i class="bi bi-image me-1"></i>Download PNG
-        </button>
-        <button
-          type="button"
-          class="btn btn-outline-danger fw-semibold"
-          onclick="downloadQr('pdf')"
-        >
-          <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- QR + PDF libs -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1098,77 +1116,5 @@
   }
 </script>
 
-<!-- Return Asset Modal -->
-<div
-  class="modal fade"
-  id="returnModal"
-  tabindex="-1"
-  aria-labelledby="returnModalLabel"
-  aria-hidden="true"
->
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow">
-      <div class="modal-header border-bottom py-3 px-4">
-        <h6 class="modal-title fw-semibold" id="returnModalLabel">
-          <i class="bi bi-box-arrow-in-left me-2 text-secondary"></i>Mark as
-          Returned
-        </h6>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="modal"
-          aria-label="Close"
-        ></button>
-      </div>
-      <form method="post" action="/lending/return">
-        <input type="hidden" name="lending_id" id="returnLendingId" value="" />
-        <div class="modal-body p-4">
-          <p class="text-muted mb-3">
-            Please confirm the date this asset was physically returned.
-          </p>
-          <div class="mb-3">
-            <label for="returnedAtInput" class="form-label fw-semibold"
-              >Return Date</label
-            >
-            <input
-              type="date"
-              class="form-control"
-              id="returnedAtInput"
-              name="returned_at"
-              required
-            />
-            <div class="form-text">
-              Defaults to today. Cannot be set to a future date.
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer border-top py-3 px-4">
-          <button
-            type="button"
-            class="btn btn-outline-secondary btn-sm"
-            data-bs-dismiss="modal"
-          >
-            Cancel
-          </button>
-          <button type="submit" class="btn btn-secondary btn-sm">
-            <i class="bi bi-check-lg me-1"></i>Confirm Return
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<script>
-  function openReturnModal(lendingId) {
-    document.getElementById("returnLendingId").value = lendingId;
-    // Set max date to today and default to today.
-    const today = new Date().toISOString().split("T")[0];
-    const input = document.getElementById("returnedAtInput");
-    input.max = today;
-    input.value = today;
-    new bootstrap.Modal(document.getElementById("returnModal")).show();
-  }
-</script>
-
-{{template "layout_bottom" .}}
+{{end}}{{/* end if .IsLoggedIn — wraps all action modals */}} {{template
+"layout_bottom" .}}

@@ -13,7 +13,7 @@ require (
 	github.com/swaggo/swag v1.16.6
 	go.uber.org/zap v1.28.0
 	golang.org/x/crypto v0.50.0
-	golang.org/x/text v0.36.0
+	golang.org/x/text v0.37.0
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.25.12
 )

@@ -67,14 +67,14 @@ func Load() Config {
 	v.SetDefault("admin_password", "admin123")
 	v.SetDefault("app_env", "development")
 	v.SetDefault("totp_secret", "JBSWY3DPEHPK3PXP")
-	v.SetDefault("dev_otp_bypass", "353353")
+	v.SetDefault("dev_otp_bypass", "")
 	v.SetDefault("db_driver", "sqlite")
 	v.SetDefault("db_dsn", "asset_management.db")
 	v.SetDefault("db_open_connection", 250)
 	v.SetDefault("db_max_idle_connection", 12)
 	v.SetDefault("port", "8080")
 	v.SetDefault("prefork", true)
-	v.SetDefault("base_url", "http://localhost:2005")
+	v.SetDefault("base_url", "http://localhost:8080")
 
 	// ── Config file (optional) ───────────────────────────────────────────────
 	// Place a config.yaml (or .env, config.json, config.toml) in the working
@@ -111,6 +111,7 @@ func Load() Config {
 		DBName:              v.GetString("db_database"),
 		DBCharset:           v.GetString("db_charset"),
 		Port:                v.GetString("port"),
+		BaseURL:             v.GetString("base_url"),
 		Prefork:             v.GetBool("prefork"),
 	}
 }

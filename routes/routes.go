@@ -1,6 +1,4 @@
 // Package routes registers all HTTP routes on a Fiber application instance.
-// Centralizing route declarations here keeps main.go thin and makes it easy to
-// browse the full routing table in a single file.
 package routes
 
 import (
@@ -16,9 +14,7 @@ import (
 )
 
 // Setup registers all routes and middleware on fApp.
-// logger may be nil; when nil a zap.NewNop() logger is used.
 func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
-	// ── Zap structured request logger ────────────────────────────────────
 	if logger == nil {
 		logger = zap.NewNop()
 	}
@@ -28,25 +24,32 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 	}))
 
 	// ── Static file serving ───────────────────────────────────────────────
-	// Serves uploaded files at /uploads/<uuid>/<subdir>/<filename>.
-	// The "./uploads" directory is created automatically on first upload.
 	fApp.Use("/uploads", static.New("./uploads"))
 
 	// ── Swagger UI ────────────────────────────────────────────────────────
 	fApp.Get("/swagger/*", swaggo.HandlerDefault)
 
 	// ── Public routes ─────────────────────────────────────────────────────
-	fApp.Get("/", func(c fiber.Ctx) error {
-		return c.Redirect().To("/login")
-	})
+	fApp.Get("/", func(c fiber.Ctx) error { return c.Redirect().To("/login") })
 	fApp.Get("/login", h.LoginGet)
 	fApp.Post("/login", h.LoginPost)
 	fApp.Get("/login/2fa", h.Login2FAGet)
 	fApp.Post("/login/2fa", h.Login2FAPost)
-	// fApp.Post("/admin/create", h.UsersCreate)
 	fApp.Get("/logout", h.Logout)
 
-	// Digital Signature Form
+	// Change password
+	fApp.Get("/change-password", h.ChangePasswordGet)
+	fApp.Post("/change-password", h.ChangePasswordPost)
+
+	// ── Set-password / invite flow (no auth required) ─────────────────────
+	fApp.Get("/set-password", h.SetPasswordGet)
+	fApp.Post("/set-password", h.SetPasswordPost)
+
+	// ── Forgot / reset password (no auth required) ───────────────────────
+	fApp.Get("/forgot-password", h.ForgotPasswordGet)
+	fApp.Post("/forgot-password", h.ForgotPasswordPost)
+
+	// ── Digital Signature Form (no auth required) ─────────────────────────
 	fApp.Get("/handover/sign", h.HandoverSignGet)
 	fApp.Post("/handover/sign", h.HandoverSignPost)
 
@@ -69,10 +72,15 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 		})
 	})
 
+	// ── QR-code public pages (OptionalAuth: shows actions if logged in) ───
+	qr := fApp.Group("/qr", h.OptionalAuth)
+	qr.Get("/assets/detail", h.AssetDetailsPublic)
+	qr.Get("/locations/detail", h.LocationDetailsPublic)
+
 	// ── Protected routes (require valid session) ──────────────────────────
 	auth := fApp.Group("/", h.AuthRequired)
 
-	// ── Location Master (was Room Master) ────────────────────────────────────────
+	// Location Master
 	auth.Get("/locations", h.LocationsIndex)
 	auth.Post("/locations/create", h.LocationsCreate)
 	auth.Post("/locations/update", h.LocationsUpdate)
@@ -89,7 +97,6 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 	// Asset Master
 	auth.Get("/assets", h.AssetsIndex)
 	auth.Post("/assets/create", h.AssetsCreate)
-	auth.Get("/assets/edit", h.AssetsEdit)
 	auth.Post("/assets/update", h.AssetsUpdate)
 	auth.Post("/assets/delete", h.AssetsDelete)
 	auth.Get("/assets/detail", h.AssetDetailsIndex)
@@ -100,6 +107,7 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 	auth.Get("/users/edit", h.UsersEdit)
 	auth.Post("/users/update", h.UsersUpdate)
 	auth.Post("/users/delete", h.UsersDelete)
+	auth.Post("/users/resend-invite", h.UsersResendInvite)
 
 	// Assignees
 	auth.Get("/assignees", h.AssigneesIndex)
@@ -112,5 +120,4 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 	auth.Post("/lending/lend", h.LendAsset)
 	auth.Post("/lending/return", h.ReturnAsset)
 	auth.Get("/handover/receipt", h.HandoverReceiptDownload)
-
 }

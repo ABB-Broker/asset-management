@@ -91,7 +91,7 @@ type User struct {
 	gorm.Model
 	Username    string `gorm:"uniqueIndex;not null"`
 	Email       string `gorm:"uniqueIndex"`
-	Password    string `gorm:"not null"`
+	Password    string // empty until user sets it via the invite link
 	FullName    string
 	PhoneNumber string
 	Department  string
@@ -100,6 +100,46 @@ type User struct {
 	Role        string `gorm:"default:'viewer'"` // "admin" | "editor" | "viewer"
 	Active      bool   `gorm:"default:true"`
 	AssigneeID  *uint  // FK back to Assignee (set after Assignee row is created)
+}
+
+// ─── PasswordSetToken ─────────────────────────────────────────────────────────
+// Used for both the new-user invite link and the change-password flow.
+// Kind: "invite" | "reset"
+
+type PasswordSetToken struct {
+	gorm.Model
+	Token     string `gorm:"uniqueIndex;not null"`
+	UserID    uint   `gorm:"not null;index"`
+	Kind      string `gorm:"not null;default:'invite'"` // "invite" | "reset"
+	UsedAt    *time.Time
+	ExpiresAt time.Time `gorm:"index"`
+	User      User      `gorm:"foreignKey:UserID"`
+}
+
+func (p *PasswordSetToken) BeforeCreate(tx *gorm.DB) error {
+	if p.Token == "" {
+		p.Token = RandomToken()
+	}
+	if p.ExpiresAt.IsZero() {
+		p.ExpiresAt = time.Now().Add(24 * time.Hour)
+	}
+	return nil
+}
+
+// IsValid returns true when the token has not been used and has not expired.
+func (p *PasswordSetToken) IsValid() bool {
+	return p.UsedAt == nil && time.Now().Before(p.ExpiresAt)
+}
+
+// ─── EmailOTP ─────────────────────────────────────────────────────────────────
+// A short-lived 6-digit code e-mailed to the user during the 2FA step.
+
+type EmailOTP struct {
+	gorm.Model
+	Code      string `gorm:"not null"`
+	Username  string `gorm:"not null;index"`
+	UsedAt    *time.Time
+	ExpiresAt time.Time `gorm:"index"`
 }
 
 // ─── Assignee ─────────────────────────────────────────────────────────────────

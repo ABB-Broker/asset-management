@@ -1,12 +1,16 @@
 package utils
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-pdf/fpdf"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type ReceiptData struct {
@@ -19,11 +23,12 @@ type ReceiptData struct {
 	AssigneePhone string
 	LentAt        time.Time
 	SignedAt      time.Time
-	SignatureData string // base64 PNG (strip the "data:image/png;base64," prefix before embedding)
+	SignatureData string // base64 PNG (may include "data:image/png;base64," prefix)
 }
 
 // GenerateHandoverReceipt creates the PDF and returns the file path.
 func GenerateHandoverReceipt(data ReceiptData, formUUID string) (string, error) {
+	caser := cases.Title(language.English)
 	dir := filepath.Join("uploads", "receipts")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("mkdir: %w", err)
@@ -56,7 +61,7 @@ func GenerateHandoverReceipt(data ReceiptData, formUUID string) (string, error) 
 	pdf.SetFont("Arial", "B", 11)
 	pdf.CellFormat(0, 9, "Asset Details", "", 1, "", false, 0, "")
 	line("Asset Name", data.AssetName)
-	line("Asset Type", data.AssetType)
+	line("Asset Type", caser.String(data.AssetType))
 	line("Serial Number", data.SerialNumber)
 	line("Category", data.Category)
 	pdf.Ln(3)
@@ -79,17 +84,37 @@ func GenerateHandoverReceipt(data ReceiptData, formUUID string) (string, error) 
 	pdf.CellFormat(0, 7, "Assignee Signature:", "", 1, "", false, 0, "")
 	pdf.Ln(2)
 
-	// TODO: Embed the actual signature image.
-	// Strip "data:image/png;base64," prefix, decode base64, write to temp file,
-	// then use pdf.ImageOptions() to embed it.
-	// Example stub:
-	pdf.SetDrawColor(200, 200, 200)
-	pdf.Rect(15, pdf.GetY(), 80, 30, "D")
-	pdf.SetFont("Arial", "I", 8)
-	pdf.SetXY(15, pdf.GetY()+12)
-	pdf.CellFormat(80, 7, "[Digital Signature]", "", 1, "C", false, 0, "")
+	// Embed the actual signature image decoded from base64.
+	sigY := pdf.GetY()
+	sigEmbedded := false
+	if data.SignatureData != "" {
+		raw := data.SignatureData
+		// Strip the data-URI prefix if present (e.g. "data:image/png;base64,").
+		if idx := strings.Index(raw, ","); idx != -1 {
+			raw = raw[idx+1:]
+		}
+		imgBytes, decErr := base64.StdEncoding.DecodeString(raw)
+		if decErr == nil {
+			tmpFile := filepath.Join(dir, formUUID+"_sig.png")
+			if writeErr := os.WriteFile(tmpFile, imgBytes, 0644); writeErr == nil {
+				defer os.Remove(tmpFile)
+				pdf.ImageOptions(tmpFile, 15, sigY, 80, 30, false,
+					fpdf.ImageOptions{ImageType: "PNG", ReadDpi: true}, 0, "")
+				sigEmbedded = true
+			}
+		}
+	}
+	if !sigEmbedded {
+		pdf.SetDrawColor(200, 200, 200)
+		pdf.Rect(15, sigY, 80, 30, "D")
+		pdf.SetFont("Arial", "I", 8)
+		pdf.SetXY(15, sigY+12)
+		pdf.CellFormat(80, 7, "[Digital Signature]", "", 1, "C", false, 0, "")
+	}
+	// Advance cursor past the signature box.
+	pdf.SetXY(pdf.GetX(), sigY+30)
 
-	pdf.Ln(35)
+	pdf.Ln(8)
 	pdf.SetFont("Arial", "I", 8)
 	pdf.CellFormat(0, 5, fmt.Sprintf("Document ID: %s", formUUID), "", 1, "", false, 0, "")
 	pdf.CellFormat(0, 5, "This document was digitally signed via the Asset Management System.", "", 1, "", false, 0, "")

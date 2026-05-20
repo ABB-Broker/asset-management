@@ -20,6 +20,7 @@
 package main
 
 import (
+	"encoding/json"
 	"html/template"
 	"log"
 	"os"
@@ -145,6 +146,14 @@ func newFiberApp(h *handlers.App, logger *zap.Logger) *fiber.App {
 			return "—"
 		}
 		return t.Format("02 Jan 2006")
+	})
+
+	engine.AddFunc("toJSON", func(v interface{}) string {
+		b, err := json.MarshalIndent(v, "", " ")
+		if err != nil {
+			return err.Error()
+		}
+		return string(b)
 	})
 
 	fApp := fiber.New(fiber.Config{

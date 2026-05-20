@@ -70,10 +70,9 @@ func (a *App) LendAsset(c fiber.Ctx) error {
 
 	tx.Commit()
 
-	// TODO: Send email to assignee.Email with the public form link.
-	// Form URL: fmt.Sprintf("%s/handover/sign?token=%s", a.Cfg.BaseURL, handoverForm.FormToken)
-	// Use your preferred SMTP library (e.g. net/smtp or gomail).
-	// The link should open the public signature form (§13).
+	// Send email to assignee with the public signature form link.
+	formURL := fmt.Sprintf("%s/handover/sign?token=%s", a.Cfg.BaseURL, handoverForm.FormToken)
+	_ = a.sendHandoverEmail(assignee.Email, assignee.FullName, asset.Name, formURL)
 
 	return c.Redirect().To(fmt.Sprintf("/assets/detail?uuid=%s&message=%s",
 		asset.AssetUUID, url.QueryEscape("asset lent — handover form sent to "+assignee.Email)))
@@ -92,9 +91,16 @@ func (a *App) ReturnAsset(c fiber.Ctx) error {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("lending record not found"))
 	}
 
-	now := time.Now()
+	// Parse the returned_at date from the form; fall back to now.
+	returnedAt := time.Now()
+	if dateStr := strings.TrimSpace(c.FormValue("returned_at")); dateStr != "" {
+		if parsed, parseErr := time.ParseInLocation("2006-01-02", dateStr, time.Local); parseErr == nil {
+			// Use end-of-day so the timestamp is unambiguous.
+			returnedAt = time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 23, 59, 59, 0, time.Local)
+		}
+	}
 	a.DB.Model(&log).Updates(map[string]any{
-		"returned_at": &now,
+		"returned_at": &returnedAt,
 		"status":      "returned",
 	})
 
@@ -148,6 +154,7 @@ func (a *App) HandoverSignPost(c fiber.Ctx) error {
 	if err := a.DB.
 		Preload("LendingLog").
 		Preload("LendingLog.Asset").
+		Preload("LendingLog.Asset.Category").
 		Preload("LendingLog.Assignee").
 		Where("form_token = ?", token).
 		First(&form).Error; err != nil {
@@ -186,7 +193,12 @@ func (a *App) HandoverSignPost(c fiber.Ctx) error {
 			"receipt_path": receiptPath,
 			"status":       "published",
 		})
-		// TODO: Email the PDF to the assignee.
+		_ = a.sendHandoverReceiptEmail(
+			form.LendingLog.Assignee.Email,
+			form.LendingLog.Assignee.FullName,
+			form.LendingLog.Asset.Name,
+			receiptPath,
+		)
 	}
 
 	return c.Render("handover_success", fiber.Map{

@@ -79,6 +79,8 @@ func Init(cfg config.Config) *gorm.DB {
 		&models.LendingLog{},
 		&models.HandoverForm{},
 		&models.Session{},
+		&models.PasswordSetToken{},
+		&models.EmailOTP{},
 	); err != nil {
 		log.Fatalf("database migration failed: %v", err)
 	}

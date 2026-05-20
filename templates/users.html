@@ -131,18 +131,6 @@
                 placeholder="e.g. Analyst"
               />
             </div>
-            <div class="col-md-4" id="passwordField">
-              <label class="form-label small fw-semibold text-secondary"
-                >Password <span class="text-danger">*</span></label
-              >
-              <input
-                class="form-control"
-                type="password"
-                id="userPassword"
-                name="password"
-                placeholder="Password"
-              />
-            </div>
             <div class="col-md-4">
               <label class="form-label small fw-semibold text-secondary"
                 >Role <span class="text-danger">*</span></label
@@ -269,7 +257,7 @@
                 style="font-size: 0.7rem"
               ></i>
             </th>
-            <th class="text-center px-4" style="width: 180px">Action</th>
+            <th class="text-center px-4" style="width: 240px">Action</th>
           </tr>
         </thead>
         <tbody id="userBody">
@@ -339,6 +327,22 @@
               >
                 <i class="bi bi-pencil"></i> Edit
               </button>
+              {{if eq .Password ""}}
+              <form
+                method="post"
+                action="/users/resend-invite"
+                class="d-inline me-1"
+              >
+                <input type="hidden" name="id" value="{{.ID}}" />
+                <button
+                  class="btn btn-sm btn-outline-warning"
+                  type="submit"
+                  title="Password not set — resend invite email"
+                >
+                  <i class="bi bi-envelope-arrow-up"></i> Invite
+                </button>
+              </form>
+              {{end}}
               <button
                 class="btn btn-sm btn-outline-danger"
                 type="button"
@@ -430,8 +434,6 @@
     document.getElementById("userSubmitLabel").textContent = "Create User";
     document.getElementById("userForm").action = "/users/create";
     document.getElementById("userId").value = "";
-    document.getElementById("passwordField").style.display = "";
-    document.getElementById("userPassword").required = true;
     [
       "userFullName",
       "userUsername",
@@ -440,7 +442,6 @@
       "userEmployeeID",
       "userDepartment",
       "userPosition",
-      "userPassword",
     ].forEach((id) => (document.getElementById(id).value = ""));
     document.getElementById("userRole").value = "viewer";
     document.getElementById("userActive").value = "true";
@@ -453,8 +454,6 @@
     document.getElementById("userSubmitLabel").textContent = "Update User";
     document.getElementById("userForm").action = "/users/update";
     document.getElementById("userId").value = btn.dataset.id;
-    document.getElementById("passwordField").style.display = "none";
-    document.getElementById("userPassword").required = false;
     document.getElementById("userFullName").value = btn.dataset.fullName || "";
     document.getElementById("userUsername").value = btn.dataset.username || "";
     document.getElementById("userEmail").value = btn.dataset.email || "";

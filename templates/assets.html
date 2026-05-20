@@ -66,20 +66,27 @@
               ></i>
             </th>
             <th class="sortable" data-col="2" style="cursor: pointer">
-              Category
+              Type
               <i
                 class="bi bi-arrow-down-up text-muted"
                 style="font-size: 0.7rem"
               ></i>
             </th>
             <th class="sortable" data-col="3" style="cursor: pointer">
-              Serial Number
+              Category
               <i
                 class="bi bi-arrow-down-up text-muted"
                 style="font-size: 0.7rem"
               ></i>
             </th>
             <th class="sortable" data-col="4" style="cursor: pointer">
+              Serial Number
+              <i
+                class="bi bi-arrow-down-up text-muted"
+                style="font-size: 0.7rem"
+              ></i>
+            </th>
+            <th class="sortable" data-col="5" style="cursor: pointer">
               Purchase Date
               <i
                 class="bi bi-arrow-down-up text-muted"
@@ -94,6 +101,12 @@
           <tr>
             <td class="px-4 text-muted small row-number"></td>
             <td><span class="fw-semibold text-dark">{{.Name}}</span></td>
+            <td>
+              <span
+                class="badge rounded-pill bg-success bg-opacity-10 text-success fw-semibold px-2 text-capitalize"
+                >{{.AssetType}}</span
+              >
+            </td>
             <td>
               <span
                 class="badge rounded-pill bg-info bg-opacity-10 text-info fw-semibold px-2"

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
+	"gorm.io/gorm"
 
 	"github.com/ABB-Broker/asset-management/internal/models"
 	"github.com/ABB-Broker/asset-management/internal/utils"
@@ -56,9 +57,9 @@ func (a *App) AssetDetailsIndex(c fiber.Ctx) error {
 		Preload("Category").
 		Preload("Location"). // ← was Room
 		Preload("AssetPhotos").
-		Preload("LendingLogs").              // ← new
-		Preload("LendingLogs.Assignee").     // ← new
-		Preload("LendingLogs.HandoverForm"). // ← new
+		Preload("LendingLogs").                                                               // ← new
+		Preload("LendingLogs.Assignee", func(db *gorm.DB) *gorm.DB { return db.Unscoped() }). // ← new
+		Preload("LendingLogs.HandoverForm").                                                  // ← new
 		Where("asset_uuid = ?", c.Query("uuid")).
 		First(&asset).Error; err != nil {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("asset not found"))
@@ -95,42 +96,6 @@ func (a *App) AssetDetailsIndex(c fiber.Ctx) error {
 		"CurrentUser":       currentUser,
 		"CurrentAssigneeID": currentAssigneeID, // 0 if not applicable
 
-	})
-}
-
-// AssetsEdit renders the edit form pre-filled with the asset's current data.
-// Existing photo URLs are converted to full URLs so the edit template can
-// render previews.
-func (a *App) AssetsEdit(c fiber.Ctx) error {
-	id, err := strconv.ParseUint(c.Query("id"), 10, 64)
-	if err != nil {
-		return c.Redirect().To("/assets?error=" + url.QueryEscape("invalid asset id"))
-	}
-
-	var asset models.Asset
-	if err := a.DB.Preload("Category").Preload("AssetPhotos").First(&asset, id).Error; err != nil {
-		return c.Redirect().To("/assets?error=" + url.QueryEscape("asset not found"))
-	}
-
-	// Convert stored paths → full URLs so the template can render previews.
-	for i := range asset.AssetPhotos {
-		asset.AssetPhotos[i].PhotoUrl = utils.WithBaseURL(asset.AssetPhotos[i].PhotoUrl)
-	}
-
-	var cats []models.Category
-	a.DB.Order("id asc").Find(&cats)
-	var locations []models.Location
-	a.DB.Order("id asc").Find(&locations)
-
-	return c.Render("assets", fiber.Map{
-		"Title":       "Asset Master",
-		"CurrentPath": "/assets",
-		"Message":     c.Query("message"),
-		"Error":       c.Query("error"),
-		"Assets":      []models.Asset{},
-		"Categories":  cats,
-		"Locations":   locations,
-		"Asset":       asset,
 	})
 }
 
@@ -415,4 +380,76 @@ func (a *App) updateExistingAssetPhotos(c fiber.Ctx, asset *models.Asset) {
 			a.DB.Model(&photo).Updates(updates)
 		}
 	}
+}
+
+// AssetDetailsPublic renders a read-only asset details page for QR-code visitors.
+// GET /qr/assets/detail?uuid=...
+// Uses OptionalAuth: if the visitor is logged in, actions are still available.
+func (a *App) AssetDetailsPublic(c fiber.Ctx) error {
+	var asset models.Asset
+	var cats []models.Category
+	a.DB.Order("id asc").Find(&cats)
+	var locations []models.Location
+	a.DB.Order("id asc").Find(&locations)
+	if err := a.DB.
+		Preload("Category").
+		Preload("Location").
+		Preload("AssetPhotos").
+		Preload("LendingLogs").
+		Preload("LendingLogs.Assignee", func(db *gorm.DB) *gorm.DB { return db.Unscoped() }).
+		Preload("LendingLogs.HandoverForm").
+		Where("asset_uuid = ?", c.Query("uuid")).
+		First(&asset).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).SendString("asset not found")
+	}
+
+	for i := range asset.AssetPhotos {
+		asset.AssetPhotos[i].PhotoUrl = utils.WithBaseURL(asset.AssetPhotos[i].PhotoUrl)
+	}
+
+	var assignees []models.Assignee
+	a.DB.Order("id asc").Find(&assignees)
+
+	// Check whether the visitor is logged in (OptionalAuth sets this).
+	username, _ := c.Locals("username").(string)
+	isLoggedIn := username != ""
+
+	var currentUser *models.User
+	var currentAssigneeID uint
+	if isLoggedIn {
+		var u models.User
+		if err := a.DB.Where("username = ? AND active = ?", username, true).First(&u).Error; err == nil {
+			currentUser = &u
+			if u.AssigneeID != nil {
+				currentAssigneeID = *u.AssigneeID
+			}
+		}
+	}
+
+	return c.Render("asset_details_public", fiber.Map{
+		"Title":             asset.Name + " — Asset Details",
+		"Asset":             asset,
+		"Categories":        cats,
+		"Locations":         locations,
+		"Assignees":         assignees,
+		"IsLoggedIn":        isLoggedIn,
+		"CurrentUser":       currentUser,
+		"CurrentAssigneeID": currentAssigneeID,
+	})
+}
+
+// LocationDetailsPublic renders a read-only location details page for QR-code visitors.
+// GET /qr/locations/detail?uuid=...
+// Uses OptionalAuth: if the visitor is logged in, actions are still available.
+func (a *App) LocationDetailsPublic(c fiber.Ctx) error {
+	var location models.Location
+	if err := a.DB.Preload("Assets").Preload("Assets.Category").Preload("LocationPhotos").Where("location_uuid = ?", c.Query("uuid")).First(&location).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).SendString("location not found")
+	}
+	for i := range location.LocationPhotos {
+		location.LocationPhotos[i].PhotoUrl = utils.WithBaseURL(location.LocationPhotos[i].PhotoUrl)
+	}
+	username, _ := c.Locals("username").(string)
+	isLoggedIn := username != ""
+	return c.Render("location_details_public", fiber.Map{"Title": location.LocationName + " — Location Details", "Location": location, "IsLoggedIn": isLoggedIn})
 }
