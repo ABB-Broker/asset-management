@@ -78,7 +78,11 @@ func (a *App) LoginPost(c fiber.Ctx) error {
 
 	// Send OTP email (best-effort; fall back to dev bypass on failure).
 	if userEmail != "" {
-		_ = a.sendOTPEmail(userEmail, username, code)
+		if err := a.sendOTPEmail(userEmail, username, code); err != nil {
+			fmt.Printf("OTP email error: %v\n", err)
+		} else {
+			fmt.Println("OTP email sent successfully to", userEmail)
+		}
 	}
 
 	return c.Redirect().To("/login/2fa")
