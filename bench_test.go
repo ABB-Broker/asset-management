@@ -57,7 +57,7 @@ func BenchmarkCategoriesIndex(b *testing.B) {
 	const token = "bench-cat-token"
 	h.DB.Create(&models.Session{
 		Token:         token,
-		Username:      "admin",
+		UserNo:        1,
 		Authenticated: true,
 		ExpiresAt:     time.Now().Add(24 * time.Hour),
 	})
@@ -91,7 +91,7 @@ func BenchmarkCategoriesCreate(b *testing.B) {
 	const token = "bench-create-cat"
 	h.DB.Create(&models.Session{
 		Token:         token,
-		Username:      "admin",
+		UserNo:        1,
 		Authenticated: true,
 		ExpiresAt:     time.Now().Add(24 * time.Hour),
 	})
@@ -122,7 +122,7 @@ func BenchmarkAssetsIndex(b *testing.B) {
 	const token = "bench-assets-token"
 	h.DB.Create(&models.Session{
 		Token:         token,
-		Username:      "admin",
+		UserNo:        1,
 		Authenticated: true,
 		ExpiresAt:     time.Now().Add(24 * time.Hour),
 	})
@@ -133,7 +133,7 @@ func BenchmarkAssetsIndex(b *testing.B) {
 	for i := range 10 {
 		h.DB.Create(&models.Asset{
 			Name:         fmt.Sprintf("Asset %d", i),
-			CategoryID:   cat.ID,
+			CategoryNo:   cat.CategoryNo,
 			SerialNumber: fmt.Sprintf("SN-%d", i),
 			PurchaseDate: "2026-01-01",
 		})
@@ -161,7 +161,7 @@ func BenchmarkUsersIndex(b *testing.B) {
 	const token = "bench-users-token"
 	h.DB.Create(&models.Session{
 		Token:         token,
-		Username:      "admin",
+		UserNo:        1,
 		Authenticated: true,
 		ExpiresAt:     time.Now().Add(24 * time.Hour),
 	})
@@ -198,7 +198,7 @@ func BenchmarkUsersCreate(b *testing.B) {
 	const token = "bench-create-user"
 	h.DB.Create(&models.Session{
 		Token:         token,
-		Username:      "admin",
+		UserNo:        1,
 		Authenticated: true,
 		ExpiresAt:     time.Now().Add(24 * time.Hour),
 	})

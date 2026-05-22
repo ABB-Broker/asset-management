@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ABB-Broker/asset-management/internal/models"
@@ -19,7 +20,14 @@ func (a *App) AuthRequired(c fiber.Ctx) error {
 	if err != nil {
 		return c.Redirect().To("/login")
 	}
-	c.Locals("username", sess.Username)
+
+	userNo := sess.UserNo
+
+	var user models.User
+	if err := a.DB.Where("user_no = ?", userNo).First(&user).Error; err != nil {
+		fmt.Printf("Getting users error: %v\n", err)
+	}
+	c.Locals("username", user.Username)
 	return c.Next()
 }
 
@@ -28,11 +36,20 @@ func (a *App) AuthRequired(c fiber.Ctx) error {
 // Use this for pages that are publicly accessible but show extra actions when logged in.
 func (a *App) OptionalAuth(c fiber.Ctx) error {
 	token := c.Cookies("session_id")
+
 	if token != "" {
 		var sess models.Session
 		if err := a.DB.Where("token = ? AND authenticated = ? AND expires_at > ?", token, true, time.Now()).First(&sess).Error; err == nil {
-			c.Locals("username", sess.Username)
+			userNo := sess.UserNo
+
+			var user models.User
+			if err := a.DB.Where("user_no = ?", userNo).First(&user).Error; err != nil {
+				fmt.Printf("Getting users error: %v\n", err)
+			}
+
+			c.Locals("username", user.Username)
 		}
+
 	}
 	return c.Next()
 }

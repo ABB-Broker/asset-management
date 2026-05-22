@@ -1,4 +1,3 @@
-// Package models contains all GORM database model types.
 package models
 
 import (
@@ -11,23 +10,44 @@ import (
 	"gorm.io/gorm"
 )
 
-// ─── Location (was Room) ──────────────────────────────────────────────────────
-
-type LocationPhotos struct {
-	gorm.Model
-	LocationID uint
-	Name       string
-	PhotoUrl   string
-	Location   Location `gorm:"foreignKey:LocationID;references:ID;constraint:OnDelete:CASCADE"`
+type BaseModel struct {
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
+//
+// LOCATION
+//
+
 type Location struct {
-	gorm.Model
-	LocationUUID   string
-	LocationName   string `gorm:"not null"`
-	Description    string
-	Assets         []Asset          `gorm:"foreignKey:LocationID"`
-	LocationPhotos []LocationPhotos `gorm:"foreignKey:LocationID"`
+	LocationNo uint `gorm:"column:location_no;primaryKey;autoIncrement;type:int unsigned"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
+	LocationUUID string
+	LocationName string `gorm:"not null"`
+	Description  string
+
+	Assets         []Asset         `gorm:"foreignKey:LocationNo;"`
+	LocationPhotos []LocationPhoto `gorm:"foreignKey:LocationNo;"`
+}
+
+type LocationPhoto struct {
+	LocationPhotoNo uint `gorm:"column:location_photo_no;primaryKey;autoIncrement;type:int unsigned"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
+	LocationNo uint `gorm:"column:location_no;type:int unsigned;index;not null"`
+
+	Name     string
+	PhotoUrl string
+
+	Location *Location `gorm:"foreignKey:LocationNo;references:LocationNo;constraint:OnDelete:CASCADE"`
 }
 
 func (l *Location) BeforeCreate(tx *gorm.DB) error {
@@ -37,45 +57,69 @@ func (l *Location) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
-// ─── Category ─────────────────────────────────────────────────────────────────
+//
+// CATEGORY
+//
 
 type Category struct {
-	gorm.Model
+	CategoryNo uint `gorm:"column:category_no;primaryKey;autoIncrement;type:int unsigned"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
 	Name        string `gorm:"not null"`
 	Description string
-	Assets      []Asset `gorm:"foreignKey:CategoryID"`
+
+	Assets []Asset `gorm:"foreignKey:CategoryNo;"`
 }
 
-// ─── Asset ────────────────────────────────────────────────────────────────────
-
-// AssetType values: "fixed" | "movable"
-// Fixed assets: cannot be lent out (buildings, infrastructure, etc.)
-// Movable assets: can be lent out and tracked via LendingLog
-
-type AssetPhotos struct {
-	gorm.Model
-	AssetID  uint
-	Name     string
-	PhotoUrl string
-	Asset    Asset `gorm:"foreignKey:AssetID;references:ID;constraint:OnDelete:CASCADE"`
-}
+//
+// ASSET
+//
 
 type Asset struct {
-	gorm.Model
-	AssetUUID     string
-	Name          string
-	Description   string
-	AssetType     string `gorm:"not null;default:'fixed'"` // "fixed" | "movable"
-	CategoryID    uint
-	LocationID    *uint
+	AssetNo uint `gorm:"column:asset_no;primaryKey;autoIncrement;type:int unsigned"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
+	AssetUUID string
+
+	Name        string
+	Description string
+
+	AssetType string `gorm:"type:enum('fixed','movable');not null;default:'fixed'"`
+
+	CategoryNo uint  `gorm:"column:category_no;type:int unsigned;index;not null"`
+	LocationNo *uint `gorm:"column:location_no;type:int unsigned;index"`
+
 	SerialNumber  string
 	PurchaseDate  string
 	PurchasePrice uint
 
-	Category    Category      `gorm:"foreignKey:CategoryID;references:ID;constraint:OnDelete:CASCADE"`
-	Location    Location      `gorm:"foreignKey:LocationID;references:ID;constraint:OnDelete:CASCADE"`
-	AssetPhotos []AssetPhotos `gorm:"foreignKey:AssetID"`
-	LendingLogs []LendingLog  `gorm:"foreignKey:AssetID"`
+	Category *Category `gorm:"foreignKey:CategoryNo;references:CategoryNo;constraint:OnDelete:CASCADE"`
+	Location *Location `gorm:"foreignKey:LocationNo;references:LocationNo;constraint:OnDelete:SET NULL"`
+
+	AssetPhotos []AssetPhoto `gorm:"foreignKey:AssetNo;"`
+	LendingLogs []LendingLog `gorm:"foreignKey:AssetNo;"`
+	PICs        []PIC        `gorm:"foreignKey:AssetNo;"`
+}
+
+type AssetPhoto struct {
+	AssetPhotoNo uint `gorm:"column:asset_photo_no;primaryKey;autoIncrement;type:int unsigned"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
+	AssetNo uint `gorm:"column:asset_no;type:int unsigned;index;not null"`
+
+	Name     string
+	PhotoUrl string
+
+	Asset *Asset `gorm:"foreignKey:AssetNo;references:AssetNo;constraint:OnDelete:CASCADE"`
 }
 
 func (a *Asset) BeforeCreate(tx *gorm.DB) error {
@@ -85,84 +129,129 @@ func (a *Asset) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
-// ─── User ─────────────────────────────────────────────────────────────────────
+//
+// USER
+//
 
 type User struct {
-	gorm.Model
-	Username    string `gorm:"uniqueIndex;not null"`
-	Email       string `gorm:"uniqueIndex"`
-	Password    string // empty until user sets it via the invite link
+	UserNo uint `gorm:"column:user_no;primaryKey;autoIncrement;type:int unsigned"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
+	Username string `gorm:"uniqueIndex;not null"`
+	Email    string `gorm:"uniqueIndex"`
+
+	Password string
+
 	FullName    string
 	PhoneNumber string
 	Department  string
-	Position    string // Job title / position
-	EmployeeID  string `gorm:"uniqueIndex"`      // NIK / employee number
-	Role        string `gorm:"default:'viewer'"` // "admin" | "editor" | "viewer"
-	Active      bool   `gorm:"default:true"`
-	AssigneeID  *uint  // FK back to Assignee (set after Assignee row is created)
+	Position    string
+
+	EmployeeID string `gorm:"uniqueIndex"`
+
+	Role string `gorm:"type:enum('admin','editor','viewer');default:'viewer'"`
+
+	Active bool `gorm:"default:true"`
+
+	AssigneeNo *uint `gorm:"column:assignee_no;type:int unsigned;index"`
 }
 
-// ─── PasswordSetToken ─────────────────────────────────────────────────────────
-// Used for both the new-user invite link and the change-password flow.
-// Kind: "invite" | "reset"
+//
+// PASSWORD TOKEN
+//
 
 type PasswordSetToken struct {
-	gorm.Model
-	Token     string `gorm:"uniqueIndex;not null"`
-	UserID    uint   `gorm:"not null;index"`
-	Kind      string `gorm:"not null;default:'invite'"` // "invite" | "reset"
-	UsedAt    *time.Time
+	PasswordSetTokenNo uint `gorm:"column:password_set_token_no;primaryKey;autoIncrement;type:int unsigned"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
+	Token string `gorm:"uniqueIndex;not null"`
+
+	UserNo uint `gorm:"column:user_no;type:int unsigned;index;not null"`
+
+	Kind string `gorm:"type:enum('invite','reset');not null;default:'invite'"`
+
+	UsedAt *time.Time
+
 	ExpiresAt time.Time `gorm:"index"`
-	User      User      `gorm:"foreignKey:UserID"`
+
+	User *User `gorm:"foreignKey:UserNo;references:UserNo;constraint:OnDelete:CASCADE"`
 }
 
 func (p *PasswordSetToken) BeforeCreate(tx *gorm.DB) error {
 	if p.Token == "" {
 		p.Token = RandomToken()
 	}
+
 	if p.ExpiresAt.IsZero() {
 		p.ExpiresAt = time.Now().Add(24 * time.Hour)
 	}
+
 	return nil
 }
 
-// IsValid returns true when the token has not been used and has not expired.
 func (p *PasswordSetToken) IsValid() bool {
 	return p.UsedAt == nil && time.Now().Before(p.ExpiresAt)
 }
 
-// ─── EmailOTP ─────────────────────────────────────────────────────────────────
-// A short-lived 6-digit code e-mailed to the user during the 2FA step.
+//
+// EMAIL OTP
+//
 
 type EmailOTP struct {
-	gorm.Model
-	Code      string `gorm:"not null"`
-	Username  string `gorm:"not null;index"`
-	UsedAt    *time.Time
+	EmailOTPNo uint `gorm:"column:email_otp_no;primaryKey;autoIncrement;type:int unsigned"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
+	Code string `gorm:"not null"`
+
+	UserNo uint `gorm:"column:user_no;type:int unsigned;index;not null"`
+
+	UsedAt *time.Time
+
 	ExpiresAt time.Time `gorm:"index"`
+
+	User *User `gorm:"foreignKey:UserNo;references:UserNo;constraint:OnDelete:CASCADE"`
 }
 
-// ─── Assignee ─────────────────────────────────────────────────────────────────
-// Not a master table — represents anyone who can receive an asset.
-// Internal employees have UserID set; external ones do not.
+//
+// ASSIGNEE
+//
 
 type Assignee struct {
-	gorm.Model
+	AssigneeNo uint `gorm:"column:assignee_no;primaryKey;autoIncrement;type:int unsigned"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
 	AssigneeUUID string
-	FullName     string `gorm:"not null"`
-	Email        string `gorm:"uniqueIndex"`
-	PhoneNumber  string
-	// For internal employees:
-	UserID     *uint // nil for external assignees
+
+	FullName string `gorm:"not null"`
+
+	Email string `gorm:"uniqueIndex"`
+
+	PhoneNumber string
+
+	UserNo *uint `gorm:"column:user_no;type:int unsigned;index"`
+
 	Department string
 	Position   string
 	EmployeeID string
-	// For external assignees:
-	Company string // e.g. insurance company name
+
+	Company string
 	Notes   string
-	// Relations
-	User        *User        `gorm:"foreignKey:UserID"`
-	LendingLogs []LendingLog `gorm:"foreignKey:AssigneeID"`
+
+	User *User `gorm:"foreignKey:UserNo;references:UserNo;constraint:OnDelete:SET NULL"`
+
+	LendingLogs []LendingLog `gorm:"foreignKey:AssigneeNo;"`
 }
 
 func (a *Assignee) BeforeCreate(tx *gorm.DB) error {
@@ -172,85 +261,154 @@ func (a *Assignee) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
-// IsInternal returns true if this assignee is linked to an internal user.
 func (a *Assignee) IsInternal() bool {
-	return a.UserID != nil
+	return a.UserNo != nil
 }
 
-// ─── LendingLog ───────────────────────────────────────────────────────────────
-// Records each time a movable asset is lent to an assignee.
-// Status: "active" | "returned" | "pending_signature"
+//
+// LENDING LOG
+//
 
 type LendingLog struct {
-	gorm.Model
-	LendingUUID  string
-	AssetID      uint
-	AssigneeID   uint
-	LentAt       time.Time
-	ReturnedAt   *time.Time // nil while still lent out
-	Status       string     `gorm:"default:'pending_signature'"` // pending_signature / active / returned
-	Notes        string
-	Asset        Asset         `gorm:"foreignKey:AssetID;constraint:OnDelete:CASCADE"`
-	Assignee     Assignee      `gorm:"foreignKey:AssigneeID;constraint:OnDelete:CASCADE"`
-	HandoverForm *HandoverForm `gorm:"foreignKey:LendingLogID"`
+	LendingLogNo uint `gorm:"column:lending_log_no;primaryKey;autoIncrement;type:int unsigned"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
+	LendingUUID string
+
+	AssetNo uint `gorm:"column:asset_no;type:int unsigned;index;not null"`
+
+	AssigneeNo uint `gorm:"column:assignee_no;type:int unsigned;index;not null"`
+
+	LentAt time.Time
+
+	PlannedUseAt *time.Time
+	ReturnedAt   *time.Time
+
+	Status string `gorm:"type:enum('pending_signature','active','returned');default:'pending_signature'"`
+
+	Notes string
+
+	Asset *Asset `gorm:"foreignKey:AssetNo;references:AssetNo;constraint:OnDelete:CASCADE"`
+
+	Assignee *Assignee `gorm:"foreignKey:AssigneeNo;references:AssigneeNo;constraint:OnDelete:CASCADE"`
+
+	HandoverForm *HandoverForm `gorm:"foreignKey:LendingLogNo;references:LendingLogNo"`
 }
 
 func (l *LendingLog) BeforeCreate(tx *gorm.DB) error {
 	if l.LendingUUID == "" {
 		l.LendingUUID = utils.NewUUID()
 	}
+
 	if l.LentAt.IsZero() {
 		l.LentAt = time.Now()
 	}
+
 	return nil
 }
 
-// ─── HandoverForm ─────────────────────────────────────────────────────────────
-// Tracks the digital signature form and the published Handover Receipt
-// (Surat Serah Terima) for a lending event.
-// Status: "sent" | "signed" | "published"
+//
+// HANDOVER FORM
+//
 
 type HandoverForm struct {
-	gorm.Model
-	FormUUID      string
-	LendingLogID  uint
-	FormToken     string `gorm:"uniqueIndex"` // token embedded in the public form URL
-	SentAt        *time.Time
-	SignedAt      *time.Time
-	SignatureData string `gorm:"type:text"`      // base64 PNG of the drawn signature
-	Status        string `gorm:"default:'sent'"` // "sent" | "signed" | "published"
-	// Path to the generated PDF receipt on disk (set after publishing)
+	HandoverFormNo uint `gorm:"column:handover_form_no;primaryKey;autoIncrement;type:int unsigned"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
+	FormUUID string
+
+	LendingLogNo uint `gorm:"column:lending_log_no;type:int unsigned;uniqueIndex;not null"`
+
+	FormToken string `gorm:"uniqueIndex"`
+
+	SentAt   *time.Time
+	SignedAt *time.Time
+
+	SignatureData string `gorm:"type:longtext"`
+
+	Status string `gorm:"type:enum('sent','signed','published');default:'sent'"`
+
 	ReceiptPath string
-	LendingLog  LendingLog `gorm:"foreignKey:LendingLogID;constraint:OnDelete:CASCADE"`
+
+	LendingLog *LendingLog `gorm:"foreignKey:LendingLogNo;references:LendingLogNo;constraint:OnDelete:CASCADE"`
 }
 
 func (h *HandoverForm) BeforeCreate(tx *gorm.DB) error {
 	if h.FormUUID == "" {
 		h.FormUUID = utils.NewUUID()
 	}
+
 	if h.FormToken == "" {
 		h.FormToken = RandomToken()
 	}
+
 	return nil
 }
 
-// ─── Session ──────────────────────────────────────────────────────────────────
+//
+// PIC
+//
 
-type Session struct {
-	gorm.Model
-	Token         string    `gorm:"uniqueIndex;not null"`
-	Username      string    `gorm:"not null"`
-	Authenticated bool      `gorm:"column:authenticated;default:false"`
-	Pending2FA    bool      `gorm:"column:pending_2fa;default:true"`
-	ExpiresAt     time.Time `gorm:"column:expires_at;index"`
+type PIC struct {
+	PICNo uint `gorm:"column:pic_no;primaryKey;autoIncrement;type:int unsigned"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
+	AssetNo uint `gorm:"column:asset_no;type:int unsigned;index;not null"`
+
+	UserNo uint `gorm:"column:user_no;type:int unsigned;index;not null"`
+
+	Notes string
+
+	Asset *Asset `gorm:"foreignKey:AssetNo;references:AssetNo;constraint:OnDelete:CASCADE"`
+
+	User *User `gorm:"foreignKey:UserNo;references:UserNo;constraint:OnDelete:CASCADE"`
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+//
+// SESSION
+//
+
+type Session struct {
+	SessionNo uint `gorm:"column:session_no;primaryKey;autoIncrement;type:int unsigned"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
+	Token string `gorm:"uniqueIndex;not null"`
+
+	UserNo uint `gorm:"column:user_no;type:int unsigned;index;not null"`
+
+	Authenticated bool `gorm:"default:false"`
+
+	Pending2FA bool `gorm:"column:pending_2fa;default:true"`
+
+	ExpiresAt time.Time `gorm:"index"`
+
+	User *User `gorm:"foreignKey:UserNo;references:UserNo;constraint:OnDelete:CASCADE"`
+}
+
+//
+// HELPERS
+//
 
 func RandomToken() string {
 	buf := make([]byte, 32)
+
 	if _, err := rand.Read(buf); err != nil {
 		return strconv.FormatInt(time.Now().UnixNano(), 10)
 	}
-	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(buf)
+
+	return base32.StdEncoding.
+		WithPadding(base32.NoPadding).
+		EncodeToString(buf)
 }

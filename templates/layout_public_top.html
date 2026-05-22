@@ -1,0 +1,72 @@
+{{define "layout_public_top"}}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{.Title}} — Asset Management</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
+    />
+    <link rel="stylesheet" href="/css/layout_top.css" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/quill.css" />
+
+    <link rel="icon" type="image/x-icon" href="/favicon/favicon.png" />
+    <style>
+      body {
+        background: #f8fafc;
+        min-height: 100vh;
+      }
+      .public-header {
+        background: #1e293b;
+        color: #fff;
+        padding: 0.75rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .public-header img {
+        height: 32px;
+        width: 32px;
+      }
+      .public-header .brand {
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+      .public-header .login-link {
+        margin-left: auto;
+        color: #94a3b8;
+        font-size: 0.85rem;
+        text-decoration: none;
+      }
+      .public-header .login-link:hover {
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="public-header">
+      <img src="/favicon/favicon.png" alt="" />
+      <span class="brand">Asset Management</span>
+      {{if .IsLoggedIn}}
+      <a href="/assets" class="login-link"
+        ><i class="bi bi-grid me-1"></i>Dashboard</a
+      >
+      {{else}}
+      <a href="/login" class="login-link"
+        ><i class="bi bi-box-arrow-in-right me-1"></i>Log in</a
+      >
+      {{end}}
+    </header>
+    <main class="container-fluid p-4" style="max-width: 1200px; margin: 0 auto">
+      {{end}}
+

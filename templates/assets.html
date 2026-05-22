@@ -131,14 +131,14 @@
                 data-bs-toggle="modal"
                 data-bs-target="#assetModal"
                 onclick="openEditModal(this)"
-                data-id="{{.ID}}"
+                data-id="{{.AssetNo}}"
                 data-name="{{.Name}}"
                 data-description="{{.Description}}"
                 data-serial="{{.SerialNumber}}"
                 data-purchase-date="{{.PurchaseDate}}"
                 data-purchase-price="{{.PurchasePrice}}"
-                data-category-id="{{.Category.ID}}"
-                data-location-id="{{.Location.ID}}"
+                data-category-id="{{.Category.CategoryNo}}"
+                data-location-id="{{if .Location}}{{.Location.LocationNo}}{{else}}0{{end}}"
                 data-asset-type="{{.AssetType}}"
               >
                 <i class="bi bi-pencil"></i> Edit
@@ -146,7 +146,7 @@
               <button
                 class="btn btn-sm btn-outline-danger"
                 type="button"
-                onclick="openDeleteModal('{{.ID}}', '{{.Name}}')"
+                onclick="openDeleteModal('{{.AssetNo}}', '{{.Name}}')"
               >
                 <i class="bi bi-trash"></i>
               </button>
@@ -154,7 +154,7 @@
           </tr>
           {{else}}
           <tr id="emptyRow">
-            <td colspan="6" class="text-center text-muted py-5">
+            <td colspan="7" class="text-center text-muted py-5">
               <i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>
               <span class="small">No assets yet. Create one above.</span>
             </td>
@@ -233,7 +233,7 @@
           <div class="row g-3 mb-3">
             <div class="col-12">
               <label class="form-label small fw-semibold text-secondary"
-                >Description</label
+                >Specifications</label
               >
               <!-- Quill rich text editor -->
               <div class="ql-wrapper">
@@ -287,12 +287,12 @@
               <select
                 class="form-select"
                 id="assetCategoryId"
-                name="category_id"
+                name="category_no"
                 required
               >
                 <option value="">— Select —</option>
                 {{range .Categories}}
-                <option value="{{.ID}}">{{.Name}}</option>
+                <option value="{{.CategoryNo}}">{{.Name}}</option>
                 {{end}}
               </select>
             </div>
@@ -324,11 +324,11 @@
               <select
                 class="form-select"
                 id="assetLocationId"
-                name="location_id"
+                name="location_no"
               >
                 <option value="">— Select —</option>
                 {{range .Locations}}
-                <option value="{{.ID}}">{{.LocationName}}</option>
+                <option value="{{.LocationNo}}">{{.LocationName}}</option>
                 {{end}}
               </select>
             </div>
@@ -400,7 +400,20 @@
 <!-- All asset photos, keyed by asset ID, for edit mode -->
 <script id="assetPhotosData" type="application/json">
   {
-    {{range $i,$a := .Assets}}{{if $i}},{{end}}"{{$a.ID}}":[{{range $j,$p := $a.AssetPhotos}}{{if $j}},{{end}}{"id":{{$p.ID}},"name":{{$p.Name | js}},"url":{{$p.PhotoUrl | js}}}{{end}}]{{end}}
+    {{range $i,$a := .Assets}}
+      {{if $i}}
+        ,
+      {{end}}
+      "{{$a.AssetNo}}":
+      [
+        {{range $j,$p := $a.AssetPhotos}}
+          {{if $j}}
+            ,
+          {{end}}
+          {"id":{{$p.AssetPhotoNo}},"name":{{$p.Name | js}},"url":{{$p.PhotoUrl | js}}}
+        {{end}}
+      ]
+    {{end}}
   }
 </script>
 

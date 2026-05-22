@@ -285,9 +285,10 @@
               >
               {{else if eq .Role "editor"}}
               <span
-                class="badge rounded-pill bg-warning bg-opacity-15 text-warning fw-semibold px-2"
-                >Editor</span
+                class="badge rounded-pill bg-warning bg-opacity-10 text-warning fw-semibold px-2"
               >
+                Editor
+              </span>
               {{else}}
               <span
                 class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary fw-semibold px-2"
@@ -314,7 +315,7 @@
               <button
                 class="btn btn-sm btn-outline-primary me-1"
                 onclick="openEditUserModal(this)"
-                data-id="{{.ID}}"
+                data-id="{{.UserNo}}"
                 data-full-name="{{.FullName}}"
                 data-username="{{.Username}}"
                 data-email="{{.Email}}"
@@ -333,7 +334,7 @@
                 action="/users/resend-invite"
                 class="d-inline me-1"
               >
-                <input type="hidden" name="id" value="{{.ID}}" />
+                <input type="hidden" name="id" value="{{.UserNo}}" />
                 <button
                   class="btn btn-sm btn-outline-warning"
                   type="submit"
@@ -346,7 +347,7 @@
               <button
                 class="btn btn-sm btn-outline-danger"
                 type="button"
-                onclick="openDeleteUserModal('{{.ID}}', '{{.Username}}')"
+                onclick="openDeleteUserModal('{{.UserNo}}', '{{.Username}}')"
               >
                 <i class="bi bi-trash"></i> Delete
               </button>

@@ -21,6 +21,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"html/template"
 	"log"
 	"os"
@@ -46,6 +47,8 @@ import (
 )
 
 func main() {
+	migrateDown := flag.Bool("migrate-down", false, "drop all tables and exit")
+	flag.Parse()
 	cfg := config.Load()
 
 	utils.BaseURL = cfg.BaseURL
@@ -53,6 +56,11 @@ func main() {
 	hash, err := bcrypt.GenerateFromPassword([]byte(cfg.AdminPassword), bcrypt.DefaultCost)
 	if err != nil {
 		log.Fatalf("bcrypt: %v", err)
+	}
+
+	if *migrateDown {
+		database.RunDown(cfg)
+		return
 	}
 
 	db := database.Init(cfg)

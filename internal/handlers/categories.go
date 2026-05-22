@@ -13,7 +13,7 @@ import (
 // CategoriesIndex renders the Category Master list with an inline create form.
 func (a *App) CategoriesIndex(c fiber.Ctx) error {
 	var cats []models.Category
-	a.DB.Order("id asc").Find(&cats)
+	a.DB.Order("category_no asc").Find(&cats)
 	return c.Render("categories", fiber.Map{
 		"Title":       "Category Master",
 		"CurrentPath": "/categories",
@@ -46,7 +46,7 @@ func (a *App) CategoriesEdit(c fiber.Ctx) error {
 		return c.Redirect().To("/categories?error=" + url.QueryEscape("category not found"))
 	}
 	var cats []models.Category
-	a.DB.Order("id asc").Find(&cats)
+	a.DB.Order("category_no asc").Find(&cats)
 	return c.Render("categories", fiber.Map{
 		"Title":       "Category Master",
 		"CurrentPath": "/categories",

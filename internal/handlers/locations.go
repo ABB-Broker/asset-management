@@ -15,7 +15,7 @@ import (
 
 func (a *App) LocationsIndex(c fiber.Ctx) error {
 	var locations []models.Location
-	a.DB.Preload("LocationPhotos").Order("id asc").Find(&locations)
+	a.DB.Preload("LocationPhoto").Order("location_no asc").Find(&locations)
 
 	for i := range locations {
 		for j := range locations[i].LocationPhotos {
@@ -48,10 +48,24 @@ func (a *App) LocationDetailsIndex(c fiber.Ctx) error {
 		location.LocationPhotos[i].PhotoUrl = utils.WithBaseURL(location.LocationPhotos[i].PhotoUrl)
 	}
 
+	// Check whether the visitor is logged in (OptionalAuth sets this).
+	username, _ := c.Locals("username").(string)
+	isLoggedIn := username != ""
+
+	var currentUser *models.User
+	if isLoggedIn {
+		var u models.User
+		if err := a.DB.Where("username = ? AND active = ?", username, true).First(&u).Error; err == nil {
+			currentUser = &u
+		}
+	}
+
 	return c.Render("location_details", fiber.Map{
 		"Title":       location.LocationName,
 		"CurrentPath": "/locations",
 		"Location":    location,
+		"IsLoggedIn":  isLoggedIn,
+		"CurrentUser": currentUser,
 	})
 }
 
@@ -124,7 +138,7 @@ func (a *App) LocationsDelete(c fiber.Ctx) error {
 	}
 
 	var assets []models.Asset
-	a.DB.Preload("AssetPhotos").Where("location_id = ?", location.ID).Find(&assets)
+	a.DB.Preload("AssetPhotos").Where("location_no = ?", location.LocationNo).Find(&assets)
 
 	for _, asset := range assets {
 		for _, p := range asset.AssetPhotos {
@@ -160,8 +174,8 @@ func (a *App) saveNewLocationPhotos(c fiber.Ctx, location *models.Location) {
 		if i < len(names) && strings.TrimSpace(names[i]) != "" {
 			photoName = strings.TrimSpace(names[i])
 		}
-		a.DB.Create(&models.LocationPhotos{
-			LocationID: location.ID,
+		a.DB.Create(&models.LocationPhoto{
+			LocationNo: location.LocationNo,
 			Name:       photoName,
 			PhotoUrl:   relativePath,
 		})
@@ -178,11 +192,11 @@ func (a *App) deleteLocationPhotos(c fiber.Ctx, location *models.Location) {
 		if err != nil || photoID == 0 {
 			continue
 		}
-		var photo models.LocationPhotos
+		var photo models.LocationPhoto
 		if err := a.DB.First(&photo, photoID).Error; err != nil {
 			continue
 		}
-		if photo.LocationID != location.ID {
+		if photo.LocationNo != location.LocationNo {
 			continue
 		}
 		utils.DeleteFile(photo.PhotoUrl)
@@ -213,11 +227,11 @@ func (a *App) updateExistingLocationPhotos(c fiber.Ctx, location *models.Locatio
 		}
 	}
 	for photoID := range photoIDs {
-		var photo models.LocationPhotos
+		var photo models.LocationPhoto
 		if err := a.DB.First(&photo, photoID).Error; err != nil {
 			continue
 		}
-		if photo.LocationID != location.ID {
+		if photo.LocationNo != location.LocationNo {
 			continue
 		}
 		updates := map[string]any{}

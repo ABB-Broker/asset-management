@@ -20,11 +20,11 @@ import (
 // AssetsIndex renders the Asset Master list with an inline create/edit form.
 func (a *App) AssetsIndex(c fiber.Ctx) error {
 	var assets []models.Asset
-	a.DB.Preload("Category").Preload("Location").Preload("AssetPhotos").Order("id asc").Find(&assets)
+	a.DB.Preload("Category").Preload("Location").Preload("AssetPhotos").Order("asset_no asc").Find(&assets)
 	var cats []models.Category
-	a.DB.Order("id asc").Find(&cats)
+	a.DB.Order("category_no asc").Find(&cats)
 	var locations []models.Location
-	a.DB.Order("id asc").Find(&locations)
+	a.DB.Order("location_no asc").Find(&locations)
 
 	for i := range assets {
 		for j := range assets[i].AssetPhotos {
@@ -50,9 +50,9 @@ func (a *App) AssetsIndex(c fiber.Ctx) error {
 func (a *App) AssetDetailsIndex(c fiber.Ctx) error {
 	var asset models.Asset
 	var cats []models.Category
-	a.DB.Order("id asc").Find(&cats)
+	a.DB.Order("category_no asc").Find(&cats)
 	var locations []models.Location
-	a.DB.Order("id asc").Find(&locations)
+	a.DB.Order("location_no asc").Find(&locations)
 	if err := a.DB.
 		Preload("Category").
 		Preload("Location"). // ← was Room
@@ -60,6 +60,8 @@ func (a *App) AssetDetailsIndex(c fiber.Ctx) error {
 		Preload("LendingLogs").                                                               // ← new
 		Preload("LendingLogs.Assignee", func(db *gorm.DB) *gorm.DB { return db.Unscoped() }). // ← new
 		Preload("LendingLogs.HandoverForm").                                                  // ← new
+		Preload("PICs").
+		Preload("PICs.User").
 		Where("asset_uuid = ?", c.Query("uuid")).
 		First(&asset).Error; err != nil {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("asset not found"))
@@ -71,7 +73,7 @@ func (a *App) AssetDetailsIndex(c fiber.Ctx) error {
 	}
 
 	var assignees []models.Assignee
-	a.DB.Order("id asc").Find(&assignees)
+	a.DB.Order("assignee_no asc").Find(&assignees)
 
 	var currentUser *models.User
 	if username, ok := c.Locals("username").(string); ok && username != "" {
@@ -82,9 +84,12 @@ func (a *App) AssetDetailsIndex(c fiber.Ctx) error {
 	}
 
 	var currentAssigneeID uint
-	if currentUser != nil && currentUser.AssigneeID != nil {
-		currentAssigneeID = *currentUser.AssigneeID
+	if currentUser != nil && currentUser.AssigneeNo != nil {
+		currentAssigneeID = *currentUser.AssigneeNo
 	}
+
+	var users []models.User
+	a.DB.Where("active = ? AND deleted_at IS NULL", true).Order("user_no asc").Find(&users)
 
 	return c.Render("asset_details", fiber.Map{
 		"Title":             asset.Name,
@@ -93,6 +98,7 @@ func (a *App) AssetDetailsIndex(c fiber.Ctx) error {
 		"Categories":        cats,
 		"Locations":         locations,
 		"Assignees":         assignees,
+		"Users":             users,
 		"CurrentUser":       currentUser,
 		"CurrentAssigneeID": currentAssigneeID, // 0 if not applicable
 
@@ -148,8 +154,8 @@ func (a *App) AssetsUpdate(c fiber.Ctx) error {
 		"name":           updated.Name,
 		"description":    updated.Description,
 		"asset_type":     updated.AssetType,
-		"category_id":    updated.CategoryID,
-		"location_id":    updated.LocationID,
+		"category_no":    updated.CategoryNo,
+		"location_no":    updated.LocationNo,
 		"serial_number":  updated.SerialNumber,
 		"purchase_date":  updated.PurchaseDate,
 		"purchase_price": updated.PurchasePrice,
@@ -206,7 +212,7 @@ func (a *App) assetFromCtx(c fiber.Ctx) (models.Asset, error) {
 	purchasePrice := strings.TrimSpace(c.FormValue("purchase_price"))
 	description := strings.TrimSpace(c.FormValue("description"))
 
-	catIDInt, err := strconv.Atoi(c.FormValue("category_id"))
+	catIDInt, err := strconv.Atoi(c.FormValue("category_no"))
 	if err != nil || catIDInt <= 0 {
 		return models.Asset{}, fmt.Errorf("invalid category id")
 	}
@@ -219,7 +225,7 @@ func (a *App) assetFromCtx(c fiber.Ctx) (models.Asset, error) {
 
 	// Replace lines 254–261 with:
 	var locationID *uint
-	if raw := strings.TrimSpace(c.FormValue("location_id")); raw != "" {
+	if raw := strings.TrimSpace(c.FormValue("location_no")); raw != "" {
 		if n, err := strconv.Atoi(raw); err == nil && n > 0 {
 			u := uint(n)
 			locationID = &u
@@ -249,8 +255,8 @@ func (a *App) assetFromCtx(c fiber.Ctx) (models.Asset, error) {
 		Name:          name,
 		Description:   description,
 		AssetType:     assetType,
-		CategoryID:    categoryID,
-		LocationID:    locationID,
+		CategoryNo:    categoryID,
+		LocationNo:    locationID,
 		SerialNumber:  serial,
 		PurchaseDate:  purchaseDate,
 		PurchasePrice: uint(price64),
@@ -284,8 +290,8 @@ func (a *App) saveNewAssetPhotos(c fiber.Ctx, asset *models.Asset) {
 			photoName = strings.TrimSpace(names[i])
 		}
 
-		a.DB.Create(&models.AssetPhotos{
-			AssetID:  asset.ID,
+		a.DB.Create(&models.AssetPhoto{
+			AssetNo:  asset.AssetNo,
 			Name:     photoName,
 			PhotoUrl: relativePath,
 		})
@@ -306,11 +312,11 @@ func (a *App) deleteAssetPhotos(c fiber.Ctx, asset *models.Asset) {
 			continue
 		}
 
-		var photo models.AssetPhotos
+		var photo models.AssetPhoto
 		if err := a.DB.First(&photo, photoID).Error; err != nil {
 			continue
 		}
-		if photo.AssetID != asset.ID {
+		if photo.AssetNo != asset.AssetNo {
 			continue
 		}
 
@@ -348,11 +354,11 @@ func (a *App) updateExistingAssetPhotos(c fiber.Ctx, asset *models.Asset) {
 	}
 
 	for photoID := range photoIDs {
-		var photo models.AssetPhotos
+		var photo models.AssetPhoto
 		if err := a.DB.First(&photo, photoID).Error; err != nil {
 			continue
 		}
-		if photo.AssetID != asset.ID {
+		if photo.AssetNo != asset.AssetNo {
 			continue
 		}
 
@@ -388,9 +394,9 @@ func (a *App) updateExistingAssetPhotos(c fiber.Ctx, asset *models.Asset) {
 func (a *App) AssetDetailsPublic(c fiber.Ctx) error {
 	var asset models.Asset
 	var cats []models.Category
-	a.DB.Order("id asc").Find(&cats)
+	a.DB.Order("category_no asc").Find(&cats)
 	var locations []models.Location
-	a.DB.Order("id asc").Find(&locations)
+	a.DB.Order("location_no asc").Find(&locations)
 	if err := a.DB.
 		Preload("Category").
 		Preload("Location").
@@ -398,6 +404,8 @@ func (a *App) AssetDetailsPublic(c fiber.Ctx) error {
 		Preload("LendingLogs").
 		Preload("LendingLogs.Assignee", func(db *gorm.DB) *gorm.DB { return db.Unscoped() }).
 		Preload("LendingLogs.HandoverForm").
+		Preload("PICs").
+		Preload("PICs.User").
 		Where("asset_uuid = ?", c.Query("uuid")).
 		First(&asset).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).SendString("asset not found")
@@ -408,7 +416,7 @@ func (a *App) AssetDetailsPublic(c fiber.Ctx) error {
 	}
 
 	var assignees []models.Assignee
-	a.DB.Order("id asc").Find(&assignees)
+	a.DB.Order("assignee_no asc").Find(&assignees)
 
 	// Check whether the visitor is logged in (OptionalAuth sets this).
 	username, _ := c.Locals("username").(string)
@@ -420,8 +428,8 @@ func (a *App) AssetDetailsPublic(c fiber.Ctx) error {
 		var u models.User
 		if err := a.DB.Where("username = ? AND active = ?", username, true).First(&u).Error; err == nil {
 			currentUser = &u
-			if u.AssigneeID != nil {
-				currentAssigneeID = *u.AssigneeID
+			if u.AssigneeNo != nil {
+				currentAssigneeID = *u.AssigneeNo
 			}
 		}
 	}

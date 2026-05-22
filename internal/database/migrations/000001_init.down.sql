@@ -1,0 +1,14 @@
+ALTER TABLE users DROP FOREIGN KEY fk_users_assignee;
+DROP TABLE IF EXISTS email_otps;
+DROP TABLE IF EXISTS password_set_tokens;
+DROP TABLE IF EXISTS pics;
+DROP TABLE IF EXISTS asset_photos;
+DROP TABLE IF EXISTS location_photos;
+DROP TABLE IF EXISTS handover_forms;
+DROP TABLE IF EXISTS lending_logs;
+DROP TABLE IF EXISTS assets;
+DROP TABLE IF EXISTS assignees;
+DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS locations;

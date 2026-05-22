@@ -83,7 +83,7 @@
             <td class="text-center px-4">
               <button
                 class="btn btn-sm btn-outline-primary me-1"
-                onclick="openEditModal('{{.ID}}', '{{.Name | js}}', '{{.Description | js}}')"
+                onclick="openEditModal('{{.CategoryNo}}', '{{.Name | js}}', '{{.Description | js}}')"
                 data-bs-toggle="modal"
                 data-bs-target="#categoryModal"
               >
@@ -92,7 +92,7 @@
               <button
                 class="btn btn-sm btn-outline-danger"
                 type="button"
-                onclick="openDeleteCategoryModal('{{.ID}}', '{{.Name | js}}')"
+                onclick="openDeleteCategoryModal('{{.CategoryNo}}', '{{.Name | js}}')"
               >
                 <i class="bi bi-trash"></i> Delete
               </button>

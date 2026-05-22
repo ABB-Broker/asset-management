@@ -16,7 +16,7 @@ import (
 // UsersIndex renders the User Master list with an inline create form.
 func (a *App) UsersIndex(c fiber.Ctx) error {
 	var users []models.User
-	a.DB.Order("id asc").Find(&users)
+	a.DB.Order("user_no asc").Find(&users)
 	return c.Render("users", fiber.Map{
 		"Title":       "User Master",
 		"CurrentPath": "/users",
@@ -48,18 +48,18 @@ func (a *App) UsersCreate(c fiber.Ctx) error {
 		Department:  u.Department,
 		Position:    u.Position,
 		EmployeeID:  u.EmployeeID,
-		UserID:      &u.ID,
+		UserNo:      &u.UserNo,
 	}
 	if res := tx.Create(&assignee); res.Error != nil {
 		tx.Rollback()
 		return c.Redirect().To("/users?error=" + url.QueryEscape("failed to create assignee record"))
 	}
-	tx.Model(&u).Update("assignee_id", assignee.ID)
+	tx.Model(&u).Update("assignee_no", assignee.AssigneeNo)
 	tx.Commit()
 
 	// Generate invite token and send email (best-effort).
 	if u.Email != "" {
-		tok := models.PasswordSetToken{UserID: u.ID, Kind: "invite"}
+		tok := models.PasswordSetToken{UserNo: u.UserNo, Kind: "invite"}
 		if err := a.DB.Create(&tok).Error; err == nil {
 			link := fmt.Sprintf("%s/set-password?token=%s", a.Cfg.BaseURL, tok.Token)
 			_ = a.sendSetPasswordEmail(u.Email, u.FullName, link, "invite")
@@ -80,7 +80,7 @@ func (a *App) UsersEdit(c fiber.Ctx) error {
 		return c.Redirect().To("/users?error=" + url.QueryEscape("user not found"))
 	}
 	var users []models.User
-	a.DB.Order("id asc").Find(&users)
+	a.DB.Order("user_no asc").Find(&users)
 	return c.Render("users", fiber.Map{
 		"Title":       "User Master",
 		"CurrentPath": "/users",
@@ -119,8 +119,8 @@ func (a *App) UsersUpdate(c fiber.Ctx) error {
 		tx.Rollback()
 		return c.Redirect().To("/users?error=" + url.QueryEscape("username or email already in use"))
 	}
-	if existing.AssigneeID != nil {
-		tx.Model(&models.Assignee{}).Where("id = ?", *existing.AssigneeID).Updates(map[string]any{
+	if existing.AssigneeNo != nil {
+		tx.Model(&models.Assignee{}).Where("id = ?", *existing.AssigneeNo).Updates(map[string]any{
 			"full_name":    updated.FullName,
 			"email":        updated.Email,
 			"phone_number": updated.PhoneNumber,
@@ -144,8 +144,8 @@ func (a *App) UsersDelete(c fiber.Ctx) error {
 		return c.Redirect().To("/users?error=" + url.QueryEscape("user not found"))
 	}
 	tx := a.DB.Begin()
-	if u.AssigneeID != nil {
-		if err := tx.Delete(&models.Assignee{}, *u.AssigneeID).Error; err != nil {
+	if u.AssigneeNo != nil {
+		if err := tx.Delete(&models.Assignee{}, *u.AssigneeNo).Error; err != nil {
 			tx.Rollback()
 			return c.Redirect().To("/users?error=" + url.QueryEscape("failed to remove linked assignee"))
 		}
@@ -172,7 +172,7 @@ func (a *App) UsersResendInvite(c fiber.Ctx) error {
 	if u.Email == "" {
 		return c.Redirect().To("/users?error=" + url.QueryEscape("user has no email address"))
 	}
-	tok := models.PasswordSetToken{UserID: u.ID, Kind: "invite"}
+	tok := models.PasswordSetToken{UserNo: u.UserNo, Kind: "invite"}
 	if err := a.DB.Create(&tok).Error; err != nil {
 		return c.Redirect().To("/users?error=" + url.QueryEscape("failed to create invite token"))
 	}

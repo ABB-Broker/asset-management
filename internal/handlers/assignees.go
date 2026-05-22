@@ -13,7 +13,7 @@ import (
 // AssigneesIndex renders the Assignee list page.
 func (a *App) AssigneesIndex(c fiber.Ctx) error {
 	var assignees []models.Assignee
-	a.DB.Preload("User").Order("id asc").Find(&assignees)
+	a.DB.Preload("User").Order("user_no asc").Find(&assignees)
 
 	return c.Render("assignees", fiber.Map{
 		"Title":       "Assignees",
@@ -73,7 +73,7 @@ func (a *App) AssigneesUpdate(c fiber.Ctx) error {
 	}
 
 	// Protect internal assignees from being edited here (edit via User Master).
-	if existing.UserID != nil {
+	if existing.UserNo != nil {
 		return c.Redirect().To("/assignees?error=" + url.QueryEscape("internal assignees must be edited via User Master"))
 	}
 
@@ -105,7 +105,7 @@ func (a *App) AssigneesDelete(c fiber.Ctx) error {
 		return c.Redirect().To("/assignees?error=" + url.QueryEscape("assignee not found"))
 	}
 
-	if assignee.UserID != nil {
+	if assignee.UserNo != nil {
 		return c.Redirect().To("/assignees?error=" + url.QueryEscape("cannot delete internal assignee — delete their user account instead"))
 	}
 

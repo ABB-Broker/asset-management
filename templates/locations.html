@@ -97,7 +97,7 @@
               <button
                 class="btn btn-sm btn-outline-primary me-1"
                 onclick="openEditModal(this)"
-                data-id="{{.ID}}"
+                data-id="{{.LocationNo}}"
                 data-name="{{.LocationName}}"
                 data-description="{{.Description}}"
                 data-bs-toggle="modal"
@@ -108,7 +108,7 @@
               <button
                 class="btn btn-sm btn-outline-danger"
                 type="button"
-                onclick="openDeleteModal('{{.ID}}', '{{.LocationName}}')"
+                onclick="openDeleteModal('{{.LocationNo}}', '{{.LocationName}}')"
               >
                 <i class="bi bi-trash"></i>
               </button>
@@ -202,7 +202,7 @@
             <div class="d-flex align-items-center justify-content-between mb-3">
               <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-images text-primary"></i>
-                <span class="fw-semibold small">Photos &amp; Documents</span>
+                <span class="fw-semibold small">Location Photos</span>
               </div>
               <label
                 class="btn btn-sm btn-outline-primary"
@@ -230,7 +230,7 @@
                 </thead>
                 <tbody id="locationFileBody">
                   {{range .Location.LocationPhotos}}
-                  <tr data-existing-id="{{.ID}}">
+                  <tr data-existing-id="{{.No}}">
                     <td class="text-center align-middle">
                       <a href="{{.PhotoUrl}}" target="_blank">
                         <img
@@ -257,7 +257,7 @@
                     <td class="align-middle">
                       <input
                         class="form-control form-control-sm"
-                        name="existing_photo_name[{{.ID}}]"
+                        name="existing_photo_name[{{.No}}]"
                         value="{{.Name}}"
                       />
                     </td>
@@ -269,7 +269,7 @@
                         <i class="bi bi-arrow-repeat"></i>
                         <input
                           type="file"
-                          name="replace_photo[{{.ID}}]"
+                          name="replace_photo[{{.No}}]"
                           accept="image/*,application/pdf,.doc,.docx"
                           hidden
                           onchange="previewReplace(this)"
@@ -278,7 +278,7 @@
                       <button
                         type="button"
                         class="btn btn-sm btn-outline-danger"
-                        onclick="markDeleteExisting(this,'{{.ID}}')"
+                        onclick="markDeleteExisting(this,'{{.No}}')"
                       >
                         <i class="bi bi-trash"></i>
                       </button>
@@ -329,7 +329,7 @@
 
 <script id="locationPhotosData" type="application/json">
   {
-    {{range $i,$r := .Locations}}{{if $i}},{{end}}"{{$r.ID}}":[{{range $j,$p := $r.LocationPhotos}}{{if $j}},{{end}}{"id":{{$p.ID}},"name":{{$p.Name | js}},"url":{{$p.PhotoUrl | js}}}{{end}}]{{end}}
+    {{range $i,$r := .Locations}}{{if $i}},{{end}}"{{$r.LocationNo}}":[{{range $j,$p := $r.LocationPhotos}}{{if $j}},{{end}}{"id":{{$p.No}},"name":{{$p.Name | js}},"url":{{$p.PhotoUrl | js}}}{{end}}]{{end}}
   }
 </script>
 

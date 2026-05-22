@@ -43,18 +43,18 @@ func newTestApp(t testing.TB) (*handlers.App, *fiber.App) {
 		t.Fatalf("open in-memory db: %v", err)
 	}
 	if err := db.AutoMigrate(
-		&models.LocationPhotos{},
-		&models.Location{},
-		&models.Category{},
-		&models.AssetPhotos{},
-		&models.Asset{},
-		&models.User{},
-		&models.Assignee{},
-		&models.LendingLog{},
-		&models.HandoverForm{},
-		&models.Session{},
-		&models.PasswordSetToken{},
-		&models.EmailOTP{},
+	// &models.LocationPhotos{},
+	// &models.Location{},
+	// &models.Category{},
+	// &models.AssetPhotos{},
+	// &models.Asset{},
+	// &models.User{},
+	// &models.Assignee{},
+	// &models.LendingLog{},
+	// &models.HandoverForm{},
+	// &models.Session{},
+	// &models.PasswordSetToken{},
+	// &models.EmailOTP{},
 	); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
@@ -84,7 +84,7 @@ func seedSession(t testing.TB, h *handlers.App) *http.Cookie {
 	token := fmt.Sprintf("test-token-%d", time.Now().UnixNano())
 	h.DB.Create(&models.Session{
 		Token:         token,
-		Username:      "admin",
+		UserNo:        1,
 		Authenticated: true,
 		ExpiresAt:     time.Now().Add(sessionTTL),
 	})
@@ -117,8 +117,8 @@ func seedAsset(t testing.TB, h *handlers.App, name, assetType string, catID uint
 	asset := models.Asset{
 		Name:          name,
 		AssetType:     assetType,
-		CategoryID:    catID,
-		LocationID:    locID,
+		CategoryNo:    catID,
+		LocationNo:    locID,
 		SerialNumber:  "SN-" + name,
 		PurchaseDate:  "2026-01-01",
 		PurchasePrice: 1000000,
@@ -143,8 +143,8 @@ func seedAssignee(t testing.TB, h *handlers.App, name, email string) models.Assi
 func seedLendingLog(t testing.TB, h *handlers.App, assetID, assigneeID uint) (models.LendingLog, models.HandoverForm) {
 	t.Helper()
 	log := models.LendingLog{
-		AssetID:    assetID,
-		AssigneeID: assigneeID,
+		AssetNo:    assetID,
+		AssigneeNo: assigneeID,
 		LentAt:     time.Now(),
 		Status:     "pending_signature",
 	}
@@ -153,7 +153,7 @@ func seedLendingLog(t testing.TB, h *handlers.App, assetID, assigneeID uint) (mo
 	}
 	now := time.Now()
 	form := models.HandoverForm{
-		LendingLogID: log.ID,
+		LendingLogNo: log.LendingLogNo,
 		SentAt:       &now,
 		Status:       "sent",
 	}
@@ -234,7 +234,7 @@ func TestLogin2FAFlow(t *testing.T) {
 	// Step 2: POST /login/2fa with valid TOTP code → redirect to /categories.
 	otpCode := "123456"
 	h.DB.Create(&models.EmailOTP{
-		Username:  "admin",
+		UserNo:    1,
 		Code:      otpCode,
 		ExpiresAt: time.Now().Add(5 * time.Minute),
 	})
@@ -245,7 +245,7 @@ func TestLogin2FAFlow(t *testing.T) {
 	// Verify the session is fully authenticated in the database.
 	var sess models.Session
 	h.DB.Where("token = ? AND authenticated = ?", sessionCookie.Value, true).First(&sess)
-	if sess.ID == 0 {
+	if sess.SessionNo == 0 {
 		t.Fatal("session was not marked as authenticated in DB after successful 2FA")
 	}
 }
@@ -352,7 +352,7 @@ func TestLogout(t *testing.T) {
 	// Session should be gone from DB.
 	var sess models.Session
 	h.DB.Where("token = ?", cookie.Value).First(&sess)
-	if sess.ID != 0 {
+	if sess.SessionNo != 0 {
 		t.Fatal("session still exists in DB after logout")
 	}
 }
@@ -376,22 +376,22 @@ func TestCategoryCRUD(t *testing.T) {
 
 	// Update
 	resp2 := postForm(t, fApp, "/categories/update", url.Values{
-		"id":          {strconv.FormatUint(uint64(cat.ID), 10)},
+		"id":          {strconv.FormatUint(uint64(cat.CategoryNo), 10)},
 		"name":        {"IT Updated"},
 		"description": {"Updated desc"},
 	}, cookie)
 	assertRedirect(t, resp2)
-	h.DB.First(&cat, cat.ID)
+	h.DB.First(&cat, cat.CategoryNo)
 	if cat.Name != "IT Updated" {
 		t.Fatalf("category name not updated: %q", cat.Name)
 	}
 
 	// Delete
 	resp3 := postForm(t, fApp, "/categories/delete",
-		url.Values{"id": {strconv.FormatUint(uint64(cat.ID), 10)}}, cookie)
+		url.Values{"id": {strconv.FormatUint(uint64(cat.CategoryNo), 10)}}, cookie)
 	assertRedirect(t, resp3)
 	var count int64
-	h.DB.Model(&models.Category{}).Where("id = ?", cat.ID).Count(&count)
+	h.DB.Model(&models.Category{}).Where("category_no = ?", cat.CategoryNo).Count(&count)
 	if count != 0 {
 		t.Fatal("category still present after delete")
 	}
@@ -442,22 +442,22 @@ func TestLocationCRUD(t *testing.T) {
 
 	// Update
 	resp2 := postForm(t, fApp, "/locations/update", url.Values{
-		"id":          {strconv.FormatUint(uint64(location.ID), 10)},
+		"id":          {strconv.FormatUint(uint64(location.LocationNo), 10)},
 		"name":        {"Data Center"},
 		"description": {"Primary DC"},
 	}, cookie)
 	assertRedirect(t, resp2)
-	h.DB.First(&location, location.ID)
+	h.DB.First(&location, location.LocationNo)
 	if location.LocationName != "Data Center" {
 		t.Fatalf("location name not updated: %q", location.LocationName)
 	}
 
 	// Delete
 	resp3 := postForm(t, fApp, "/locations/delete",
-		url.Values{"id": {strconv.FormatUint(uint64(location.ID), 10)}}, cookie)
+		url.Values{"id": {strconv.FormatUint(uint64(location.LocationNo), 10)}}, cookie)
 	assertRedirect(t, resp3)
 	var count int64
-	h.DB.Model(&models.Location{}).Where("id = ?", location.ID).Count(&count)
+	h.DB.Model(&models.Location{}).Where("location_no = ?", location.LocationNo).Count(&count)
 	if count != 0 {
 		t.Fatal("location still present after delete")
 	}
@@ -484,8 +484,8 @@ func TestAssetCRUD(t *testing.T) {
 	cat := seedCategory(t, h, "Electronics")
 	loc := seedLocation(t, h, "Warehouse")
 
-	catID := strconv.FormatUint(uint64(cat.ID), 10)
-	locID := strconv.FormatUint(uint64(loc.ID), 10)
+	catID := strconv.FormatUint(uint64(cat.CategoryNo), 10)
+	locID := strconv.FormatUint(uint64(loc.LocationNo), 10)
 
 	// Create fixed asset
 	resp := postForm(t, fApp, "/assets/create", url.Values{
@@ -493,15 +493,15 @@ func TestAssetCRUD(t *testing.T) {
 		"serial_number":  {"SN-PC-001"},
 		"purchase_date":  {"2026-03-01"},
 		"purchase_price": {"8000000"},
-		"category_id":    {catID},
+		"category_no":    {catID},
 		"asset_type":     {"fixed"},
-		"location_id":    {locID},
+		"location_no":    {locID},
 	}, cookie)
 	assertRedirect(t, resp)
 
 	var asset models.Asset
 	h.DB.Preload("Category").First(&asset)
-	if asset.Name != "Desktop PC" || asset.CategoryID != cat.ID {
+	if asset.Name != "Desktop PC" || asset.CategoryNo != cat.CategoryNo {
 		t.Fatalf("asset not persisted: %+v", asset)
 	}
 	if asset.AssetUUID == "" {
@@ -513,17 +513,17 @@ func TestAssetCRUD(t *testing.T) {
 
 	// Update
 	resp2 := postForm(t, fApp, "/assets/update", url.Values{
-		"id":             {strconv.FormatUint(uint64(asset.ID), 10)},
+		"id":             {strconv.FormatUint(uint64(asset.AssetNo), 10)},
 		"name":           {"Desktop PC v2"},
 		"serial_number":  {"SN-PC-002"},
 		"purchase_date":  {"2026-04-01"},
 		"purchase_price": {"9000000"},
-		"category_id":    {catID},
+		"category_no":    {catID},
 		"asset_type":     {"movable"},
-		"location_id":    {locID},
+		"location_no":    {locID},
 	}, cookie)
 	assertRedirect(t, resp2)
-	h.DB.First(&asset, asset.ID)
+	h.DB.First(&asset, asset.AssetNo)
 	if asset.Name != "Desktop PC v2" {
 		t.Fatalf("asset name not updated: %q", asset.Name)
 	}
@@ -533,10 +533,10 @@ func TestAssetCRUD(t *testing.T) {
 
 	// Delete
 	resp3 := postForm(t, fApp, "/assets/delete",
-		url.Values{"id": {strconv.FormatUint(uint64(asset.ID), 10)}}, cookie)
+		url.Values{"id": {strconv.FormatUint(uint64(asset.AssetNo), 10)}}, cookie)
 	assertRedirect(t, resp3)
 	var count int64
-	h.DB.Model(&models.Asset{}).Where("id = ?", asset.ID).Count(&count)
+	h.DB.Model(&models.Asset{}).Where("asset_no = ?", asset.AssetNo).Count(&count)
 	if count != 0 {
 		t.Fatal("asset still present after delete")
 	}
@@ -572,7 +572,7 @@ func TestAssigneeCRUD(t *testing.T) {
 
 	// Update
 	resp2 := postForm(t, fApp, "/assignees/update", url.Values{
-		"id":           {strconv.FormatUint(uint64(assignee.ID), 10)},
+		"id":           {strconv.FormatUint(uint64(assignee.AssigneeNo), 10)},
 		"full_name":    {"John Doe Jr."},
 		"email":        {"john@example.com"},
 		"phone_number": {"08111222444"},
@@ -580,17 +580,17 @@ func TestAssigneeCRUD(t *testing.T) {
 		"notes":        {""},
 	}, cookie)
 	assertRedirect(t, resp2)
-	h.DB.First(&assignee, assignee.ID)
+	h.DB.First(&assignee, assignee.AssigneeNo)
 	if assignee.FullName != "John Doe Jr." {
 		t.Fatalf("assignee name not updated: %q", assignee.FullName)
 	}
 
 	// Delete
 	resp3 := postForm(t, fApp, "/assignees/delete",
-		url.Values{"id": {strconv.FormatUint(uint64(assignee.ID), 10)}}, cookie)
+		url.Values{"id": {strconv.FormatUint(uint64(assignee.AssigneeNo), 10)}}, cookie)
 	assertRedirect(t, resp3)
 	var count int64
-	h.DB.Model(&models.Assignee{}).Where("id = ?", assignee.ID).Count(&count)
+	h.DB.Model(&models.Assignee{}).Where("assignee_no = ?", assignee.AssigneeNo).Count(&count)
 	if count != 0 {
 		t.Fatal("assignee still present after delete")
 	}
@@ -618,19 +618,19 @@ func TestLendAsset(t *testing.T) {
 
 	cat := seedCategory(t, h, "Devices")
 	locID := uint(1)
-	asset := seedAsset(t, h, "Laptop Pro", "movable", cat.ID, &locID)
+	asset := seedAsset(t, h, "Laptop Pro", "movable", cat.CategoryNo, &locID)
 	assignee := seedAssignee(t, h, "Jane Smith", "jane@example.com")
 
 	resp := postForm(t, fApp, "/lending/lend", url.Values{
-		"asset_id":    {strconv.FormatUint(uint64(asset.ID), 10)},
-		"assignee_id": {strconv.FormatUint(uint64(assignee.ID), 10)},
+		"asset_no":    {strconv.FormatUint(uint64(asset.AssetNo), 10)},
+		"assignee_no": {strconv.FormatUint(uint64(assignee.AssigneeNo), 10)},
 		"notes":       {"Handle with care"},
 	}, cookie)
 	assertRedirect(t, resp)
 
 	// LendingLog + HandoverForm should be created.
 	var logCount int64
-	h.DB.Model(&models.LendingLog{}).Where("asset_id = ? AND assignee_id = ?", asset.ID, assignee.ID).Count(&logCount)
+	h.DB.Model(&models.LendingLog{}).Where("asset_no = ? AND assignee_no = ?", asset.AssetNo, assignee.AssigneeNo).Count(&logCount)
 	if logCount != 1 {
 		t.Fatalf("expected 1 lending log, got %d", logCount)
 	}
@@ -647,12 +647,12 @@ func TestLendFixedAssetRejected(t *testing.T) {
 
 	cat := seedCategory(t, h, "Infrastructure")
 	locID := uint(1)
-	asset := seedAsset(t, h, "Server Rack", "fixed", cat.ID, &locID)
+	asset := seedAsset(t, h, "Server Rack", "fixed", cat.CategoryNo, &locID)
 	assignee := seedAssignee(t, h, "Bob", "bob@example.com")
 
 	resp := postForm(t, fApp, "/lending/lend", url.Values{
-		"asset_id":    {strconv.FormatUint(uint64(asset.ID), 10)},
-		"assignee_id": {strconv.FormatUint(uint64(assignee.ID), 10)},
+		"asset_no":    {strconv.FormatUint(uint64(asset.AssetNo), 10)},
+		"assignee_no": {strconv.FormatUint(uint64(assignee.AssigneeNo), 10)},
 	}, cookie)
 	assertRedirect(t, resp)
 
@@ -675,20 +675,20 @@ func TestReturnAssetWithCustomDate(t *testing.T) {
 
 	cat := seedCategory(t, h, "Devices")
 	locID := uint(1)
-	asset := seedAsset(t, h, "Tablet", "movable", cat.ID, &locID)
+	asset := seedAsset(t, h, "Tablet", "movable", cat.CategoryNo, &locID)
 	assignee := seedAssignee(t, h, "Alice", "alice@example.com")
-	llog, _ := seedLendingLog(t, h, asset.ID, assignee.ID)
+	llog, _ := seedLendingLog(t, h, asset.AssetNo, assignee.AssigneeNo)
 
 	returnDate := "2026-05-15"
 	resp := postForm(t, fApp, "/lending/return", url.Values{
-		"lending_id":  {strconv.FormatUint(uint64(llog.ID), 10)},
+		"lending_no":  {strconv.FormatUint(uint64(llog.LendingLogNo), 10)},
 		"returned_at": {returnDate},
 	}, cookie)
 	assertRedirect(t, resp)
 
 	// Verify DB state.
 	var updated models.LendingLog
-	h.DB.First(&updated, llog.ID)
+	h.DB.First(&updated, llog.LendingLogNo)
 	if updated.Status != "returned" {
 		t.Fatalf("expected status 'returned', got %q", updated.Status)
 	}
@@ -706,19 +706,19 @@ func TestReturnAssetDefaultsToToday(t *testing.T) {
 
 	cat := seedCategory(t, h, "Devices")
 	locID := uint(1)
-	asset := seedAsset(t, h, "Keyboard", "movable", cat.ID, &locID)
+	asset := seedAsset(t, h, "Keyboard", "movable", cat.CategoryNo, &locID)
 	assignee := seedAssignee(t, h, "Charlie", "charlie@example.com")
-	llog, _ := seedLendingLog(t, h, asset.ID, assignee.ID)
+	llog, _ := seedLendingLog(t, h, asset.AssetNo, assignee.AssigneeNo)
 
 	// POST without returned_at → should use today.
 	before := time.Now()
 	resp := postForm(t, fApp, "/lending/return", url.Values{
-		"lending_id": {strconv.FormatUint(uint64(llog.ID), 10)},
+		"lending_no": {strconv.FormatUint(uint64(llog.LendingLogNo), 10)},
 	}, cookie)
 	assertRedirect(t, resp)
 
 	var updated models.LendingLog
-	h.DB.First(&updated, llog.ID)
+	h.DB.First(&updated, llog.LendingLogNo)
 	if updated.Status != "returned" {
 		t.Fatalf("expected status 'returned', got %q", updated.Status)
 	}
@@ -736,8 +736,8 @@ func TestReturnAssetInvalidID(t *testing.T) {
 	cookie := seedSession(t, h)
 
 	cases := []url.Values{
-		{"lending_id": {"0"}},
-		{"lending_id": {"abc"}},
+		{"lending_no": {"0"}},
+		{"lending_no": {"abc"}},
 		{},
 	}
 	for _, v := range cases {
@@ -756,9 +756,9 @@ func TestHandoverSignGetValidToken(t *testing.T) {
 
 	cat := seedCategory(t, h, "Devices")
 	locID := uint(1)
-	asset := seedAsset(t, h, "Monitor", "movable", cat.ID, &locID)
+	asset := seedAsset(t, h, "Monitor", "movable", cat.CategoryNo, &locID)
 	assignee := seedAssignee(t, h, "Dave", "dave@example.com")
-	_, form := seedLendingLog(t, h, asset.ID, assignee.ID)
+	_, form := seedLendingLog(t, h, asset.AssetNo, assignee.AssigneeNo)
 
 	resp := getRequest(t, fApp, "/handover/sign?token="+form.FormToken, nil)
 	// The public sign page renders without auth.
@@ -782,9 +782,9 @@ func TestHandoverSignGetAlreadySigned(t *testing.T) {
 
 	cat := seedCategory(t, h, "Devices")
 	locID := uint(1)
-	asset := seedAsset(t, h, "Webcam", "movable", cat.ID, &locID)
+	asset := seedAsset(t, h, "Webcam", "movable", cat.CategoryNo, &locID)
 	assignee := seedAssignee(t, h, "Eve", "eve@example.com")
-	_, form := seedLendingLog(t, h, asset.ID, assignee.ID)
+	_, form := seedLendingLog(t, h, asset.AssetNo, assignee.AssigneeNo)
 
 	// Mark as published (already signed).
 	h.DB.Model(&form).Update("status", "published")
@@ -803,9 +803,9 @@ func TestHandoverSignPostMissingSignature(t *testing.T) {
 
 	cat := seedCategory(t, h, "Devices")
 	locID := uint(1)
-	asset := seedAsset(t, h, "Speaker", "movable", cat.ID, &locID)
+	asset := seedAsset(t, h, "Speaker", "movable", cat.CategoryNo, &locID)
 	assignee := seedAssignee(t, h, "Frank", "frank@example.com")
-	_, form := seedLendingLog(t, h, asset.ID, assignee.ID)
+	_, form := seedLendingLog(t, h, asset.AssetNo, assignee.AssigneeNo)
 
 	resp := postForm(t, fApp, "/handover/sign", url.Values{
 		"token":          {form.FormToken},
@@ -823,9 +823,9 @@ func TestHandoverSignPostSuccess(t *testing.T) {
 
 	cat := seedCategory(t, h, "Devices")
 	locID := uint(1)
-	asset := seedAsset(t, h, "Headphones", "movable", cat.ID, &locID)
+	asset := seedAsset(t, h, "Headphones", "movable", cat.CategoryNo, &locID)
 	assignee := seedAssignee(t, h, "Grace", "grace@example.com")
-	llog, form := seedLendingLog(t, h, asset.ID, assignee.ID)
+	llog, form := seedLendingLog(t, h, asset.AssetNo, assignee.AssigneeNo)
 
 	resp := postForm(t, fApp, "/handover/sign", url.Values{
 		"token":          {form.FormToken},
@@ -836,7 +836,7 @@ func TestHandoverSignPostSuccess(t *testing.T) {
 
 	// Verify DB updates.
 	var updatedForm models.HandoverForm
-	h.DB.First(&updatedForm, form.ID)
+	h.DB.First(&updatedForm, form.HandoverFormNo)
 	if updatedForm.SignatureData != minimalPNG {
 		t.Fatal("signature data not saved to DB")
 	}
@@ -850,7 +850,7 @@ func TestHandoverSignPostSuccess(t *testing.T) {
 
 	// LendingLog status should be updated to "active".
 	var updatedLog models.LendingLog
-	h.DB.First(&updatedLog, llog.ID)
+	h.DB.First(&updatedLog, llog.LendingLogNo)
 	if updatedLog.Status != "active" {
 		t.Fatalf("expected lending log status 'active', got %q", updatedLog.Status)
 	}
@@ -861,9 +861,9 @@ func TestHandoverSignPostAlreadyPublished(t *testing.T) {
 
 	cat := seedCategory(t, h, "Devices")
 	locID := uint(1)
-	asset := seedAsset(t, h, "Charger", "movable", cat.ID, &locID)
+	asset := seedAsset(t, h, "Charger", "movable", cat.CategoryNo, &locID)
 	assignee := seedAssignee(t, h, "Hank", "hank@example.com")
-	_, form := seedLendingLog(t, h, asset.ID, assignee.ID)
+	_, form := seedLendingLog(t, h, asset.AssetNo, assignee.AssigneeNo)
 
 	h.DB.Model(&form).Update("status", "published")
 
@@ -891,9 +891,9 @@ func TestHandoverReceiptDownloadNoReceiptYet(t *testing.T) {
 
 	cat := seedCategory(t, h, "Devices")
 	locID := uint(1)
-	asset := seedAsset(t, h, "Mouse", "movable", cat.ID, &locID)
+	asset := seedAsset(t, h, "Mouse", "movable", cat.CategoryNo, &locID)
 	assignee := seedAssignee(t, h, "Ivy", "ivy@example.com")
-	_, form := seedLendingLog(t, h, asset.ID, assignee.ID)
+	_, form := seedLendingLog(t, h, asset.AssetNo, assignee.AssigneeNo)
 	// Form exists but has no receipt_path.
 
 	resp := getRequest(t, fApp, "/handover/receipt?form_uuid="+form.FormUUID, cookie)
@@ -1014,8 +1014,8 @@ func TestForgotPasswordPostValidUser(t *testing.T) {
 
 	// A PasswordSetToken of kind "reset" should exist in DB.
 	var tok models.PasswordSetToken
-	h.DB.Where("user_id IN (SELECT id FROM users WHERE username = ?) AND kind = ?", "resetme", "reset").First(&tok)
-	if tok.ID == 0 {
+	h.DB.Where("user_no IN (SELECT user_no FROM users WHERE username = ?) AND kind = ?", "resetme", "reset").First(&tok)
+	if tok.PasswordSetTokenNo == 0 {
 		t.Fatal("no reset token created in DB")
 	}
 	if tok.Token == "" {
@@ -1272,7 +1272,7 @@ func TestChangePasswordPostWrongCurrentPassword(t *testing.T) {
 
 	// Password must be unchanged in DB.
 	var unchanged models.User
-	h.DB.First(&unchanged, u.ID)
+	h.DB.First(&unchanged, u.UserNo)
 	if bcrypt.CompareHashAndPassword([]byte(unchanged.Password), []byte("correctpass")) != nil {
 		t.Fatal("password should not have changed after failed attempt")
 	}

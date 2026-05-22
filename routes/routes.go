@@ -36,6 +36,7 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 	fApp.Get("/login/2fa", h.Login2FAGet)
 	fApp.Post("/login/2fa", h.Login2FAPost)
 	fApp.Get("/logout", h.Logout)
+	// fApp.Post("/admin/create", h.UsersCreate)
 
 	// Change password
 	fApp.Get("/change-password", h.ChangePasswordGet)
@@ -120,4 +121,10 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 	auth.Post("/lending/lend", h.LendAsset)
 	auth.Post("/lending/return", h.ReturnAsset)
 	auth.Get("/handover/receipt", h.HandoverReceiptDownload)
+
+	// PIC (Person In Charge)
+	auth.Get("/pics", h.PICSIndex)
+	auth.Post("/pics/create", h.PICSCreate)
+	auth.Post("/pics/update", h.PICSUpdate)
+	auth.Post("/pics/delete", h.PICSDelete)
 }

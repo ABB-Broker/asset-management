@@ -31,15 +31,17 @@ func (a *App) LoginPost(c fiber.Ctx) error {
 	authenticated := false
 	var userEmail string
 
-	// Check built-in admin account.
-	if username == a.Cfg.AdminUsername && bcrypt.CompareHashAndPassword(a.AdminHash, []byte(password)) == nil {
-		authenticated = true
-		// Admin has no user record — use a configured or empty email for OTP.
-		// If you want admin 2FA via email, set ADMIN_EMAIL in config.
-	}
+	/*
+		// Check built-in admin account.
+		if username == a.Cfg.AdminUsername && bcrypt.CompareHashAndPassword(a.AdminHash, []byte(password)) == nil {
+			authenticated = true
+			// Admin has no user record — use a configured or empty email for OTP.
+			// If you want admin 2FA via email, set ADMIN_EMAIL in config.
+		}
+	*/
 
+	var u models.User
 	if !authenticated {
-		var u models.User
 		if err := a.DB.Where("username = ? AND active = ?", username, true).First(&u).Error; err == nil {
 			if u.Password != "" && bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)) == nil {
 				authenticated = true
@@ -58,7 +60,14 @@ func (a *App) LoginPost(c fiber.Ctx) error {
 	// Create pending session.
 	token := models.RandomToken()
 	expiry := time.Now().Add(sessionTTL)
-	a.DB.Create(&models.Session{Token: token, Username: username, Pending2FA: true, ExpiresAt: expiry})
+	result := a.DB.Create(&models.Session{
+		Token:      token,
+		UserNo:     u.UserNo,
+		Pending2FA: true,
+		ExpiresAt:  expiry,
+	})
+	fmt.Printf("session create error: %v, rows affected: %d\n", result.Error, result.RowsAffected)
+
 	c.Cookie(&fiber.Cookie{
 		Name:     "session_id",
 		Value:    token,
@@ -68,13 +77,16 @@ func (a *App) LoginPost(c fiber.Ctx) error {
 		Expires:  expiry,
 	})
 
-	// Generate and store OTP code.
+	// Generate and store OTP code (linked to user via FK).
 	code := generateOTPCode()
-	a.DB.Create(&models.EmailOTP{
-		Code:      code,
-		Username:  username,
-		ExpiresAt: time.Now().Add(otpTTL),
-	})
+	var otpUser models.User
+	if err := a.DB.Where("username = ?", username).First(&otpUser).Error; err == nil {
+		a.DB.Create(&models.EmailOTP{
+			Code:      code,
+			UserNo:    otpUser.UserNo,
+			ExpiresAt: time.Now().Add(otpTTL),
+		})
+	}
 
 	// Send OTP email (best-effort; fall back to dev bypass on failure).
 	if userEmail != "" {
@@ -94,13 +106,18 @@ func (a *App) Login2FAGet(c fiber.Ctx) error {
 	if !ok {
 		return c.Redirect().To("/login")
 	}
+
+	var user models.User
+	if err := a.DB.Where("user_no = ?", sess.UserNo).First(&user).Error; err != nil {
+		fmt.Printf("Getting users error: %v\n", err)
+	}
 	showBypass := a.Cfg.DevOTPBypass != ""
 	return c.Render("login_2fa", fiber.Map{
 		"Title":      "2FA Verification",
 		"Pending2FA": true,
 		"ShowBypass": showBypass,
 		"DevBypass":  a.Cfg.DevOTPBypass,
-		"Username":   sess.Username,
+		"Username":   user.Username,
 	})
 }
 
@@ -118,17 +135,23 @@ func (a *App) Login2FAPost(c fiber.Ctx) error {
 
 	if !bypassOK {
 		var otp models.EmailOTP
-		err := a.DB.Where(
-			"username = ? AND code = ? AND used_at IS NULL AND expires_at > ?",
-			sess.Username, code, time.Now(),
-		).First(&otp).Error
+		err := a.DB.
+			Joins("JOIN users ON users.user_no = email_otps.user_no").
+			Where("users.user_no = ? AND email_otps.code = ? AND email_otps.used_at IS NULL AND email_otps.expires_at > ? AND users.deleted_at IS NULL",
+				sess.UserNo, code, time.Now()).
+			First(&otp).Error
+
+		var user models.User
+		if err := a.DB.Where("user_no = ?", sess.UserNo).First(&user).Error; err != nil {
+			fmt.Printf("Getting users error: %v\n", err)
+		}
 		if err != nil {
 			return c.Render("login_2fa", fiber.Map{
 				"Title":      "2FA Verification",
 				"Pending2FA": true,
 				"ShowBypass": a.Cfg.DevOTPBypass != "",
 				"DevBypass":  a.Cfg.DevOTPBypass,
-				"Username":   sess.Username,
+				"Username":   user.Username,
 				"Error":      "invalid or expired OTP code",
 			})
 		}
@@ -200,9 +223,9 @@ func (a *App) ForgotPasswordPost(c fiber.Ctx) error {
 	}
 
 	// Invalidate any existing unused reset tokens for this user.
-	a.DB.Where("user_id = ? AND kind = ? AND used_at IS NULL", u.ID, "reset").Delete(&models.PasswordSetToken{})
+	a.DB.Where("user_no = ? AND kind = ? AND used_at IS NULL", u.UserNo, "reset").Delete(&models.PasswordSetToken{})
 
-	tok := models.PasswordSetToken{UserID: u.ID, Kind: "reset"}
+	tok := models.PasswordSetToken{UserNo: u.UserNo, Kind: "reset"}
 
 	if err := a.DB.Create(&tok).Error; err != nil {
 		return c.Render("forgot_password", sent)

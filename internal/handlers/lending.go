@@ -16,12 +16,12 @@ import (
 // LendAsset assigns a movable asset to an assignee and sends the handover form link via email.
 // POST /lending/lend
 func (a *App) LendAsset(c fiber.Ctx) error {
-	assetID, err := strconv.ParseUint(c.FormValue("asset_id"), 10, 64)
+	assetID, err := strconv.ParseUint(c.FormValue("asset_no"), 10, 64)
 	if err != nil || assetID == 0 {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("invalid asset id"))
 	}
 
-	assigneeID, err := strconv.ParseUint(c.FormValue("assignee_id"), 10, 64)
+	assigneeID, err := strconv.ParseUint(c.FormValue("assignee_no"), 10, 64)
 	if err != nil || assigneeID == 0 {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("invalid assignee id"))
 	}
@@ -43,14 +43,23 @@ func (a *App) LendAsset(c fiber.Ctx) error {
 
 	notes := strings.TrimSpace(c.FormValue("notes"))
 
+	// Parse optional planned-use datetime (format: "2006-01-02T15:04")
+	var plannedUseAt *time.Time
+	if rawPlanned := strings.TrimSpace(c.FormValue("planned_use_at")); rawPlanned != "" {
+		if parsed, parseErr := time.ParseInLocation("2006-01-02T15:04", rawPlanned, time.Local); parseErr == nil {
+			plannedUseAt = &parsed
+		}
+	}
+
 	tx := a.DB.Begin()
 
 	lendingLog := models.LendingLog{
-		AssetID:    uint(assetID),
-		AssigneeID: uint(assigneeID),
-		LentAt:     time.Now(),
-		Status:     "pending_signature",
-		Notes:      notes,
+		AssetNo:      uint(assetID),
+		AssigneeNo:   uint(assigneeID),
+		LentAt:       time.Now(),
+		PlannedUseAt: plannedUseAt,
+		Status:       "pending_signature",
+		Notes:        notes,
 	}
 	if err := tx.Create(&lendingLog).Error; err != nil {
 		tx.Rollback()
@@ -59,7 +68,7 @@ func (a *App) LendAsset(c fiber.Ctx) error {
 
 	now := time.Now()
 	handoverForm := models.HandoverForm{
-		LendingLogID: lendingLog.ID,
+		LendingLogNo: lendingLog.LendingLogNo,
 		SentAt:       &now,
 		Status:       "sent",
 	}
@@ -81,7 +90,7 @@ func (a *App) LendAsset(c fiber.Ctx) error {
 // ReturnAsset marks a lending log as returned.
 // POST /lending/return
 func (a *App) ReturnAsset(c fiber.Ctx) error {
-	lendingID, err := strconv.ParseUint(c.FormValue("lending_id"), 10, 64)
+	lendingID, err := strconv.ParseUint(c.FormValue("lending_no"), 10, 64)
 	if err != nil || lendingID == 0 {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("invalid lending id"))
 	}
@@ -173,7 +182,7 @@ func (a *App) HandoverSignPost(c fiber.Ctx) error {
 	})
 
 	// Also update the lending log status.
-	a.DB.Model(&models.LendingLog{}).Where("id = ?", form.LendingLogID).Update("status", "active")
+	a.DB.Model(&models.LendingLog{}).Where("id = ?", form.LendingLogNo).Update("status", "active")
 
 	receiptPath, err := utils.GenerateHandoverReceipt(utils.ReceiptData{
 		AssetName:     form.LendingLog.Asset.Name,

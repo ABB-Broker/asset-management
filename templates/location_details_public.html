@@ -1,4 +1,4 @@
-{{template "layout_top" .}} {{if not .IsLoggedIn}}
+{{template "layout_public_top" .}} {{if not .IsLoggedIn}}
 <div
   class="alert alert-info d-flex align-items-center gap-2 border-0 rounded-3 small mb-4 py-2"
   role="alert"
@@ -23,19 +23,13 @@
     </h4>
   </div>
   <div class="d-flex align-items-center gap-2">
-    <button
-      class="btn btn-outline-secondary fw-semibold"
-      onclick="openQrModal('{{.Location.LocationUUID}}')"
-    >
-      <i class="bi bi-qr-code me-1"></i>QR Code
-    </button>
     {{if .IsLoggedIn}}
     <button
       class="btn btn-primary fw-semibold"
       data-bs-toggle="modal"
       data-bs-target="#locationModal"
       onclick="openEditModal(this)"
-      data-id="{{.Location.ID}}"
+      data-id="{{.Location.LocationNo}}"
       data-name="{{.Location.LocationName}}"
       data-description="{{.Location.Description}}"
     >
@@ -92,7 +86,7 @@
         class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center gap-2"
       >
         <i class="bi bi-images text-primary"></i>
-        <h6 class="mb-0 fw-semibold">Photos &amp; Documents</h6>
+        <h6 class="mb-0 fw-semibold">Location Photos</h6>
         <span
           class="badge bg-primary bg-opacity-10 text-primary fw-semibold rounded-pill ms-auto"
         >
@@ -181,7 +175,10 @@
     <h6 class="mb-0 fw-semibold">Description</h6>
   </div>
   <div class="card-body px-4">
-    <div class="ql-editor p-0" style="display: flex; line-height: 1.75">
+    <div
+      class="ql-editor p-0"
+      style="display: flex; line-height: 1.75; flex-direction: column"
+    >
       {{.Location.Description | safeHTML}}
     </div>
   </div>
@@ -375,7 +372,7 @@
             <div class="d-flex align-items-center justify-content-between mb-3">
               <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-images text-primary"></i>
-                <span class="fw-semibold small">Photos &amp; Documents</span>
+                <span class="fw-semibold small">Location Photos</span>
               </div>
               <label
                 class="btn btn-sm btn-outline-primary"
@@ -403,7 +400,7 @@
                 </thead>
                 <tbody id="locationFileBody">
                   {{range .Location.LocationPhotos}}
-                  <tr data-existing-id="{{.ID}}">
+                  <tr data-existing-id="{{.No}}">
                     <td class="text-center align-middle">
                       <a href="{{.PhotoUrl}}" target="_blank">
                         <img
@@ -433,7 +430,7 @@
                     <td class="align-middle">
                       <input
                         class="form-control form-control-sm"
-                        name="existing_photo_name[{{.ID}}]"
+                        name="existing_photo_name[{{.No}}]"
                         value="{{.Name}}"
                       />
                     </td>
@@ -445,7 +442,7 @@
                         <i class="bi bi-arrow-repeat"></i>
                         <input
                           type="file"
-                          name="replace_photo[{{.ID}}]"
+                          name="replace_photo[{{.No}}]"
                           accept="image/*,application/pdf,.doc,.docx"
                           hidden
                           onchange="locationPreviewReplace(this)"
@@ -454,7 +451,7 @@
                       <button
                         type="button"
                         class="btn btn-sm btn-outline-danger"
-                        onclick="locationMarkDelete(this,'{{.ID}}')"
+                        onclick="locationMarkDelete(this,'{{.No}}')"
                       >
                         <i class="bi bi-trash"></i>
                       </button>
@@ -734,137 +731,4 @@
   }
 </script>
 
-<!-- ===== QR Code Modal ===== -->
-<div
-  class="modal fade"
-  id="qrModal"
-  tabindex="-1"
-  aria-labelledby="qrModalLabel"
-  aria-hidden="true"
->
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow">
-      <div class="modal-header border-bottom py-3 px-4">
-        <div class="d-flex align-items-center gap-2">
-          <div
-            class="d-flex align-items-center justify-content-center rounded-2"
-            style="width: 32px; height: 32px; background: #eff6ff"
-          >
-            <i class="bi bi-qr-code text-primary small"></i>
-          </div>
-          <h6 class="modal-title mb-0 fw-semibold" id="qrModalLabel">
-            QR Code
-          </h6>
-        </div>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="modal"
-        ></button>
-      </div>
-      <div class="modal-body px-4 py-4 text-center">
-        <p
-          class="text-muted small mb-3"
-          id="qrUrlLabel"
-          style="word-break: break-all"
-        ></p>
-        <div id="qrCanvas" class="d-flex justify-content-center mb-3"></div>
-        <canvas id="qrHidden" style="display: none"></canvas>
-      </div>
-      <div
-        class="modal-footer border-top py-3 px-4 justify-content-center gap-2"
-      >
-        <button
-          type="button"
-          class="btn btn-outline-primary fw-semibold"
-          onclick="downloadQr('png')"
-        >
-          <i class="bi bi-image me-1"></i>Download PNG
-        </button>
-        <button
-          type="button"
-          class="btn btn-outline-danger fw-semibold"
-          onclick="downloadQr('pdf')"
-        >
-          <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- QR + PDF libs -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script>
-  let _qrUrl = "";
-
-  function openQrModal(uuid) {
-    _qrUrl = window.location.origin + "/locations/detail?uuid=" + uuid;
-    document.getElementById("qrUrlLabel").textContent = _qrUrl;
-
-    const container = document.getElementById("qrCanvas");
-    container.innerHTML = "";
-
-    new QRCode(container, {
-      text: _qrUrl,
-      width: 220,
-      height: 220,
-      colorDark: "#1e293b",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.H,
-    });
-
-    new bootstrap.Modal(document.getElementById("qrModal")).show();
-  }
-
-  function getQrImg() {
-    return (
-      document.querySelector("#qrCanvas img") ||
-      document.querySelector("#qrCanvas canvas")
-    );
-  }
-
-  function downloadQr(format) {
-    const el = getQrImg();
-    if (!el) return;
-
-    const canvas = document.createElement("canvas");
-    const size = 220;
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext("2d");
-
-    const img = new Image();
-    img.onload = function () {
-      ctx.drawImage(img, 0, 0, size, size);
-      if (format === "png") {
-        const a = document.createElement("a");
-        a.href = canvas.toDataURL("image/png");
-        a.download = "location-qr.png";
-        a.click();
-      } else {
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF({
-          orientation: "portrait",
-          unit: "mm",
-          format: "a4",
-        });
-        const pageW = pdf.internal.pageSize.getWidth();
-        const qrMM = 70;
-        const x = (pageW - qrMM) / 2;
-        pdf.setFontSize(13);
-        pdf.setTextColor(30, 41, 59);
-        pdf.text("Location QR Code", pageW / 2, 22, { align: "center" });
-        pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, 30, qrMM, qrMM);
-        pdf.setFontSize(8);
-        pdf.setTextColor(100, 116, 139);
-        const lines = pdf.splitTextToSize(_qrUrl, pageW - 20);
-        pdf.text(lines, pageW / 2, 30 + qrMM + 8, { align: "center" });
-        pdf.save("location-qr.pdf");
-      }
-    };
-    img.src = el.tagName === "CANVAS" ? el.toDataURL() : el.src;
-  }
-</script>
-{{end}} {{/* end if .IsLoggedIn */}} {{template "layout_bottom" .}}
+{{end}} {{/* end if .IsLoggedIn */}} {{template "layout_public_bottom" .}}
