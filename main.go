@@ -92,15 +92,13 @@ func main() {
 
 	fApp := newFiberApp(h, logger)
 
-	isProduction := cfg.AppEnv == "production"
-
 	if !fiber.IsChild() {
 		log.Printf("Information Systems Asset Management starting on :%s (prefork=%v, admin: %s)",
-			cfg.Port, isProduction, cfg.AdminUsername)
+			cfg.Port, cfg.Prefork, cfg.AdminUsername)
 	}
 
 	log.Fatal(fApp.Listen(":"+cfg.Port, fiber.ListenConfig{
-		EnablePrefork:         isProduction,
+		EnablePrefork:         cfg.Prefork,
 		DisableStartupMessage: fiber.IsChild(),
 	}))
 }
