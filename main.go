@@ -108,7 +108,6 @@ func main() {
 // without triggering the prefork machinery.
 // logger may be nil; when nil a no-op zap logger is used.
 func newFiberApp(h *handlers.App, logger *zap.Logger) *fiber.App {
-
 	engine := html.New("./templates", ".html")
 
 	engine.AddFunc("safeHTML", func(s string) template.HTML {
