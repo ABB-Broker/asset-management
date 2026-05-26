@@ -1,0 +1,76 @@
+name: Check Formatting
+
+on:
+  push:
+    branches:
+      - dev
+      - master
+    paths:
+      - '**.go'
+      - go.mod
+      - go.sum
+      - '.github/workflows/build.yml'
+      - '.github/workflows/check.yml'
+      - '.golangci.yml'
+  pull_request:
+    branches:
+      - dev
+      - master
+    paths:
+      - '**.go'
+      - go.mod
+      - go.sum
+      - '.github/workflows/build.yml'
+      - '.github/workflows/check.yml'
+      - '.golangci.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  check-formatting:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        go-version: ['1.25', '1.26']
+        os: [ubuntu-latest, macos-latest, windows-latest]  # Matrix of OS environments
+    steps:
+      # Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      # Set up Go
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      # Install goimports and golangci-lint
+      - name: Install dependencies
+        run: |
+          go install golang.org/x/tools/cmd/goimports@latest
+
+      # Run gofmt and fail if issues are found
+      - name: Check gofmt
+        run: |
+          gofmt -s -l . | tee gofmt_out.txt
+          if [ -s gofmt_out.txt ]; then
+            echo "Files with formatting issues:"
+            cat gofmt_out.txt
+            rm gofmt_out.txt
+            exit 1
+          fi
+        shell: bash
+
+      # Run goimports and fail if issues are found
+      - name: Check goimports
+        run: |
+          goimports -l . | tee goimports_out.txt
+          if [ -s goimports_out.txt ]; then
+            echo "goimports found import issues:"
+            cat goimports_out.txt
+            rm goimports_out.txt
+            exit 1
+          fi
+        shell: bash
