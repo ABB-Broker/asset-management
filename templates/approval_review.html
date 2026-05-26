@@ -1,0 +1,143 @@
+{{define "approval_review"}}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{.Title}} — Asset Management</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" />
+    <link rel="icon" type="image/x-icon" href="/favicon/favicon.png" />
+    <style>
+      body { background: #f1f5f9; min-height: 100vh; display: flex; flex-direction: column; }
+      .brand-bar { background: #0f172a; padding: 14px 24px; display: flex; align-items: center; gap: 12px; }
+      .brand-bar img { height: 36px; width: 36px; }
+      .brand-bar span { color: #fff; font-weight: 600; font-size: 0.95rem; }
+      main { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 32px 16px; }
+      footer { background: #fff; border-top: 1px solid #e2e8f0; padding: 12px 24px; font-size: 0.78rem; color: #94a3b8; text-align: center; }
+      #signatureCanvas { border: 1.5px dashed #cbd5e1; border-radius: 8px; cursor: crosshair; width: 100%; touch-action: none; background: #fff; }
+    </style>
+  </head>
+  <body>
+    <div class="brand-bar">
+      <img src="/favicon/favicon.png" alt="" />
+      <span>Information Systems Asset Management</span>
+    </div>
+
+    <main>
+      <div class="card border-0 shadow-sm rounded-3" style="max-width:680px;width:100%">
+        <div class="card-header bg-white border-bottom py-3 px-4">
+          <h5 class="mb-0 fw-bold"><i class="bi bi-shield-check text-primary me-2"></i>Asset Borrow Approval</h5>
+          <p class="text-muted small mb-0 mt-1">Review the request below and approve or reject it.</p>
+        </div>
+        <div class="card-body p-4">
+
+          {{/* ── Request details ── */}}
+          <h6 class="fw-semibold text-secondary small text-uppercase mb-3">Request Details</h6>
+          <dl class="row mb-4">
+            <dt class="col-5 text-secondary small fw-semibold">Asset</dt>
+            <dd class="col-7 fw-semibold mb-2">{{.Request.LendingLog.Asset.Name}}</dd>
+
+            <dt class="col-5 text-secondary small fw-semibold">Serial Number</dt>
+            <dd class="col-7 mb-2">{{if .Request.LendingLog.Asset.SerialNumber}}{{.Request.LendingLog.Asset.SerialNumber}}{{else}}<span class="text-muted">—</span>{{end}}</dd>
+
+            <dt class="col-5 text-secondary small fw-semibold">Category</dt>
+            <dd class="col-7 mb-2">{{.Request.LendingLog.Asset.Category.Name}}</dd>
+
+            <dt class="col-5 text-secondary small fw-semibold">Borrower</dt>
+            <dd class="col-7 fw-semibold mb-2">{{.Request.LendingLog.Assignee.FullName}}</dd>
+
+            <dt class="col-5 text-secondary small fw-semibold">Borrower Email</dt>
+            <dd class="col-7 mb-2">{{.Request.LendingLog.Assignee.Email}}</dd>
+
+            <dt class="col-5 text-secondary small fw-semibold">Borrower Signed</dt>
+            <dd class="col-7 mb-2">
+              {{if .Request.LendingLog.HandoverForm.SignedAt}}
+                {{.Request.LendingLog.HandoverForm.SignedAt.Format "02 Jan 2006 15:04"}}
+              {{else}}
+                <span class="text-muted">—</span>
+              {{end}}
+            </dd>
+
+            <dt class="col-5 text-secondary small fw-semibold">Approver</dt>
+            <dd class="col-7 mb-0">{{.Request.Approver.FullName}}</dd>
+          </dl>
+
+          <hr class="my-4" />
+
+          {{/* ── Approval form ── */}}
+          <h6 class="fw-semibold text-secondary small text-uppercase mb-3">Your Decision</h6>
+
+          <form method="POST" action="/approval/decide" id="approvalForm">
+            <input type="hidden" name="token" value="{{.Token}}" />
+            <input type="hidden" name="decision" id="decisionInput" value="" />
+            <input type="hidden" name="signature_data" id="signatureData" value="" />
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold small">Notes / Reason <span class="text-muted fw-normal">(optional)</span></label>
+              <textarea name="notes" class="form-control" rows="3" placeholder="Add a note for the borrower…"></textarea>
+            </div>
+
+            {{/* ── Optional signature ── */}}
+            <div class="mb-4">
+              <label class="form-label fw-semibold small">Your Signature <span class="text-muted fw-normal">(optional)</span></label>
+              <canvas id="signatureCanvas" height="160"></canvas>
+              <button type="button" class="btn btn-link btn-sm text-secondary px-0 mt-1" onclick="clearSignature()">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Clear signature
+              </button>
+            </div>
+
+            <div class="d-flex gap-3">
+              <button type="button" class="btn btn-success flex-fill" onclick="submitDecision('approved')">
+                <i class="bi bi-check-lg me-1"></i>Approve
+              </button>
+              <button type="button" class="btn btn-danger flex-fill" onclick="submitDecision('rejected')">
+                <i class="bi bi-x-lg me-1"></i>Reject
+              </button>
+            </div>
+          </form>
+
+        </div>
+      </div>
+    </main>
+
+    <footer>Information Systems Asset Management &copy; 2026</footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      const canvas = document.getElementById("signatureCanvas");
+      const ctx = canvas.getContext("2d");
+      let drawing = false;
+
+      function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        if (e.touches) {
+          return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY };
+        }
+        return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+      }
+
+      canvas.addEventListener("mousedown",  e => { e.preventDefault(); drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+      canvas.addEventListener("mousemove",  e => { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.strokeStyle = "#1e293b"; ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+      canvas.addEventListener("mouseup",    () => drawing = false);
+      canvas.addEventListener("mouseleave", () => drawing = false);
+      canvas.addEventListener("touchstart", e => { e.preventDefault(); drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }, { passive: false });
+      canvas.addEventListener("touchmove",  e => { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.strokeStyle = "#1e293b"; ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x, p.y); }, { passive: false });
+      canvas.addEventListener("touchend",   () => drawing = false);
+
+      function clearSignature() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+      function submitDecision(decision) {
+        const blank = ctx.getImageData(0, 0, canvas.width, canvas.height).data.every(v => v === 0);
+        if (!blank) {
+          document.getElementById("signatureData").value = canvas.toDataURL("image/png");
+        }
+        document.getElementById("decisionInput").value = decision;
+        document.getElementById("approvalForm").submit();
+      }
+    </script>
+  </body>
+</html>
+{{end}}

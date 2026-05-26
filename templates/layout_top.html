@@ -143,6 +143,50 @@
           </li>
         </ul>
       </div>
+      <div id="notif-bell" style="position:relative;display:inline-block;">
+        <a href="/notifications" title="Notifications" style="position:relative;display:inline-flex;align-items:center;">
+          {{/* Replace with whatever icon system you already use, e.g. heroicons / feather */}}
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
+               viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+          </svg>
+          {{/* Badge — hidden by default; JS sets the count */}}
+          <span id="notif-badge"
+                style="display:none;position:absolute;top:-6px;right:-8px;
+                       background:#e53e3e;color:#fff;border-radius:9999px;
+                       font-size:11px;font-weight:600;min-width:18px;height:18px;
+                       padding:0 4px;line-height:18px;text-align:center;">
+            0
+          </span>
+        </a>
+      </div>
+
+      <script>
+        (function () {
+          var badge = document.getElementById('notif-badge');
+          if (!badge) return;
+
+          function refresh() {
+            fetch('/notifications/unread-count', { credentials: 'same-origin' })
+              .then(function (r) { return r.json(); })
+              .then(function (data) {
+                var count = data.count || 0;
+                if (count > 0) {
+                  badge.textContent = count > 99 ? '99+' : count;
+                  badge.style.display = 'inline-block';
+                } else {
+                  badge.style.display = 'none';
+                }
+              })
+              .catch(function () { /* silently ignore network errors */ });
+          }
+
+          // Run immediately, then every 60 seconds.
+          refresh();
+          setInterval(refresh, 60000);
+        })();
+        </script>
     </div>
   </div>
   <!-- /TOPBAR -->

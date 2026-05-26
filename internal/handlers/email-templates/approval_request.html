@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+  <body
+    style="
+      font-family: sans-serif;
+      background: #f1f5f9;
+      margin: 0;
+      padding: 32px;
+    "
+  >
+    <div
+      style="
+        max-width: 520px;
+        margin: auto;
+        background: #fff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      "
+    >
+      <div style="background: #0f172a; padding: 28px 32px">
+        <h2 style="color: #fff; margin: 0; font-size: 1.2rem">
+          Approval Required
+        </h2>
+      </div>
+
+      <div style="padding: 28px 32px">
+        <p>{{.Greeting}}</p>
+
+        <p>
+          <strong>{{.Borrower}}</strong> has signed the handover form and is
+          requesting to borrow the following asset.
+        </p>
+
+        <div
+          style="
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 20px 0;
+          "
+        >
+          <strong>Asset:</strong> {{.AssetName}}
+        </div>
+
+        <div style="text-align: center; margin: 28px 0">
+          <a
+            href="{{.ApprovalURL}}"
+            style="
+              background: #2563eb;
+              color: #fff;
+              padding: 12px 28px;
+              border-radius: 6px;
+              text-decoration: none;
+              font-weight: 600;
+              display: inline-block;
+            "
+          >
+            Review & Approve
+          </a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

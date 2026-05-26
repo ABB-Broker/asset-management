@@ -13,7 +13,45 @@ import (
 	"github.com/ABB-Broker/asset-management/internal/utils"
 )
 
-// LendAsset assigns a movable asset to an assignee and sends the handover form link via email.
+// resolveApprover returns the user_no of the PIC who should approve this lending.
+//
+// Rule: if the borrower is a linked user (assignee.UserNo != nil) and that user
+// is one of the asset's PICs, they are skipped — a PIC cannot approve their own
+// borrow request. The first remaining PIC (ordered by pic_no ASC) is the approver.
+//
+// Returns an error if no eligible PIC can be found.
+func (a *App) resolveApprover(lendingLog *models.LendingLog) (uint, error) {
+	var pics []models.PIC
+	if err := a.DB.
+		Where("asset_no = ?", lendingLog.AssetNo).
+		Order("pic_no ASC").
+		Find(&pics).Error; err != nil {
+		return 0, fmt.Errorf("failed to load PICs: %w", err)
+	}
+
+	if len(pics) == 0 {
+		return 0, fmt.Errorf("asset %d has no PICs configured", lendingLog.AssetNo)
+	}
+
+	var assignee models.Assignee
+	if err := a.DB.First(&assignee, lendingLog.AssigneeNo).Error; err != nil {
+		return 0, fmt.Errorf("assignee not found: %w", err)
+	}
+
+	for _, pic := range pics {
+		// Skip if the borrower is this PIC (they can't self-approve)
+		if assignee.UserNo != nil && pic.UserNo == *assignee.UserNo {
+			continue
+		}
+		return pic.UserNo, nil
+	}
+
+	return 0, fmt.Errorf("no eligible approver PIC found for asset %d (borrower is the only PIC?)", lendingLog.AssetNo)
+}
+
+// LendAsset assigns a movable asset to an assignee and sends the handover form
+// link via email. Blocks if the asset already has an active or pending lending.
+//
 // POST /lending/lend
 func (a *App) LendAsset(c fiber.Ctx) error {
 	assetID, err := strconv.ParseUint(c.FormValue("asset_no"), 10, 64)
@@ -35,6 +73,19 @@ func (a *App) LendAsset(c fiber.Ctx) error {
 		return c.Redirect().To(fmt.Sprintf("/assets/detail?uuid=%s&error=%s",
 			asset.AssetUUID, url.QueryEscape("only movable assets can be lent out")))
 	}
+
+	// ── Guard: prevent double-borrowing ──────────────────────────────────────
+	// Block if any lending log for this asset is still pending or active.
+	var activeLendingCount int64
+	a.DB.Model(&models.LendingLog{}).
+		Where("asset_no = ? AND status IN ('pending_signature','pending_approval','active')", assetID).
+		Count(&activeLendingCount)
+
+	if activeLendingCount > 0 {
+		return c.Redirect().To(fmt.Sprintf("/assets/detail?uuid=%s&error=%s",
+			asset.AssetUUID, url.QueryEscape("this asset is currently borrowed and has not been returned yet")))
+	}
+	// ─────────────────────────────────────────────────────────────────────────
 
 	var assignee models.Assignee
 	if err := a.DB.First(&assignee, assigneeID).Error; err != nil {
@@ -88,6 +139,7 @@ func (a *App) LendAsset(c fiber.Ctx) error {
 }
 
 // ReturnAsset marks a lending log as returned.
+//
 // POST /lending/return
 func (a *App) ReturnAsset(c fiber.Ctx) error {
 	lendingID, err := strconv.ParseUint(c.FormValue("lending_no"), 10, 64)
@@ -96,7 +148,7 @@ func (a *App) ReturnAsset(c fiber.Ctx) error {
 	}
 
 	var log models.LendingLog
-	if err := a.DB.Preload("Asset").First(&log, lendingID).Error; err != nil {
+	if err := a.DB.Preload("Asset").Preload("Assignee").First(&log, lendingID).Error; err != nil {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("lending record not found"))
 	}
 
@@ -113,11 +165,26 @@ func (a *App) ReturnAsset(c fiber.Ctx) error {
 		"status":      "returned",
 	})
 
+	// Notify all PICs that the asset has been returned.
+	var pics []models.PIC
+	a.DB.Where("asset_no = ?", log.AssetNo).Find(&pics)
+	for _, pic := range pics {
+		a.createNotification(
+			pic.UserNo,
+			"asset_returned",
+			"Asset returned",
+			fmt.Sprintf("%s has been returned by %s.", log.Asset.Name, log.Assignee.FullName),
+			"lending_log",
+			&log.LendingLogNo,
+		)
+	}
+
 	return c.Redirect().To(fmt.Sprintf("/assets/detail?uuid=%s&message=%s",
 		log.Asset.AssetUUID, url.QueryEscape("asset marked as returned")))
 }
 
-// HandoverSignGet renders the public digital signature form.
+// HandoverSignGet renders the public digital signature form for the borrower.
+//
 // GET /handover/sign?token=...
 func (a *App) HandoverSignGet(c fiber.Ctx) error {
 	token := c.Query("token")
@@ -148,7 +215,12 @@ func (a *App) HandoverSignGet(c fiber.Ctx) error {
 	})
 }
 
-// HandoverSignPost processes the submitted signature.
+// HandoverSignPost processes the borrower's submitted signature.
+//
+// After signing, the lending log moves to "pending_approval" and the
+// designated PIC is notified to approve the request. The receipt is NOT
+// generated here — it is generated in ApprovalDecidePost once the PIC approves.
+//
 // POST /handover/sign
 func (a *App) HandoverSignPost(c fiber.Ctx) error {
 	token := strings.TrimSpace(c.FormValue("token"))
@@ -175,49 +247,81 @@ func (a *App) HandoverSignPost(c fiber.Ctx) error {
 	}
 
 	now := time.Now()
+
+	// Save borrower's signature; mark form as "signed" (not yet "published").
 	a.DB.Model(&form).Updates(map[string]any{
 		"signature_data": signatureData,
 		"signed_at":      &now,
 		"status":         "signed",
 	})
 
-	// Also update the lending log status.
-	a.DB.Model(&models.LendingLog{}).Where("id = ?", form.LendingLogNo).Update("status", "active")
+	// Transition lending log to pending_approval.
+	a.DB.Model(&models.LendingLog{}).
+		Where("lending_log_no = ?", form.LendingLogNo).
+		Update("status", "pending_approval")
 
-	receiptPath, err := utils.GenerateHandoverReceipt(utils.ReceiptData{
-		AssetName:     form.LendingLog.Asset.Name,
-		AssetType:     form.LendingLog.Asset.AssetType,
-		SerialNumber:  form.LendingLog.Asset.SerialNumber,
-		Category:      form.LendingLog.Asset.Category.Name,
-		AssigneeName:  form.LendingLog.Assignee.FullName,
-		AssigneeEmail: form.LendingLog.Assignee.Email,
-		AssigneePhone: form.LendingLog.Assignee.PhoneNumber,
-		LentAt:        form.LendingLog.LentAt,
-		SignedAt:      now,
-		SignatureData: signatureData,
-	}, form.FormUUID)
-
-	if err == nil {
+	// Determine which PIC approves (excludes the borrower if they are a PIC).
+	approverUserNo, resolveErr := a.resolveApprover(form.LendingLog)
+	if resolveErr != nil {
+		// No eligible PIC configured — roll back to pending_signature so an
+		// admin can assign a PIC before the borrower retries.
+		a.DB.Model(&models.LendingLog{}).
+			Where("lending_log_no = ?", form.LendingLogNo).
+			Update("status", "pending_signature")
 		a.DB.Model(&form).Updates(map[string]any{
-			"receipt_path": receiptPath,
-			"status":       "published",
+			"signature_data": "",
+			"signed_at":      nil,
+			"status":         "sent",
 		})
-		_ = a.sendHandoverReceiptEmail(
-			form.LendingLog.Assignee.Email,
-			form.LendingLog.Assignee.FullName,
-			form.LendingLog.Asset.Name,
-			receiptPath,
+		return c.Status(fiber.StatusBadRequest).SendString(
+			"No eligible PIC found for this asset. Please ask an administrator to assign at least one PIC, then try signing again.",
 		)
 	}
 
+	// Create the approval request record.
+	approvalReq := models.ApprovalRequest{
+		LendingLogNo:   form.LendingLogNo,
+		ApproverUserNo: approverUserNo,
+		RequestedAt:    &now,
+		Status:         "pending",
+	}
+	a.DB.Create(&approvalReq)
+
+	// Look up the approver user to get their email.
+	var approver models.User
+	a.DB.First(&approver, approverUserNo)
+
+	// Send approval request email to the PIC.
+	approvalURL := fmt.Sprintf("%s/approval/review?token=%s", a.Cfg.BaseURL, approvalReq.ApprovalToken)
+	_ = a.sendApprovalRequestEmail(
+		approver.Email,
+		approver.FullName,
+		form.LendingLog.Assignee.FullName,
+		form.LendingLog.Asset.Name,
+		approvalURL,
+	)
+
+	// Create in-app notification for the PIC.
+	a.createNotification(
+		approverUserNo,
+		"approval_requested",
+		"Approval required",
+		fmt.Sprintf("%s wants to borrow %s and needs your approval.", form.LendingLog.Assignee.FullName, form.LendingLog.Asset.Name),
+		"lending_log",
+		&form.LendingLogNo,
+	)
+
 	return c.Render("handover_success", fiber.Map{
-		"Title":    "Signed Successfully",
-		"Assignee": form.LendingLog.Assignee,
-		"Asset":    form.LendingLog.Asset,
+		"Title":            "Signed Successfully",
+		"Assignee":         form.LendingLog.Assignee,
+		"Asset":            form.LendingLog.Asset,
+		"PendingApproval":  true,
+		"ApproverFullName": approver.FullName,
 	})
 }
 
 // HandoverReceiptDownload serves the generated receipt PDF.
+//
 // GET /handover/receipt?form_uuid=...
 func (a *App) HandoverReceiptDownload(c fiber.Ctx) error {
 	formUUID := c.Query("form_uuid")
@@ -232,4 +336,42 @@ func (a *App) HandoverReceiptDownload(c fiber.Ctx) error {
 	}
 
 	return c.Download(form.ReceiptPath, "Handover_Receipt.pdf")
+}
+
+// generateAndPublishReceipt is a shared helper used by both the fallback path
+// in HandoverSignPost (no PICs configured) and ApprovalDecidePost (PIC approved).
+// It generates the PDF receipt, marks the handover form as "published", and
+// transitions the lending log to "active".
+func (a *App) generateAndPublishReceipt(form *models.HandoverForm, approval *models.ApprovalRequest, signedAt time.Time) {
+	receiptPath, err := utils.GenerateHandoverReceipt(utils.ReceiptData{
+		AssetName:             form.LendingLog.Asset.Name,
+		AssetType:             form.LendingLog.Asset.AssetType,
+		SerialNumber:          form.LendingLog.Asset.SerialNumber,
+		Category:              form.LendingLog.Asset.Category.Name,
+		AssigneeName:          form.LendingLog.Assignee.FullName,
+		AssigneeEmail:         form.LendingLog.Assignee.Email,
+		AssigneePhone:         form.LendingLog.Assignee.PhoneNumber,
+		LentAt:                form.LendingLog.LentAt,
+		SignedAt:              signedAt,
+		SignatureData:         form.SignatureData,
+		ApprovalSignatureData: approval.SignatureData,
+		Purpose:               form.LendingLog.Notes,
+	}, form.FormUUID)
+
+	if err == nil {
+		a.DB.Model(form).Updates(map[string]any{
+			"receipt_path": receiptPath,
+			"status":       "published",
+		})
+		a.DB.Model(&models.LendingLog{}).
+			Where("lending_log_no = ?", form.LendingLogNo).
+			Update("status", "active")
+
+		_ = a.sendHandoverReceiptEmail(
+			form.LendingLog.Assignee.Email,
+			form.LendingLog.Assignee.FullName,
+			form.LendingLog.Asset.Name,
+			receiptPath,
+		)
+	}
 }

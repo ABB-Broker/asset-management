@@ -1,0 +1,23 @@
+{{template "layout_public_top" .}}
+<div class="d-flex justify-content-center mt-5">
+  <div class="card border-0 shadow-sm rounded-3 text-center p-5" style="max-width:480px">
+    {{if eq .Decision "approved"}}
+      <i class="bi bi-check-circle-fill text-success fs-1 mb-3"></i>
+      <h5 class="fw-bold">Request Approved</h5>
+      <p class="text-muted">
+        You have approved <strong>{{.Request.LendingLog.Assignee.FullName}}</strong>'s request to borrow
+        <strong>{{.Request.LendingLog.Asset.Name}}</strong>.
+        The borrower has been notified and the receipt has been sent to their email.
+      </p>
+    {{else}}
+      <i class="bi bi-x-circle-fill text-danger fs-1 mb-3"></i>
+      <h5 class="fw-bold">Request Rejected</h5>
+      <p class="text-muted">
+        You have rejected <strong>{{.Request.LendingLog.Assignee.FullName}}</strong>'s request to borrow
+        <strong>{{.Request.LendingLog.Asset.Name}}</strong>.
+        The borrower has been notified.
+      </p>
+    {{end}}
+  </div>
+</div>
+{{template "layout_public_bottom" .}}

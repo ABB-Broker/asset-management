@@ -1,15 +1,4 @@
-{{template "layout_public_top" .}} {{if not .IsLoggedIn}}
-<div
-  class="alert alert-info d-flex align-items-center gap-2 border-0 rounded-3 small mb-4 py-2"
-  role="alert"
->
-  <i class="bi bi-qr-code-scan flex-shrink-0"></i>
-  <span
-    >You are viewing this page via QR Code in read-only mode.
-    <a href="/login" class="alert-link">Log in</a> to manage this asset.</span
-  >
-</div>
-{{end}}
+{{template "layout_top" .}}
 
 <!-- Page header -->
 <div class="d-flex align-items-center justify-content-between mb-4">
@@ -30,7 +19,6 @@
     >
       <i class="bi bi-qr-code me-1"></i>QR Code
     </button>
-    {{if .IsLoggedIn}}
     <button
       class="btn btn-primary fw-semibold"
       data-bs-toggle="modal"
@@ -48,7 +36,6 @@
     >
       <i class="bi bi-pencil"></i> Edit Asset
     </button>
-    {{end}}
   </div>
 </div>
 
@@ -70,7 +57,7 @@
           <dt class="col-5 text-secondary small fw-semibold">Asset Type</dt>
           <dd class="col-7 mb-0">
             <span
-              class="badge rounded-pill bg-success bg-opacity-10 text-success bg-success fw-semibold px-2 text-capitalize"
+              class="badge rounded-pill bg-success bg-opacity-10 text-success fw-semibold px-2 text-capitalize"
             >
               {{.Asset.AssetType}}
             </span>
@@ -94,6 +81,7 @@
 
           {{if .Asset.Location}}
           <dt class="col-5 text-secondary small fw-semibold">Location</dt>
+          {{end}} {{if .Asset.Location}} {{if .Asset.Location.LocationName}}
           <dd class="col-7 mb-0">
             <a
               href="/locations/detail?uuid={{.Asset.Location.LocationUUID}}"
@@ -103,7 +91,9 @@
               >{{.Asset.Location.LocationName}}
             </a>
           </dd>
-          {{end}}
+          {{else}}
+          <dd class="col-7 mb-0"><em>No location provided</em></dd>
+          {{end}} {{end}}
 
           <dt class="col-5 text-secondary small fw-semibold">Purchase Date</dt>
           <dd class="col-7 text-muted small mb-0">{{.Asset.PurchaseDate}}</dd>
@@ -224,8 +214,14 @@
       <i class="bi bi-clock-history text-primary"></i>
       <h6 class="mb-0 fw-semibold">Lending History</h6>
     </div>
-    <div class="d-flex gap-2">
-      {{if .IsLoggedIn}} {{if gt .CurrentAssigneeID 0}}
+    <div class="d-flex gap-2 align-items-center">
+      {{if .ActiveLending}}
+      <span
+        class="badge bg-danger bg-opacity-10 text-danger fw-normal px-2 py-1 small"
+      >
+        <i class="bi bi-lock me-1"></i>Currently unavailable — already borrowed
+      </span>
+      {{else}} {{if gt .CurrentAssigneeNo 0}} {{if .CanBorrowSelf}}
       <button
         class="btn btn-sm btn-outline-primary"
         data-bs-toggle="modal"
@@ -233,7 +229,15 @@
       >
         <i class="bi bi-hand-index me-1"></i>Borrow for Myself
       </button>
-      {{end}}
+      {{else}}
+      <span
+        class="badge bg-warning bg-opacity-10 text-warning fw-normal px-2 py-1 small"
+        title="{{if eq (len .Asset.PICs) 0}}No PIC assigned — ask an admin to assign a PIC before borrowing.{{else}}You are the only PIC — a second PIC must be assigned so someone can approve your request.{{end}}"
+        data-bs-toggle="tooltip"
+      >
+        <i class="bi bi-exclamation-triangle me-1"></i>Borrow for Myself
+      </span>
+      {{end}} {{end}} {{if .CanLend}}
       <button
         class="btn btn-sm btn-primary"
         data-bs-toggle="modal"
@@ -243,11 +247,13 @@
       </button>
       {{else}}
       <span
-        class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-2 py-1 small"
+        class="badge bg-warning bg-opacity-10 text-warning fw-normal px-2 py-1 small"
+        title="No PIC assigned — ask an admin to assign a PIC before lending."
+        data-bs-toggle="tooltip"
       >
-        <i class="bi bi-lock me-1"></i>Log in to manage lending
+        <i class="bi bi-exclamation-triangle me-1"></i>Lend to Someone
       </span>
-      {{end}}
+      {{end}} {{end}}
     </div>
   </div>
   <div class="card-body p-0">
@@ -309,6 +315,10 @@
             <span class="badge bg-success bg-opacity-10 text-success"
               >Active</span
             >
+            {{else if eq $log.Status "pending_approval"}}
+            <span class="badge bg-info bg-opacity-10 text-info"
+              >Pending Approval</span
+            >
             {{else}}
             <span class="badge bg-warning bg-opacity-10 text-warning"
               >Pending Signature</span
@@ -323,22 +333,15 @@
             >
               <i class="bi bi-download"></i> Receipt
             </a>
-            {{end}} {{end}} {{if .IsLoggedIn}} {{if ne $log.Status "returned"}}
-            <form method="post" action="/lending/return" class="d-inline">
-              <input
-                type="hidden"
-                name="lending_no"
-                value="{{$log.LendingLogNo}}"
-              />
-              <button
-                type="submit"
-                class="btn btn-sm btn-outline-secondary"
-                onclick="return confirm('Mark this asset as returned?');"
-              >
-                <i class="bi bi-box-arrow-in-left"></i> Return
-              </button>
-            </form>
-            {{end}} {{end}}
+            {{end}} {{end}} {{if ne $log.Status "returned"}}
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              onclick="openReturnModal('{{$log.LendingLogNo}}')"
+            >
+              <i class="bi bi-box-arrow-in-left"></i> Return
+            </button>
+            {{end}}
           </td>
         </tr>
         {{else}}
@@ -356,7 +359,9 @@
 
 <!-- PIC (Person In Charge) Section -->
 <div class="card border-0 shadow-sm rounded-3 mb-4">
-  <div class="card-header bg-white border-0 pt-4 pb-0 px-4">
+  <div
+    class="card-header bg-white border-0 pt-4 pb-0 px-4 d-flex align-items-center justify-content-between"
+  >
     <h6 class="mb-0 fw-semibold">
       <i class="bi bi-person-check text-primary me-2"></i>Person In Charge (PIC)
     </h6>
@@ -374,7 +379,7 @@
         >
           <i class="bi bi-person-fill text-primary"></i>
         </div>
-        <div>
+        <div class="flex-grow-1">
           <div class="fw-semibold small">{{.User.FullName}}</div>
           <div class="text-muted" style="font-size: 0.8rem">
             {{.User.Department}} &bull; {{.User.Position}}
@@ -383,19 +388,23 @@
           <div class="text-muted small mt-1">{{.Notes}}</div>
           {{end}}
         </div>
+        <a href="/pics" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-pencil me-1"></i>Manage PICs
+        </a>
       </div>
       {{end}}
     </div>
     {{else}}
-    <p class="text-muted small mb-0">
-      <i class="bi bi-info-circle me-1"></i>No PIC assigned for this asset.
-    </p>
+    <div class="text-muted small d-flex align-items-center gap-2">
+      <i class="bi bi-info-circle"></i>
+      No PIC assigned yet.
+      <a href="/pics" class="ms-1">Assign a PIC &rarr;</a>
+    </div>
     {{end}}
   </div>
 </div>
 
 <!-- Lend Asset Modal -->
-{{if .IsLoggedIn}}
 <div class="modal fade" id="lendModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow">
@@ -419,11 +428,24 @@
             <select class="form-select" name="assignee_no" required>
               <option value="">— Select Assignee —</option>
               {{range .Assignees}}
-              <option value="{{.AssigneeNo}}">
+              <option value="{{if .AssigneeNo}}{{.AssigneeNo}}{{end}}">
                 {{.FullName}}{{if .UserNo}} (Internal){{else}} (External){{end}}
               </option>
               {{end}}
             </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary"
+              >Planned Use Date &amp; Time</label
+            >
+            <input
+              type="datetime-local"
+              class="form-control"
+              name="planned_use_at"
+            />
+            <div class="form-text">
+              Optional — when the borrower plans to start using this asset.
+            </div>
           </div>
           <div class="mb-3">
             <label class="form-label small fw-semibold text-secondary"
@@ -489,10 +511,23 @@
           <input
             type="hidden"
             name="assignee_no"
-            value="{{.CurrentAssigneeID}}"
+            value="{{.CurrentAssigneeNo}}"
           />
 
           <input type="hidden" name="self_borrow" value="true" />
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary"
+              >Planned Use Date &amp; Time</label
+            >
+            <input
+              type="datetime-local"
+              class="form-control"
+              name="planned_use_at"
+            />
+            <div class="form-text">
+              Optional — when you plan to start using this asset.
+            </div>
+          </div>
           <div class="mb-3">
             <label class="form-label small fw-semibold text-secondary"
               >Purpose / Notes</label
@@ -658,7 +693,9 @@
               >
                 <option value="">— Select —</option>
                 {{range .Categories}}
-                <option value="{{.CategoryNo}}">{{.Name}}</option>
+                <option value="{{if .CategoryNo}}{{.CategoryNo}}{{end}}">
+                  {{.Name}}
+                </option>
                 {{end}}
               </select>
             </div>
@@ -694,7 +731,7 @@
               >
                 <option value="">— Select —</option>
                 {{range .Locations}}
-                <option value="{{.LocationNo}}">{{.LocationName}}</option>
+                <option value="}{{.LocationNo}}">{{.LocationName}}</option>
                 {{end}}
               </select>
             </div>
@@ -830,65 +867,8 @@
   </div>
 </div>
 
-<!-- ===== QR Code Modal ===== -->
-<div
-  class="modal fade"
-  id="qrModal"
-  tabindex="-1"
-  aria-labelledby="qrModalLabel"
-  aria-hidden="true"
->
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow">
-      <div class="modal-header border-bottom py-3 px-4">
-        <div class="d-flex align-items-center gap-2">
-          <div
-            class="d-flex align-items-center justify-content-center rounded-2"
-            style="width: 32px; height: 32px; background: #eff6ff"
-          >
-            <i class="bi bi-qr-code text-primary small"></i>
-          </div>
-          <h6 class="modal-title mb-0 fw-semibold" id="qrModalLabel">
-            QR Code
-          </h6>
-        </div>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="modal"
-        ></button>
-      </div>
-      <div class="modal-body px-4 py-4 text-center">
-        <p
-          class="text-muted small mb-3"
-          id="qrUrlLabel"
-          style="word-break: break-all"
-        ></p>
-        <div id="qrCanvas" class="d-flex justify-content-center mb-3"></div>
-      </div>
-      <div
-        class="modal-footer border-top py-3 px-4 justify-content-center gap-2"
-      >
-        <button
-          type="button"
-          class="btn btn-outline-primary fw-semibold"
-          onclick="downloadQr('png')"
-        >
-          <i class="bi bi-image me-1"></i>Download PNG
-        </button>
-        <button
-          type="button"
-          class="btn btn-outline-danger fw-semibold"
-          onclick="downloadQr('pdf')"
-        >
-          <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+
 <script>
   function updateLocationRequirement() {
     const assetType = document.getElementById("assetType").value;
@@ -1090,6 +1070,65 @@
     form.submit();
   }
 </script>
+
+<!-- ===== QR Code Modal ===== -->
+<div
+  class="modal fade"
+  id="qrModal"
+  tabindex="-1"
+  aria-labelledby="qrModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-bottom py-3 px-4">
+        <div class="d-flex align-items-center gap-2">
+          <div
+            class="d-flex align-items-center justify-content-center rounded-2"
+            style="width: 32px; height: 32px; background: #eff6ff"
+          >
+            <i class="bi bi-qr-code text-primary small"></i>
+          </div>
+          <h6 class="modal-title mb-0 fw-semibold" id="qrModalLabel">
+            QR Code
+          </h6>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body px-4 py-4 text-center">
+        <p
+          class="text-muted small mb-3"
+          id="qrUrlLabel"
+          style="word-break: break-all"
+        ></p>
+        <div id="qrCanvas" class="d-flex justify-content-center mb-3"></div>
+      </div>
+      <div
+        class="modal-footer border-top py-3 px-4 justify-content-center gap-2"
+      >
+        <button
+          type="button"
+          class="btn btn-outline-primary fw-semibold"
+          onclick="downloadQr('png')"
+        >
+          <i class="bi bi-image me-1"></i>Download PNG
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-danger fw-semibold"
+          onclick="downloadQr('pdf')"
+        >
+          <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- QR + PDF libs -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1165,5 +1204,77 @@
   }
 </script>
 
-{{end}}{{/* end if .IsLoggedIn — wraps all action modals */}} {{template
-"layout_public_bottom" .}}
+<!-- Return Asset Modal -->
+<div
+  class="modal fade"
+  id="returnModal"
+  tabindex="-1"
+  aria-labelledby="returnModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-bottom py-3 px-4">
+        <h6 class="modal-title fw-semibold" id="returnModalLabel">
+          <i class="bi bi-box-arrow-in-left me-2 text-secondary"></i>Mark as
+          Returned
+        </h6>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <form method="post" action="/lending/return">
+        <input type="hidden" name="lending_no" id="returnLendingId" value="" />
+        <div class="modal-body p-4">
+          <p class="text-muted mb-3">
+            Please confirm the date this asset was physically returned.
+          </p>
+          <div class="mb-3">
+            <label for="returnedAtInput" class="form-label fw-semibold"
+              >Return Date</label
+            >
+            <input
+              type="date"
+              class="form-control"
+              id="returnedAtInput"
+              name="returned_at"
+              required
+            />
+            <div class="form-text">
+              Defaults to today. Cannot be set to a future date.
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-top py-3 px-4">
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            data-bs-dismiss="modal"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-secondary btn-sm">
+            <i class="bi bi-check-lg me-1"></i>Confirm Return
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openReturnModal(lendingId) {
+    document.getElementById("returnLendingId").value = lendingId;
+    // Set max date to today and default to today.
+    const today = new Date().toISOString().split("T")[0];
+    const input = document.getElementById("returnedAtInput");
+    input.max = today;
+    input.value = today;
+    new bootstrap.Modal(document.getElementById("returnModal")).show();
+  }
+</script>
+
+{{template "layout_bottom" .}}

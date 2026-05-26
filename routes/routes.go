@@ -53,7 +53,6 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 	// ── Digital Signature Form (no auth required) ─────────────────────────
 	fApp.Get("/handover/sign", h.HandoverSignGet)
 	fApp.Post("/handover/sign", h.HandoverSignPost)
-
 	fApp.Get("/handover/sign/preview", func(c fiber.Ctx) error {
 		return c.Render("handover_sign", fiber.Map{
 			"Title": "Asset Handover Form",
@@ -72,6 +71,10 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 			},
 		})
 	})
+
+	// PIC approval pages (token-authenticated, same pattern as /handover/sign)
+	fApp.Get("/approval/review", h.ApprovalReviewGet)
+	fApp.Post("/approval/decide", h.ApprovalDecidePost)
 
 	// ── QR-code public pages (OptionalAuth: shows actions if logged in) ───
 	qr := fApp.Group("/qr", h.OptionalAuth)
@@ -127,4 +130,9 @@ func Setup(fApp *fiber.App, h *handlers.App, logger *zap.Logger) {
 	auth.Post("/pics/create", h.PICSCreate)
 	auth.Post("/pics/update", h.PICSUpdate)
 	auth.Post("/pics/delete", h.PICSDelete)
+
+	// Notifications
+	auth.Get("/notifications", h.NotificationsIndex)
+	auth.Get("/notifications/unread-count", h.NotificationUnreadCount)
+	auth.Post("/notifications/:no/read", h.NotificationMarkRead)
 }

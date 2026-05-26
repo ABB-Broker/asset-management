@@ -41,6 +41,8 @@ func (a *App) UsersCreate(c fiber.Ctx) error {
 		return c.Redirect().To("/users?error=" + url.QueryEscape("username or email already exists"))
 	}
 
+	// Create the linked assignee record (UserNo points back to the user).
+	// This is the ONLY link between users and assignees — no reverse FK on users.
 	assignee := models.Assignee{
 		FullName:    u.FullName,
 		Email:       u.Email,
@@ -54,7 +56,6 @@ func (a *App) UsersCreate(c fiber.Ctx) error {
 		tx.Rollback()
 		return c.Redirect().To("/users?error=" + url.QueryEscape("failed to create assignee record"))
 	}
-	tx.Model(&u).Update("assignee_no", assignee.AssigneeNo)
 	tx.Commit()
 
 	// Generate invite token and send email (best-effort).
@@ -119,16 +120,18 @@ func (a *App) UsersUpdate(c fiber.Ctx) error {
 		tx.Rollback()
 		return c.Redirect().To("/users?error=" + url.QueryEscape("username or email already in use"))
 	}
-	if existing.AssigneeNo != nil {
-		tx.Model(&models.Assignee{}).Where("id = ?", *existing.AssigneeNo).Updates(map[string]any{
-			"full_name":    updated.FullName,
-			"email":        updated.Email,
-			"phone_number": updated.PhoneNumber,
-			"department":   updated.Department,
-			"position":     updated.Position,
-			"employee_id":  updated.EmployeeID,
-		})
-	}
+
+	// Sync the linked assignee record.
+	// We look it up by user_no — there is no AssigneeNo on the User struct anymore.
+	tx.Model(&models.Assignee{}).Where("user_no = ?", existing.UserNo).Updates(map[string]any{
+		"full_name":    updated.FullName,
+		"email":        updated.Email,
+		"phone_number": updated.PhoneNumber,
+		"department":   updated.Department,
+		"position":     updated.Position,
+		"employee_id":  updated.EmployeeID,
+	})
+
 	tx.Commit()
 	return c.Redirect().To("/users?message=" + url.QueryEscape("user updated"))
 }
@@ -143,13 +146,15 @@ func (a *App) UsersDelete(c fiber.Ctx) error {
 	if err := a.DB.First(&u, id).Error; err != nil {
 		return c.Redirect().To("/users?error=" + url.QueryEscape("user not found"))
 	}
+
 	tx := a.DB.Begin()
-	if u.AssigneeNo != nil {
-		if err := tx.Delete(&models.Assignee{}, *u.AssigneeNo).Error; err != nil {
-			tx.Rollback()
-			return c.Redirect().To("/users?error=" + url.QueryEscape("failed to remove linked assignee"))
-		}
+
+	// Delete the linked assignee by user_no — no AssigneeNo on User anymore.
+	if err := tx.Where("user_no = ?", u.UserNo).Delete(&models.Assignee{}).Error; err != nil {
+		tx.Rollback()
+		return c.Redirect().To("/users?error=" + url.QueryEscape("failed to remove linked assignee"))
 	}
+
 	if err := tx.Delete(&u).Error; err != nil {
 		tx.Rollback()
 		return c.Redirect().To("/users?error=" + url.QueryEscape("failed to delete user"))

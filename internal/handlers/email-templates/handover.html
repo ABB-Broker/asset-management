@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+  <body
+    style="
+      font-family: sans-serif;
+      background: #f1f5f9;
+      margin: 0;
+      padding: 32px;
+    "
+  >
+    <div
+      style="
+        max-width: 520px;
+        margin: auto;
+        background: #fff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      "
+    >
+      <div style="background: #0f172a; padding: 28px 32px">
+        <h2 style="color: #fff; margin: 0; font-size: 1.2rem">
+          Asset Handover Form
+        </h2>
+      </div>
+
+      <div style="padding: 28px 32px">
+        <p style="margin-top: 0">{{.Greeting}}</p>
+
+        <p>
+          An asset has been assigned to you and requires your digital signature
+          to complete the handover process.
+        </p>
+
+        <div
+          style="
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 20px 0;
+          "
+        >
+          <strong style="color: #0f172a">Asset:</strong>
+          <span style="color: #334155">{{.AssetName}}</span>
+        </div>
+
+        <p>
+          Please click the button below to review the handover details and sign
+          digitally.
+        </p>
+
+        <div style="text-align: center; margin: 28px 0">
+          <a
+            href="{{.FormURL}}"
+            style="
+              background: #2563eb;
+              color: #fff;
+              padding: 12px 28px;
+              border-radius: 6px;
+              text-decoration: none;
+              font-weight: 600;
+              display: inline-block;
+            "
+          >
+            Sign Handover Form
+          </a>
+        </div>
+
+        <p style="color: #64748b; font-size: 0.85rem">
+          Or copy this link into your browser:
+          <br />
+          <a href="{{.FormURL}}" style="color: #2563eb"> {{.FormURL}} </a>
+        </p>
+      </div>
+
+      <div
+        style="
+          background: #f8fafc;
+          padding: 16px 32px;
+          border-top: 1px solid #e2e8f0;
+        "
+      >
+        <p style="color: #94a3b8; font-size: 0.78rem; margin: 0">
+          Information Systems Asset Management &copy; 2026
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
