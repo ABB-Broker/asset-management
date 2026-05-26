@@ -31,7 +31,7 @@ import (
 	contribi18n "github.com/gofiber/contrib/v3/i18n"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/static"
-	"github.com/gofiber/template/html/v2"
+	"github.com/gofiber/template/html/v3"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/text/language"
@@ -108,7 +108,6 @@ func main() {
 // without triggering the prefork machinery.
 // logger may be nil; when nil a no-op zap logger is used.
 func newFiberApp(h *handlers.App, logger *zap.Logger) *fiber.App {
-
 	engine := html.New("./templates", ".html")
 
 	engine.AddFunc("safeHTML", func(s string) template.HTML {

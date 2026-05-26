@@ -131,6 +131,8 @@ func (a *Asset) BeforeCreate(tx *gorm.DB) error {
 
 //
 // USER
+// NOTE: AssigneeNo has been removed. To find a user's assignee record,
+// query: WHERE user_no = ? on the assignees table.
 //
 
 type User struct {
@@ -155,8 +157,6 @@ type User struct {
 	Role string `gorm:"type:enum('admin','editor','viewer');default:'viewer'"`
 
 	Active bool `gorm:"default:true"`
-
-	AssigneeNo *uint `gorm:"column:assignee_no;type:int unsigned;index"`
 }
 
 //
@@ -240,6 +240,8 @@ type Assignee struct {
 
 	PhoneNumber string
 
+	// UserNo links this assignee record to a system user.
+	// This is the only FK between users and assignees (no reverse FK on users).
 	UserNo *uint `gorm:"column:user_no;type:int unsigned;index"`
 
 	Department string
@@ -287,7 +289,8 @@ type LendingLog struct {
 	PlannedUseAt *time.Time
 	ReturnedAt   *time.Time
 
-	Status string `gorm:"type:enum('pending_signature','active','returned');default:'pending_signature'"`
+	// Status flow: pending_signature → pending_approval → active → returned
+	Status string `gorm:"type:enum('pending_signature','pending_approval','active','returned');default:'pending_signature'"`
 
 	Notes string
 
@@ -295,7 +298,8 @@ type LendingLog struct {
 
 	Assignee *Assignee `gorm:"foreignKey:AssigneeNo;references:AssigneeNo;constraint:OnDelete:CASCADE"`
 
-	HandoverForm *HandoverForm `gorm:"foreignKey:LendingLogNo;references:LendingLogNo"`
+	HandoverForm    *HandoverForm    `gorm:"foreignKey:LendingLogNo;references:LendingLogNo"`
+	ApprovalRequest *ApprovalRequest `gorm:"foreignKey:LendingLogNo;references:LendingLogNo"`
 }
 
 func (l *LendingLog) BeforeCreate(tx *gorm.DB) error {
@@ -332,6 +336,7 @@ type HandoverForm struct {
 
 	SignatureData string `gorm:"type:longtext"`
 
+	// Status: sent → signed (borrower signed, pending PIC approval) → published (PIC approved, receipt generated)
 	Status string `gorm:"type:enum('sent','signed','published');default:'sent'"`
 
 	ReceiptPath string
@@ -349,6 +354,82 @@ func (h *HandoverForm) BeforeCreate(tx *gorm.DB) error {
 	}
 
 	return nil
+}
+
+//
+// APPROVAL REQUEST
+//
+
+type ApprovalRequest struct {
+	ApprovalRequestNo uint `gorm:"column:approval_request_no;primaryKey;autoIncrement;type:int unsigned"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
+	ApprovalUUID string
+
+	LendingLogNo   uint `gorm:"column:lending_log_no;type:int unsigned;index;not null"`
+	ApproverUserNo uint `gorm:"column:approver_user_no;type:int unsigned;index;not null"`
+
+	ApprovalToken string `gorm:"uniqueIndex"`
+
+	RequestedAt *time.Time
+	DecidedAt   *time.Time
+
+	// Status: pending → approved | rejected
+	Status string `gorm:"type:enum('pending','approved','rejected');default:'pending'"`
+
+	// Optional PIC signature on the approval page
+	SignatureData string `gorm:"type:longtext"`
+
+	Notes string
+
+	LendingLog *LendingLog `gorm:"foreignKey:LendingLogNo;references:LendingLogNo;constraint:OnDelete:CASCADE"`
+	Approver   *User       `gorm:"foreignKey:ApproverUserNo;references:UserNo;constraint:OnDelete:CASCADE"`
+}
+
+func (a *ApprovalRequest) BeforeCreate(tx *gorm.DB) error {
+	if a.ApprovalUUID == "" {
+		a.ApprovalUUID = utils.NewUUID()
+	}
+	if a.ApprovalToken == "" {
+		a.ApprovalToken = RandomToken()
+	}
+	return nil
+}
+
+//
+// NOTIFICATION
+//
+
+type Notification struct {
+	NotificationNo uint `gorm:"column:notification_no;primaryKey;autoIncrement;type:int unsigned"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
+	// UserNo is the recipient of the notification.
+	UserNo uint `gorm:"column:user_no;type:int unsigned;index;not null"`
+
+	// Kind is a machine-readable event type string, e.g. "approval_requested".
+	Kind  string `gorm:"not null"`
+	Title string `gorm:"not null"`
+	Body  string
+
+	// ReferenceType + ReferenceNo let the UI deep-link to the relevant record.
+	// e.g. ReferenceType="lending_log", ReferenceNo=42
+	ReferenceType string
+	ReferenceNo   *uint `gorm:"column:reference_no;type:int unsigned"`
+
+	ReadAt *time.Time
+
+	User *User `gorm:"foreignKey:UserNo;references:UserNo;constraint:OnDelete:CASCADE"`
+}
+
+func (n *Notification) IsRead() bool {
+	return n.ReadAt != nil
 }
 
 //

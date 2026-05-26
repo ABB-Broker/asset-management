@@ -12,3 +12,5 @@ DROP TABLE IF EXISTS sessions;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS locations;
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS approval_requests;

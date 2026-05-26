@@ -31,15 +31,13 @@ CREATE TABLE IF NOT EXISTS users (
     employee_id VARCHAR(255),
     role        ENUM('admin','editor','viewer') DEFAULT 'viewer',
     active      BOOLEAN DEFAULT TRUE,
-    assignee_no INT UNSIGNED,
     created_at  DATETIME,
     updated_at  DATETIME,
     deleted_at  DATETIME,
     UNIQUE INDEX idx_users_username (username),
     UNIQUE INDEX idx_users_email (email),
     UNIQUE INDEX idx_users_employee_id (employee_id),
-    INDEX idx_users_deleted_at (deleted_at),
-    INDEX idx_users_assignee_no (assignee_no)
+    INDEX idx_users_deleted_at (deleted_at)
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
@@ -80,9 +78,7 @@ CREATE TABLE IF NOT EXISTS assignees (
     CONSTRAINT fk_assignees_user FOREIGN KEY (user_no) REFERENCES users(user_no) ON DELETE SET NULL
 );
 
--- Now safe to add circular FK: users.assignee_no -> assignees
-ALTER TABLE users
-    ADD CONSTRAINT fk_users_assignee FOREIGN KEY (assignee_no) REFERENCES assignees(assignee_no) ON DELETE SET NULL;
+
 
 CREATE TABLE IF NOT EXISTS assets (
     asset_no       INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -113,7 +109,7 @@ CREATE TABLE IF NOT EXISTS lending_logs (
     lent_at        DATETIME,
     planned_use_at DATETIME,
     returned_at    DATETIME,
-    status         ENUM('pending_signature','active','returned') DEFAULT 'pending_signature',
+    status         ENUM('pending_signature','pending_approval', 'active','returned') DEFAULT 'pending_signature',
     notes          TEXT,
     created_at     DATETIME,
     updated_at     DATETIME,
@@ -215,4 +211,47 @@ CREATE TABLE IF NOT EXISTS email_otps (
     INDEX idx_email_otps_user_no (user_no),
     INDEX idx_email_otps_expires_at (expires_at),
     CONSTRAINT fk_email_otps_user FOREIGN KEY (user_no) REFERENCES users(user_no) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS approval_requests (
+    approval_request_no INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    approval_uuid       VARCHAR(36),
+    lending_log_no      INT UNSIGNED NOT NULL,
+    approver_user_no    INT UNSIGNED NOT NULL,
+    approval_token      VARCHAR(255),
+    requested_at        DATETIME,
+    decided_at          DATETIME,
+    status              ENUM('pending','approved','rejected') DEFAULT 'pending',
+    signature_data      LONGTEXT,
+    notes               TEXT,
+    created_at          DATETIME,
+    updated_at          DATETIME,
+    deleted_at          DATETIME,
+    UNIQUE INDEX idx_approval_requests_token (approval_token),
+    INDEX idx_approval_requests_lending_log_no (lending_log_no),
+    INDEX idx_approval_requests_approver_user_no (approver_user_no),
+    INDEX idx_approval_requests_deleted_at (deleted_at),
+    CONSTRAINT fk_approval_requests_lending_log FOREIGN KEY (lending_log_no)
+        REFERENCES lending_logs(lending_log_no) ON DELETE CASCADE,
+    CONSTRAINT fk_approval_requests_approver FOREIGN KEY (approver_user_no)
+        REFERENCES users(user_no) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    notification_no INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_no         INT UNSIGNED NOT NULL,
+    kind            VARCHAR(100) NOT NULL,
+    title           VARCHAR(255) NOT NULL,
+    body            TEXT,
+    reference_type  VARCHAR(100),
+    reference_no    INT UNSIGNED,
+    read_at         DATETIME,
+    created_at      DATETIME,
+    updated_at      DATETIME,
+    deleted_at      DATETIME,
+    INDEX idx_notifications_user_no (user_no),
+    INDEX idx_notifications_read_at (read_at),
+    INDEX idx_notifications_deleted_at (deleted_at),
+    CONSTRAINT fk_notifications_user FOREIGN KEY (user_no)
+        REFERENCES users(user_no) ON DELETE CASCADE
 );

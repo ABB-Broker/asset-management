@@ -45,21 +45,23 @@ func (a *App) AssetsIndex(c fiber.Ctx) error {
 }
 
 // AssetDetailsIndex renders the asset details page.
-// Stored photo paths are converted to full URLs before being passed to the
-// template so the frontend receives ready-to-use image src values.
 func (a *App) AssetDetailsIndex(c fiber.Ctx) error {
 	var asset models.Asset
 	var cats []models.Category
 	a.DB.Order("category_no asc").Find(&cats)
 	var locations []models.Location
 	a.DB.Order("location_no asc").Find(&locations)
+
 	if err := a.DB.
 		Preload("Category").
-		Preload("Location"). // ← was Room
+		Preload("Location").
 		Preload("AssetPhotos").
-		Preload("LendingLogs").                                                               // ← new
-		Preload("LendingLogs.Assignee", func(db *gorm.DB) *gorm.DB { return db.Unscoped() }). // ← new
-		Preload("LendingLogs.HandoverForm").                                                  // ← new
+		Preload("LendingLogs", func(db *gorm.DB) *gorm.DB {
+			return db.Order("lending_log_no DESC")
+		}).
+		Preload("LendingLogs.Assignee", func(db *gorm.DB) *gorm.DB { return db.Unscoped() }).
+		Preload("LendingLogs.HandoverForm").
+		Preload("LendingLogs.ApprovalRequest").
 		Preload("PICs").
 		Preload("PICs.User").
 		Where("asset_uuid = ?", c.Query("uuid")).
@@ -67,41 +69,77 @@ func (a *App) AssetDetailsIndex(c fiber.Ctx) error {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("asset not found"))
 	}
 
-	// Convert relative paths → full URLs for the template.
 	for i := range asset.AssetPhotos {
 		asset.AssetPhotos[i].PhotoUrl = utils.WithBaseURL(asset.AssetPhotos[i].PhotoUrl)
+	}
+
+	// Find the currently active/pending lending log (if any) to show the
+	// "currently borrowed" badge and disable the lend form in the template.
+	var activeLending *models.LendingLog
+	for i := range asset.LendingLogs {
+		s := asset.LendingLogs[i].Status
+		if s == "pending_signature" || s == "pending_approval" || s == "active" {
+			activeLending = &asset.LendingLogs[i]
+			break
+		}
 	}
 
 	var assignees []models.Assignee
 	a.DB.Order("assignee_no asc").Find(&assignees)
 
-	var currentUser *models.User
-	if username, ok := c.Locals("username").(string); ok && username != "" {
-		var u models.User
-		if err := a.DB.Where("username = ? AND active = ?", username, true).First(&u).Error; err == nil {
-			currentUser = &u
+	// Look up the logged-in user and their linked assignee record.
+	// NOTE: We query assignees by user_no — there is no reverse FK on users.
+	currentUser, _ := a.currentUserFromCtx(c)
+	var currentAssigneeNo uint
+	if currentUser != nil {
+		var linkedAssignee models.Assignee
+		if err := a.DB.Where("user_no = ?", currentUser.UserNo).First(&linkedAssignee).Error; err == nil {
+			currentAssigneeNo = linkedAssignee.AssigneeNo
 		}
-	}
-
-	var currentAssigneeID uint
-	if currentUser != nil && currentUser.AssigneeNo != nil {
-		currentAssigneeID = *currentUser.AssigneeNo
 	}
 
 	var users []models.User
 	a.DB.Where("active = ? AND deleted_at IS NULL", true).Order("user_no asc").Find(&users)
 
+	// PIC eligibility flags passed to the template.
+	// CanLend:       needs >= 1 PIC on the asset.
+	// CanBorrowSelf: if current user IS a PIC, needs >= 2 PICs (so another can approve);
+	//               otherwise needs >= 1 PIC.
+	picCount := len(asset.PICs)
+	currentUserIsPIC := false
+	if currentUser != nil {
+		for _, p := range asset.PICs {
+			if p.UserNo == currentUser.UserNo {
+				currentUserIsPIC = true
+				break
+			}
+		}
+	}
+	canLend := picCount >= 1
+	canBorrowSelf := false
+	if currentAssigneeNo > 0 {
+		if currentUserIsPIC {
+			canBorrowSelf = picCount >= 2
+		} else {
+			canBorrowSelf = picCount >= 1
+		}
+	}
+
 	return c.Render("asset_details", fiber.Map{
 		"Title":             asset.Name,
 		"CurrentPath":       "/assets",
+		"Message":           c.Query("message"),
+		"Error":             c.Query("error"),
 		"Asset":             asset,
 		"Categories":        cats,
 		"Locations":         locations,
 		"Assignees":         assignees,
 		"Users":             users,
 		"CurrentUser":       currentUser,
-		"CurrentAssigneeID": currentAssigneeID, // 0 if not applicable
-
+		"CurrentAssigneeNo": currentAssigneeNo, // 0 if not linked
+		"ActiveLending":     activeLending,     // nil if asset is free
+		"CanLend":           canLend,           // false when no PICs assigned
+		"CanBorrowSelf":     canBorrowSelf,     // false when PIC rules not satisfied
 	})
 }
 
@@ -116,12 +154,10 @@ func (a *App) AssetsCreate(c fiber.Ctx) error {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape(err.Error()))
 	}
 
-	// AssetUUID is set automatically by the BeforeCreate GORM hook.
 	if err := a.DB.Create(&asset).Error; err != nil {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("failed to create asset"))
 	}
 
-	// Persist any newly-uploaded photos.
 	a.saveNewAssetPhotos(c, &asset)
 
 	return c.Redirect().To("/assets?message=" + url.QueryEscape("asset created"))
@@ -131,8 +167,7 @@ func (a *App) AssetsCreate(c fiber.Ctx) error {
 // UPDATE
 // ─────────────────────────────────────────────────────────────────────────────
 
-// AssetsUpdate saves changes to an existing asset, including photo additions,
-// replacements, renames and deletions.
+// AssetsUpdate saves changes to an existing asset.
 func (a *App) AssetsUpdate(c fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.FormValue("id"), 10, 64)
 	if err != nil || id == 0 {
@@ -149,7 +184,6 @@ func (a *App) AssetsUpdate(c fiber.Ctx) error {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape(err.Error()))
 	}
 
-	// 1. Update scalar fields.
 	a.DB.Model(&existing).Updates(map[string]any{
 		"name":           updated.Name,
 		"description":    updated.Description,
@@ -161,13 +195,8 @@ func (a *App) AssetsUpdate(c fiber.Ctx) error {
 		"purchase_price": updated.PurchasePrice,
 	})
 
-	// 2. Delete photos that were marked for removal.
 	a.deleteAssetPhotos(c, &existing)
-
-	// 3. Rename / replace existing photos.
 	a.updateExistingAssetPhotos(c, &existing)
-
-	// 4. Add brand-new photos.
 	a.saveNewAssetPhotos(c, &existing)
 
 	return c.Redirect().To("/assets?message=" + url.QueryEscape("asset updated"))
@@ -189,12 +218,10 @@ func (a *App) AssetsDelete(c fiber.Ctx) error {
 		return c.Redirect().To("/assets?error=" + url.QueryEscape("asset not found"))
 	}
 
-	// Remove photo files from disk first.
 	for _, p := range asset.AssetPhotos {
 		utils.DeleteFile(p.PhotoUrl)
 	}
 
-	// ON DELETE CASCADE removes AssetPhotos rows automatically.
 	a.DB.Delete(&asset)
 
 	return c.Redirect().To("/assets?message=" + url.QueryEscape("asset deleted"))
@@ -204,7 +231,6 @@ func (a *App) AssetsDelete(c fiber.Ctx) error {
 // Form parsing helper
 // ─────────────────────────────────────────────────────────────────────────────
 
-// assetFromCtx parses and validates asset fields from a Fiber form context.
 func (a *App) assetFromCtx(c fiber.Ctx) (models.Asset, error) {
 	name := strings.TrimSpace(c.FormValue("name"))
 	serial := strings.TrimSpace(c.FormValue("serial_number"))
@@ -223,7 +249,6 @@ func (a *App) assetFromCtx(c fiber.Ctx) (models.Asset, error) {
 		assetType = "fixed"
 	}
 
-	// Replace lines 254–261 with:
 	var locationID *uint
 	if raw := strings.TrimSpace(c.FormValue("location_no")); raw != "" {
 		if n, err := strconv.Atoi(raw); err == nil && n > 0 {
@@ -251,7 +276,7 @@ func (a *App) assetFromCtx(c fiber.Ctx) (models.Asset, error) {
 		return models.Asset{}, fmt.Errorf("invalid purchase price")
 	}
 
-	m := models.Asset{
+	return models.Asset{
 		Name:          name,
 		Description:   description,
 		AssetType:     assetType,
@@ -260,16 +285,13 @@ func (a *App) assetFromCtx(c fiber.Ctx) (models.Asset, error) {
 		SerialNumber:  serial,
 		PurchaseDate:  purchaseDate,
 		PurchasePrice: uint(price64),
-	}
-	return m, nil
+	}, nil
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Photo helper methods
+// Photo helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-// saveNewAssetPhotos reads `new_photos[]` and `new_photo_name[]` from the
-// multipart form and saves each file to disk, creating an AssetPhotos DB row.
 func (a *App) saveNewAssetPhotos(c fiber.Ctx, asset *models.Asset) {
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -298,8 +320,6 @@ func (a *App) saveNewAssetPhotos(c fiber.Ctx, asset *models.Asset) {
 	}
 }
 
-// deleteAssetPhotos processes the `delete_photo[]` form values, removing the
-// corresponding files from disk and deleting their DB rows.
 func (a *App) deleteAssetPhotos(c fiber.Ctx, asset *models.Asset) {
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -325,16 +345,12 @@ func (a *App) deleteAssetPhotos(c fiber.Ctx, asset *models.Asset) {
 	}
 }
 
-// updateExistingAssetPhotos processes:
-//   - `existing_photo_name[{id}]` — rename a photo
-//   - `replace_photo[{id}]`       — swap the file while keeping the DB row
 func (a *App) updateExistingAssetPhotos(c fiber.Ctx, asset *models.Asset) {
 	form, err := c.MultipartForm()
 	if err != nil {
 		return
 	}
 
-	// Collect all photo IDs referenced in the form.
 	photoIDs := map[uint]struct{}{}
 	for key := range form.Value {
 		if strings.HasPrefix(key, "existing_photo_name[") {
@@ -364,7 +380,6 @@ func (a *App) updateExistingAssetPhotos(c fiber.Ctx, asset *models.Asset) {
 
 		updates := map[string]any{}
 
-		// Rename?
 		nameKey := "existing_photo_name[" + strconv.FormatUint(uint64(photoID), 10) + "]"
 		if vals := form.Value[nameKey]; len(vals) > 0 {
 			if newName := strings.TrimSpace(vals[0]); newName != "" && newName != photo.Name {
@@ -372,7 +387,6 @@ func (a *App) updateExistingAssetPhotos(c fiber.Ctx, asset *models.Asset) {
 			}
 		}
 
-		// Replace file?
 		replaceKey := "replace_photo[" + strconv.FormatUint(uint64(photoID), 10) + "]"
 		if replaceFiles, ok := form.File[replaceKey]; ok && len(replaceFiles) > 0 {
 			newPath, err := utils.SaveFile(replaceFiles[0], asset.AssetUUID, "assets")
@@ -388,15 +402,20 @@ func (a *App) updateExistingAssetPhotos(c fiber.Ctx, asset *models.Asset) {
 	}
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Public / QR handlers
+// ─────────────────────────────────────────────────────────────────────────────
+
 // AssetDetailsPublic renders a read-only asset details page for QR-code visitors.
+//
 // GET /qr/assets/detail?uuid=...
-// Uses OptionalAuth: if the visitor is logged in, actions are still available.
 func (a *App) AssetDetailsPublic(c fiber.Ctx) error {
 	var asset models.Asset
 	var cats []models.Category
 	a.DB.Order("category_no asc").Find(&cats)
 	var locations []models.Location
 	a.DB.Order("location_no asc").Find(&locations)
+
 	if err := a.DB.
 		Preload("Category").
 		Preload("Location").
@@ -418,19 +437,51 @@ func (a *App) AssetDetailsPublic(c fiber.Ctx) error {
 	var assignees []models.Assignee
 	a.DB.Order("assignee_no asc").Find(&assignees)
 
-	// Check whether the visitor is logged in (OptionalAuth sets this).
 	username, _ := c.Locals("username").(string)
 	isLoggedIn := username != ""
 
+	// NOTE: We no longer use user.AssigneeNo — we query by user_no on assignees.
 	var currentUser *models.User
-	var currentAssigneeID uint
+	var currentAssigneeNo uint
 	if isLoggedIn {
 		var u models.User
 		if err := a.DB.Where("username = ? AND active = ?", username, true).First(&u).Error; err == nil {
 			currentUser = &u
-			if u.AssigneeNo != nil {
-				currentAssigneeID = *u.AssigneeNo
+			var linkedAssignee models.Assignee
+			if err := a.DB.Where("user_no = ?", u.UserNo).First(&linkedAssignee).Error; err == nil {
+				currentAssigneeNo = linkedAssignee.AssigneeNo
 			}
+		}
+	}
+
+	// Find the currently active/pending lending log (if any).
+	var activeLending *models.LendingLog
+	for i := range asset.LendingLogs {
+		s := asset.LendingLogs[i].Status
+		if s == "pending_signature" || s == "pending_approval" || s == "active" {
+			activeLending = &asset.LendingLogs[i]
+			break
+		}
+	}
+
+	// PIC eligibility flags (same rules as AssetDetailsIndex).
+	picCount := len(asset.PICs)
+	currentUserIsPIC := false
+	if currentUser != nil {
+		for _, p := range asset.PICs {
+			if p.UserNo == currentUser.UserNo {
+				currentUserIsPIC = true
+				break
+			}
+		}
+	}
+	canLend := picCount >= 1
+	canBorrowSelf := false
+	if currentAssigneeNo > 0 {
+		if currentUserIsPIC {
+			canBorrowSelf = picCount >= 2
+		} else {
+			canBorrowSelf = picCount >= 1
 		}
 	}
 
@@ -442,13 +493,17 @@ func (a *App) AssetDetailsPublic(c fiber.Ctx) error {
 		"Assignees":         assignees,
 		"IsLoggedIn":        isLoggedIn,
 		"CurrentUser":       currentUser,
-		"CurrentAssigneeID": currentAssigneeID,
+		"CurrentAssigneeNo": currentAssigneeNo,
+		"CurrentAssigneeID": currentAssigneeNo,
+		"ActiveLending":     activeLending,
+		"CanLend":           canLend,
+		"CanBorrowSelf":     canBorrowSelf,
 	})
 }
 
 // LocationDetailsPublic renders a read-only location details page for QR-code visitors.
+//
 // GET /qr/locations/detail?uuid=...
-// Uses OptionalAuth: if the visitor is logged in, actions are still available.
 func (a *App) LocationDetailsPublic(c fiber.Ctx) error {
 	var location models.Location
 	if err := a.DB.Preload("Assets").Preload("Assets.Category").Preload("LocationPhotos").Where("location_uuid = ?", c.Query("uuid")).First(&location).Error; err != nil {

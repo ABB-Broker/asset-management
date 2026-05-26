@@ -2,8 +2,21 @@
 <div class="d-flex justify-content-center mt-5">
   <div
     class="card border-0 shadow-sm rounded-3 text-center p-5"
-    style="max-width: 480px"
+    style="max-width: 520px"
   >
+    {{if .PendingApproval}}
+    <i class="bi bi-hourglass-split text-warning fs-1 mb-3"></i>
+    <h5 class="fw-bold">Signature Received — Awaiting Approval</h5>
+    <p class="text-muted">
+      Thank you, <strong>{{.Assignee.FullName}}</strong>. Your signature for
+      <strong>{{.Asset.Name}}</strong> has been recorded.
+    </p>
+    <p class="text-muted small mb-0">
+      The request is now pending approval from
+      <strong>{{.ApproverFullName}}</strong>. Once approved, your Handover
+      Receipt will be sent to your email.
+    </p>
+    {{else}}
     <i class="bi bi-check-circle-fill text-success fs-1 mb-3"></i>
     <h5 class="fw-bold">Signed Successfully</h5>
     <p class="text-muted">
@@ -11,6 +24,7 @@
       <strong>{{.Asset.Name}}</strong> has been recorded. A Handover Receipt
       will be sent to your email shortly.
     </p>
+    {{end}}
   </div>
 </div>
 {{template "layout_public_bottom" .}}

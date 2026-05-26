@@ -78,7 +78,7 @@ func (a *App) PICSUpdate(c fiber.Ctx) error {
 func (a *App) PICSDelete(c fiber.Ctx) error {
 	picNo, err := strconv.ParseUint(c.FormValue("pic_no"), 10, 64)
 	if err != nil || picNo == 0 {
-		return c.Redirect().To("/pics?error=" + url.QueryEscape("invalid PIC id"))
+		return c.Redirect().To("/pics?error=" + url.QueryEscape("invalid PIC No"))
 	}
 	if err := a.DB.Delete(&models.PIC{}, picNo).Error; err != nil {
 		return c.Redirect().To("/pics?error=" + url.QueryEscape("failed to delete PIC record"))

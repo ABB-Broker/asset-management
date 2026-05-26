@@ -25,7 +25,7 @@
 
           <dt class="col-5 text-secondary small fw-semibold">Type</dt>
           <dd class="col-7 mb-0">
-            {{if .Assignee.UserID}}
+            {{if .Assignee.AssigneeNo}}
             <span class="badge bg-success bg-opacity-10 text-success"
               >Internal Employee</span
             >
@@ -42,7 +42,7 @@
           <dt class="col-5 text-secondary small fw-semibold">Phone</dt>
           <dd class="col-7 text-muted small mb-0">{{.Assignee.PhoneNumber}}</dd>
 
-          {{if .Assignee.UserID}}
+          {{if .Assignee.AssigneeNo}}
           <dt class="col-5 text-secondary small fw-semibold">Employee ID</dt>
           <dd class="col-7 text-muted small mb-0">{{.Assignee.EmployeeID}}</dd>
 

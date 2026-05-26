@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+  <body
+    style="
+      font-family: sans-serif;
+      background: #f1f5f9;
+      margin: 0;
+      padding: 32px;
+    "
+  >
+    <div
+      style="
+        max-width: 480px;
+        margin: auto;
+        background: #fff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      "
+    >
+      <div style="background: #0f172a; padding: 24px 32px">
+        <h2 style="color: #fff; margin: 0; font-size: 1.15rem">
+          Two-Factor Verification Code
+        </h2>
+      </div>
+
+      <div style="padding: 28px 32px; text-align: center">
+        <p style="margin-top: 0; color: #334155">
+          Hello <strong>{{.Username}}</strong>,
+        </p>
+
+        <p style="color: #334155">
+          Your one-time login code for the Asset Management System is:
+        </p>
+
+        <div
+          style="
+            background: #f0f9ff;
+            border: 2px dashed #bae6fd;
+            border-radius: 10px;
+            padding: 20px 0;
+            margin: 24px 0;
+          "
+        >
+          <span
+            style="
+              font-size: 2.4rem;
+              font-weight: 800;
+              letter-spacing: 0.35em;
+              color: #0f172a;
+            "
+          >
+            {{.Code}}
+          </span>
+        </div>
+
+        <p style="color: #64748b; font-size: 0.88rem">
+          This code expires in <strong>10 minutes</strong>. Do not share it with
+          anyone.
+        </p>
+      </div>
+
+      <div
+        style="
+          background: #f8fafc;
+          padding: 14px 32px;
+          border-top: 1px solid #e2e8f0;
+        "
+      >
+        <p style="color: #94a3b8; font-size: 0.78rem; margin: 0">
+          Information Systems Asset Management &copy; 2026
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

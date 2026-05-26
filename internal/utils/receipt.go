@@ -14,16 +14,18 @@ import (
 )
 
 type ReceiptData struct {
-	AssetName     string
-	AssetType     string
-	SerialNumber  string
-	Category      string
-	AssigneeName  string
-	AssigneeEmail string
-	AssigneePhone string
-	LentAt        time.Time
-	SignedAt      time.Time
-	SignatureData string // base64 PNG (may include "data:image/png;base64," prefix)
+	AssetName             string
+	AssetType             string
+	SerialNumber          string
+	Category              string
+	AssigneeName          string
+	AssigneeEmail         string
+	AssigneePhone         string
+	LentAt                time.Time
+	SignedAt              time.Time
+	SignatureData         string // base64 PNG (may include "data:image/png;base64," prefix)
+	ApprovalSignatureData string
+	Purpose               string
 }
 
 // GenerateHandoverReceipt creates the PDF and returns the file path.
@@ -77,47 +79,65 @@ func GenerateHandoverReceipt(data ReceiptData, formUUID string) (string, error) 
 	pdf.CellFormat(0, 9, "Lending Details", "", 1, "", false, 0, "")
 	line("Lent At", data.LentAt.Format("02 January 2006"))
 	line("Signed At", data.SignedAt.Format("02 January 2006 15:04"))
+	line("Purpose", data.Purpose)
 	pdf.Ln(8)
 
 	// Signature section
-	pdf.SetFont("Arial", "B", 10)
-	pdf.CellFormat(0, 7, "Assignee Signature:", "", 1, "", false, 0, "")
+	pdf.Ln(8)
+	pdf.SetFont("Arial", "B", 11)
+	pdf.CellFormat(0, 9, "Signatures", "", 1, "", false, 0, "")
 	pdf.Ln(2)
 
-	// Embed the actual signature image decoded from base64.
 	sigY := pdf.GetY()
-	sigEmbedded := false
-	if data.SignatureData != "" {
-		raw := data.SignatureData
-		// Strip the data-URI prefix if present (e.g. "data:image/png;base64,").
-		if idx := strings.Index(raw, ","); idx != -1 {
-			raw = raw[idx+1:]
-		}
-		imgBytes, decErr := base64.StdEncoding.DecodeString(raw)
-		if decErr == nil {
-			tmpFile := filepath.Join(dir, formUUID+"_sig.png")
-			if writeErr := os.WriteFile(tmpFile, imgBytes, 0644); writeErr == nil {
-				defer os.Remove(tmpFile)
-				pdf.ImageOptions(tmpFile, 15, sigY, 80, 30, false,
-					fpdf.ImageOptions{ImageType: "PNG", ReadDpi: true}, 0, "")
-				sigEmbedded = true
+	const sigW, sigH = 80.0, 30.0
+	const leftX, rightX = 15.0, 110.0
+
+	// ── helper: embed or draw a placeholder box ──────────────────────────
+	embedSig := func(b64data string, x, y float64, tmpName string) {
+		embedded := false
+		if b64data != "" {
+			raw := b64data
+			if idx := strings.Index(raw, ","); idx != -1 {
+				raw = raw[idx+1:]
+			}
+			imgBytes, decErr := base64.StdEncoding.DecodeString(raw)
+			if decErr == nil {
+				tmpFile := filepath.Join(dir, tmpName)
+				if writeErr := os.WriteFile(tmpFile, imgBytes, 0644); writeErr == nil {
+					defer os.Remove(tmpFile)
+					pdf.ImageOptions(tmpFile, x, y, sigW, sigH, false,
+						fpdf.ImageOptions{ImageType: "PNG", ReadDpi: true}, 0, "")
+					embedded = true
+				}
 			}
 		}
+		if !embedded {
+			pdf.SetDrawColor(200, 200, 200)
+			pdf.Rect(x, y, sigW, sigH, "D")
+			pdf.SetFont("Arial", "I", 8)
+			pdf.SetXY(x, y+sigH/2-3.5)
+			pdf.CellFormat(sigW, 7, "[Digital Signature]", "", 0, "C", false, 0, "")
+		}
 	}
-	if !sigEmbedded {
-		pdf.SetDrawColor(200, 200, 200)
-		pdf.Rect(15, sigY, 80, 30, "D")
-		pdf.SetFont("Arial", "I", 8)
-		pdf.SetXY(15, sigY+12)
-		pdf.CellFormat(80, 7, "[Digital Signature]", "", 1, "C", false, 0, "")
-	}
-	// Advance cursor past the signature box.
-	pdf.SetXY(pdf.GetX(), sigY+30)
+
+	// Labels above each box
+	pdf.SetFont("Arial", "B", 10)
+	pdf.SetXY(leftX, sigY)
+	pdf.CellFormat(sigW, 7, "Assignee Signature:", "", 0, "", false, 0, "")
+	pdf.SetXY(rightX, sigY)
+	pdf.CellFormat(sigW, 7, "Approver Signature:", "", 1, "", false, 0, "")
+
+	sigBoxY := sigY + 8
+	embedSig(data.SignatureData, leftX, sigBoxY, formUUID+"_sig.png")
+	embedSig(data.ApprovalSignatureData, rightX, sigBoxY, formUUID+"_approval_sig.png")
+
+	// Advance cursor past both boxes
+	pdf.SetXY(leftX, sigBoxY+sigH+8)
 
 	pdf.Ln(8)
 	pdf.SetFont("Arial", "I", 8)
 	pdf.CellFormat(0, 5, fmt.Sprintf("Document ID: %s", formUUID), "", 1, "", false, 0, "")
-	pdf.CellFormat(0, 5, "This document was digitally signed via the Asset Management System.", "", 1, "", false, 0, "")
+	pdf.CellFormat(0, 5, "This document was digitally signed via the Asset Management System (ISAM).", "", 1, "", false, 0, "")
 
 	outPath := filepath.Join(dir, formUUID+".pdf")
 	if err := pdf.OutputFileAndClose(outPath); err != nil {

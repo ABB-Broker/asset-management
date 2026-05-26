@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+  <body
+    style="
+      font-family: sans-serif;
+      background: #f1f5f9;
+      margin: 0;
+      padding: 32px;
+    "
+  >
+    <div
+      style="
+        max-width: 520px;
+        margin: auto;
+        background: #fff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      "
+    >
+      <div style="background: #0f172a; padding: 28px 32px">
+        <h2 style="color: #fff; margin: 0; font-size: 1.2rem">
+          Asset Handover Receipt
+        </h2>
+      </div>
+
+      <div style="padding: 28px 32px">
+        <p>{{.Greeting}}</p>
+
+        <p>
+          Thank you for signing the asset handover form. Please find your signed
+          receipt for <strong>{{.AssetName}}</strong> attached to this email.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
