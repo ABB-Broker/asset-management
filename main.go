@@ -31,7 +31,7 @@ import (
 	contribi18n "github.com/gofiber/contrib/v3/i18n"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/static"
-	"github.com/gofiber/template/html/v2"
+	"github.com/gofiber/template/html/v3"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/text/language"
@@ -92,15 +92,13 @@ func main() {
 
 	fApp := newFiberApp(h, logger)
 
-	isProduction := cfg.AppEnv == "production"
-
 	if !fiber.IsChild() {
 		log.Printf("Information Systems Asset Management starting on :%s (prefork=%v, admin: %s)",
-			cfg.Port, isProduction, cfg.AdminUsername)
+			cfg.Port, cfg.Prefork, cfg.AdminUsername)
 	}
 
 	log.Fatal(fApp.Listen(":"+cfg.Port, fiber.ListenConfig{
-		EnablePrefork:         isProduction,
+		EnablePrefork:         cfg.Prefork,
 		DisableStartupMessage: fiber.IsChild(),
 	}))
 }
@@ -110,7 +108,6 @@ func main() {
 // without triggering the prefork machinery.
 // logger may be nil; when nil a no-op zap logger is used.
 func newFiberApp(h *handlers.App, logger *zap.Logger) *fiber.App {
-
 	engine := html.New("./templates", ".html")
 
 	engine.AddFunc("safeHTML", func(s string) template.HTML {
