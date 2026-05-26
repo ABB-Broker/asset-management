@@ -1,0 +1,12 @@
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"              # Root directory where go.mod is located
+    schedule:
+      interval: "daily"        # Can be "daily", "weekly", or "monthly"
+    open-pull-requests-limit: 6
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "go"
