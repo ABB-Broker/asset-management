@@ -3,7 +3,8 @@
   --topbar-height: 56px;
 }
 body {
-  background-color: #f1f5f9;
+  background: #f8fafc;
+  min-height: 100vh;
 }
 
 /* Sidebar structural */
@@ -102,4 +103,34 @@ body {
   #main-footer {
     margin-left: 0 !important;
   }
+}
+
+.public-header {
+  background: #1e293b;
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.public-header img {
+  height: 32px;
+  width: 32px;
+}
+
+.public-header .brand {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.public-header .login-link {
+  margin-left: auto;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.public-header .login-link:hover {
+  color: #fff;
 }
