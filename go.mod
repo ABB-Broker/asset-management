@@ -7,7 +7,7 @@ require (
 	github.com/go-pdf/fpdf v0.9.0
 	github.com/gofiber/contrib/v3/i18n v1.0.5
 	github.com/gofiber/contrib/v3/swaggo v1.0.6
-	github.com/gofiber/contrib/v3/zap v1.0.5
+	github.com/gofiber/contrib/v3/zap v1.0.7
 	github.com/gofiber/fiber/v3 v3.3.0
 	github.com/gofiber/template/html/v3 v3.0.4
 	github.com/golang-migrate/migrate/v4 v4.19.1

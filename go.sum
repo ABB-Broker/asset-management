@@ -81,8 +81,8 @@ github.com/gofiber/contrib/v3/i18n v1.0.5 h1:nGc9u24JXEJWAzBJG/PX6/brB6g6wCF4Ag+
 github.com/gofiber/contrib/v3/i18n v1.0.5/go.mod h1:NW6ycdLeiWkB/K8ixEXUB9HQnK/2B1LOLArAmSCOZTM=
 github.com/gofiber/contrib/v3/swaggo v1.0.6 h1:+SXhTzbFR7/e3Zrius+5nCtdxIFMQyN4EiexZr2XjRc=
 github.com/gofiber/contrib/v3/swaggo v1.0.6/go.mod h1:qvacLbDzYTYqvvjshzSrE5GOofaPcdYDKIaA+nNFEIs=
-github.com/gofiber/contrib/v3/zap v1.0.5 h1:jsKrQTQ/RU8d2IuFTrTqrG1b0d3yT6LSwQoE1QVPILM=
-github.com/gofiber/contrib/v3/zap v1.0.5/go.mod h1:59OFdDa/2AqQnDlAnUYmoIk7eW46IsVR2tQCIVcB0I4=
+github.com/gofiber/contrib/v3/zap v1.0.7 h1:8WZJFQPGw7sQRxikaMxdOZLWyfu0MPum+VMvb6FE0YY=
+github.com/gofiber/contrib/v3/zap v1.0.7/go.mod h1:UGYV9FNDMM2jkZKRO2KJTeuC9lSB6Vuq5nN/lEa24TI=
 github.com/gofiber/fiber/v3 v3.3.0 h1:QBd3sYCqdy6Qs5gJYzSw4I4SbqL204jPqpdub/ueiw8=
 github.com/gofiber/fiber/v3 v3.3.0/go.mod h1:YH7/TAoRaU4kF8slDCtQuFJ1NzC+3MtxUI4KfvQtaIA=
 github.com/gofiber/schema v1.7.1 h1:oSJBKdgP8JeIME4TQSAqlNKTU2iBB+2RNmKi8Nsc+TI=
